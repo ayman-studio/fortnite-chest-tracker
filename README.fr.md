@@ -200,7 +200,7 @@ Installe le [SDK .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0), pu
 
 <sub>
 
-**Crédits.** 3D avec three.js, personnages, animaux, décors et curseurs de Kenney, police Anton, et une lecture des replays basée sur un projet open source : leurs licences sont dans [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Licence : [MIT](LICENSE).
+**Crédits.** 3D avec three.js, personnages, animaux, décors et curseurs de Kenney, police Anton, et une lecture des replays basée sur un projet open source : leurs licences sont dans [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Licence : le code de ce projet est sous [MIT](LICENSE) ; le décompresseur de replays qu'il inclut est sous GPL-3.0, donc l'exe téléchargeable est distribué sous GPL-3.0 (texte complet dans les notices).
 
 Images Fortnite (coffre relique, coffres pirates, jeton pirate) © Epic Games, utilisées selon la [Fan Content Policy d'Epic Games](https://www.epicgames.com/site/en-US/fan-art-policy). Ni affilié, ni approuvé, ni sponsorisé par Epic Games. Fortnite est une marque d'Epic Games, Inc.
 

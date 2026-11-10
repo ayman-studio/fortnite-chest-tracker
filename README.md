@@ -200,7 +200,7 @@ Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), th
 
 <sub>
 
-**Credits.** 3D with three.js, characters, animals, props and cursors by Kenney, Anton font, and a replay parser based on an open-source project: their licences are in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Licence: [MIT](LICENSE).
+**Credits.** 3D with three.js, characters, animals, props and cursors by Kenney, Anton font, and a replay parser based on an open-source project: their licences are in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Licence: the code of this project is under [MIT](LICENSE); the replay decompressor it includes is under GPL-3.0, so the downloadable exe is distributed under the GPL-3.0 (full text in the notices).
 
 Fortnite pictures (relic chest, pirate chests, pirate token) © Epic Games, used under the [Epic Games Fan Content Policy](https://www.epicgames.com/site/en-US/fan-art-policy). Not affiliated with, endorsed or sponsored by Epic Games. Fortnite is a trademark of Epic Games, Inc.
 

@@ -68,7 +68,7 @@ function seo(L, T, version) {
     '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Fortnite - Chest Tracker',
     description: T.meta_desc, url: URLS[L], inLanguage: L, image: og,
     operatingSystem: 'Windows 10, Windows 11', applicationCategory: 'GameApplication',
-    downloadUrl: `https://github.com/${REPO}/releases/latest`, license: 'https://opensource.org/licenses/MIT', isAccessibleForFree: true,
+    downloadUrl: `https://github.com/${REPO}/releases/latest`, license: 'https://www.gnu.org/licenses/gpl-3.0.html', // the exe, because of the GPL decompressor isAccessibleForFree: true,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
     author: { '@type': 'Person', name: 'Ayman Studio', url: 'https://x.com/ayman_studioo', sameAs: ['https://github.com/ayman-studio'] },
     ...(version ? { softwareVersion: version } : {}),

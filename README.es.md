@@ -200,7 +200,7 @@ Instala el [SDK de .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0) y
 
 <sub>
 
-**Créditos.** 3D con three.js, personajes, animales, decorados y cursores de Kenney, fuente Anton, y una lectura de repeticiones basada en un proyecto de código abierto: sus licencias están en [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Licencia: [MIT](LICENSE).
+**Créditos.** 3D con three.js, personajes, animales, decorados y cursores de Kenney, fuente Anton, y una lectura de repeticiones basada en un proyecto de código abierto: sus licencias están en [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt). Licencia: el código de este proyecto está bajo [MIT](LICENSE); el descompresor de repeticiones que incluye está bajo GPL-3.0, así que el exe descargable se distribuye bajo GPL-3.0 (texto completo en los avisos).
 
 Imágenes de Fortnite (cofre reliquia, cofres piratas, ficha pirata) © Epic Games, usadas según la [Fan Content Policy de Epic Games](https://www.epicgames.com/site/en-US/fan-art-policy). No afiliado, respaldado ni patrocinado por Epic Games. Fortnite es una marca comercial de Epic Games, Inc.
 
