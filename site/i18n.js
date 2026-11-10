@@ -78,7 +78,7 @@ window.I18N = {
     share_text: 'Count every chest you open in Fortnite. Get it on a Windows PC:', link_copied: 'Link copied: open it on your PC', copy_fail: "Couldn't copy",
     hud_style: 'HUD style', calc_range: 'Number of chests (log scale)',
     gal_prev: 'Previous screenshot', gal_next: 'Next screenshot', foot_disc: 'Suggest an idea', foot_legal: 'Credits & legal', close: 'Close',
-    og_alt: 'Fortnite - Chest Tracker: the in-game HUD and the 3D island of the app',
+    og_alt: 'Fortnite - Chest Tracker: free chest counter for Windows, over the 3D island of the app',
     soon: 'Coming soon',
   },
   fr: {
@@ -157,7 +157,7 @@ window.I18N = {
     share_text: 'Compte chaque coffre que tu ouvres dans Fortnite. À télécharger sur un PC Windows :', link_copied: 'Lien copié : ouvre-le sur ton PC', copy_fail: 'Copie impossible',
     hud_style: 'Style du HUD', calc_range: 'Nombre de coffres (échelle logarithmique)',
     gal_prev: 'Capture précédente', gal_next: 'Capture suivante', foot_disc: 'Proposer une idée', foot_legal: 'Crédits et mentions légales', close: 'Fermer',
-    og_alt: "Fortnite - Chest Tracker : le HUD en jeu et l'île 3D de l'appli",
+    og_alt: "Fortnite - Chest Tracker : compteur de coffres gratuit pour Windows, sur l'île 3D de l'appli",
     soon: 'Bientôt disponible',
   },
   es: {
@@ -236,7 +236,7 @@ window.I18N = {
     share_text: 'Cuenta cada cofre que abres en Fortnite. Descárgala en un PC con Windows:', link_copied: 'Enlace copiado: ábrelo en tu PC', copy_fail: 'No se pudo copiar',
     hud_style: 'Estilo del HUD', calc_range: 'Número de cofres (escala logarítmica)',
     gal_prev: 'Captura anterior', gal_next: 'Captura siguiente', foot_disc: 'Proponer una idea', foot_legal: 'Créditos y aviso legal', close: 'Cerrar',
-    og_alt: 'Fortnite - Chest Tracker: el HUD en el juego y la isla 3D de la app',
+    og_alt: 'Fortnite - Chest Tracker: contador de cofres gratis para Windows, sobre la isla 3D de la app',
     soon: 'Próximamente',
   },
 };
