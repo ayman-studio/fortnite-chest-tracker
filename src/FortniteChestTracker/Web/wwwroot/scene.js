@@ -930,7 +930,9 @@ function init() {
   let justDrawn = false;
   renderer.setAnimationLoop((now) => {
     if (!active || document.hidden) { lastFrame = now; justDrawn = false; return; }
-    if (justDrawn) { cost = cost ? cost * 0.8 + (now - lastFrame) * 0.2 : now - lastFrame; justDrawn = false; }
+    // (one slow frame, like the first ones while the models arrive and the shaders compile, counts as 60 ms at most:
+    // it must not slow the scene down for seconds afterwards; only frames that stay slow do)
+    if (justDrawn) { const c = Math.min(60, now - lastFrame); cost = cost ? cost * 0.8 + c * 0.2 : c; justDrawn = false; }
     // a match is being played: leave the GPU to the game; window in the background: no need for smooth motion
     const fps = reduced ? 1 : live ? 12 : software ? 5 : document.hasFocus() ? 120 : 30;
     const wait = Math.max(1000 / fps - 0.5, cost > 25 ? cost * 2 : 0);
