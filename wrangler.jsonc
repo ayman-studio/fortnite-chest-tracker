@@ -1,0 +1,14 @@
+// Cloudflare Workers (static assets only): the landing site built by `bash site/build.sh dist`.
+// _headers and _redirects in site/ are copied into dist/ and applied by Cloudflare.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fortnite-chest-tracker",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // /fr -> /fr/, /index.html -> /
+    "html_handling": "auto-trailing-slash",
+    // unknown paths get 404.html with a real 404 status
+    "not_found_handling": "404-page"
+  }
+}

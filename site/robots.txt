@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fortnite-chest-tracker.com/sitemap.xml

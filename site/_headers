@@ -1,0 +1,38 @@
+# Cloudflare response headers (https://developers.cloudflare.com/workers/static-assets/headers/).
+# Headers of every matching rule are combined, so Cache-Control is only ever set by one rule per path.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  X-Frame-Options: SAMEORIGIN
+
+# Pages: always checked again (a new text or release shows at once)
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/fr/*
+  Cache-Control: public, max-age=0, must-revalidate
+/es/*
+  Cache-Control: public, max-age=0, must-revalidate
+/404.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The Anton subset never changes (a new one would get a new name)
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Pictures, 3D models and three.js: their names are not fingerprinted, so a few days only (then refreshed in the background)
+/models/*
+  Cache-Control: public, max-age=259200, stale-while-revalidate=604800
+/vendor/*
+  Cache-Control: public, max-age=259200, stale-while-revalidate=604800
+/img/*
+  Cache-Control: public, max-age=259200, stale-while-revalidate=604800
+/cursors/*
+  Cache-Control: public, max-age=259200, stale-while-revalidate=604800
+/shots/*
+  Cache-Control: public, max-age=259200, stale-while-revalidate=604800
+/og/*
+  Cache-Control: public, max-age=259200, stale-while-revalidate=604800
+/icons/*
+  Cache-Control: public, max-age=259200, stale-while-revalidate=604800

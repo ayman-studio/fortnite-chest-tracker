@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page not found · Fortnite - Chest Tracker</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#071447">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="nf">
+<main class="nf-in">
+  <a class="brand" href="./"><img src="img/relic-chest.webp" alt="" width="40" height="40"><span><small>FORTNITE</small><b>CHEST <em>TRACKER</em></b></span></a>
+  <img class="nf-chest" src="img/chest-pirate.webp" alt="" width="160" height="160">
+  <p class="nf-code">404</p>
+  <h1 id="nf-title">This chest is empty</h1>
+  <p class="nf-sub" id="nf-sub">The page you are looking for does not exist or has moved.</p>
+  <a class="btn btn-lime btn-xl" id="nf-home" href="./">Back to the home page</a>
+</main>
+<script>
+(function () {
+  var T = {
+    fr: ['Ce coffre est vide', "La page que tu cherches n'existe pas ou a changé d'adresse.", "Retour à l'accueil", 'Page introuvable', 'fr/'],
+    es: ['Este cofre está vacío', 'La página que buscas no existe o ha cambiado de dirección.', 'Volver al inicio', 'Página no encontrada', 'es/'],
+  };
+  var l = null;
+  try { l = localStorage.getItem('cct-lang'); } catch (e) { /* storage blocked */ }
+  if (!l) l = (navigator.language || '').slice(0, 2).toLowerCase();
+  var m = location.pathname.match(/\/(fr|es)\//);
+  if (m) l = m[1];
+  var t = T[l];
+  if (!t) return;
+  document.documentElement.lang = l;
+  document.title = t[3] + ' · Fortnite - Chest Tracker';
+  document.getElementById('nf-title').textContent = t[0];
+  document.getElementById('nf-sub').textContent = t[1];
+  var home = document.getElementById('nf-home');
+  home.textContent = t[2];
+  home.setAttribute('href', t[4]);
+})();
+</script>
+</body>
+</html>

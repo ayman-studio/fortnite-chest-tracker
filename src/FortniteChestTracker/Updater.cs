@@ -1,0 +1,192 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+
+namespace FortniteChestTracker;
+
+public sealed record UpdateInfo(Version Version, string Tag, string AssetUrl, long Size, string Sha256, string PageUrl);
+
+/// <summary>
+/// Checks the latest GitHub release and replaces the running exe with it. The running exe is renamed (Windows allows
+/// that), the new one takes its place and is started; the old file is deleted at the next launch.
+/// This is the only network access of the tool, and it can be turned off in the settings.
+/// </summary>
+public static class Updater
+{
+    private static string ApiUrl => Environment.GetEnvironmentVariable("FCT_UPDATE_API")
+        ?? $"https://api.github.com/repos/{AppInfo.UpdateRepo}/releases/latest";
+
+    private static HttpClient NewClient(TimeSpan timeout)
+    {
+        var http = new HttpClient { Timeout = timeout };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd($"FortniteChestTracker/{AppInfo.VersionText}");
+        http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        return http;
+    }
+
+    /// <summary>
+    /// The newer release (or null), and whether GitHub answered at all: lets the settings page tell
+    /// "you already have the latest version" apart from "GitHub cannot be reached".
+    /// </summary>
+    public static async Task<(UpdateInfo? Update, bool Reached)> CheckDetailedAsync()
+    {
+        if (!AppInfo.UpdatesAvailable && Environment.GetEnvironmentVariable("FCT_UPDATE_API") == null)
+        {
+            return (null, false); // local build: no repository to update from
+        }
+        try
+        {
+            using var http = NewClient(TimeSpan.FromSeconds(10));
+            using var response = await http.GetAsync(ApiUrl);
+            if (!response.IsSuccessStatusCode)
+            {
+                return (null, false);
+            }
+            return (Parse(await response.Content.ReadAsStringAsync(), AppInfo.Version), true);
+        }
+        catch
+        {
+            return (null, false);
+        }
+    }
+
+    /// <summary>
+    /// The release described by the GitHub API answer, if it is newer than <paramref name="current"/> and carries
+    /// the exe with its SHA-256 digest (GitHub computes it for every asset): an exe that cannot be verified is never
+    /// offered. The exe is the asset <see cref="AppInfo.ExeName"/>, else one under the 1.0.x name.
+    /// </summary>
+    internal static UpdateInfo? Parse(string json, Version current)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("draft", out var draft) && draft.GetBoolean()
+                || root.TryGetProperty("prerelease", out var pre) && pre.GetBoolean())
+            {
+                return null;
+            }
+            var tag = root.GetProperty("tag_name").GetString() ?? "";
+            if (!Version.TryParse(tag.TrimStart('v', 'V'), out var version) || Normalize(version) <= Normalize(current))
+            {
+                return null;
+            }
+            var assets = root.GetProperty("assets").EnumerateArray().ToList();
+            var index = new[] { AppInfo.ExeName, Legacy.AssetName }
+                .Select(name => assets.FindIndex(a => string.Equals(a.GetProperty("name").GetString(), name, StringComparison.OrdinalIgnoreCase)))
+                .FirstOrDefault(i => i >= 0, -1);
+            if (index >= 0)
+            {
+                var asset = assets[index];
+                if (!asset.TryGetProperty("digest", out var digest) || digest.GetString() is not { } d
+                    || !d.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase) || d.Length != 7 + 64)
+                {
+                    return null;
+                }
+                var url = asset.GetProperty("browser_download_url").GetString();
+                if (url == null || !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+                var pageUrl = root.TryGetProperty("html_url", out var page) ? page.GetString() : null;
+                return new UpdateInfo(version, tag, url, asset.GetProperty("size").GetInt64(), d[7..],
+                    pageUrl != null && pageUrl.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) ? pageUrl : AppInfo.RepoUrl);
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static Version Normalize(Version v) => new(v.Major, v.Minor, Math.Max(0, v.Build));
+
+    /// <summary>Downloads and puts the new exe in place. Returns null when done, else the reason it failed.</summary>
+    public static string? Install(UpdateInfo update)
+    {
+        var exe = AppInfo.ExePath;
+        if (exe == null)
+        {
+            return L.T("mise à jour possible seulement depuis FortniteChestTracker.exe", "update only possible from FortniteChestTracker.exe", "actualización posible solo desde FortniteChestTracker.exe");
+        }
+        var download = exe + ".download";
+        var old = exe + ".old";
+        try
+        {
+            using (var http = NewClient(TimeSpan.FromMinutes(5)))
+            using (var source = http.GetStreamAsync(update.AssetUrl).GetAwaiter().GetResult())
+            using (var target = File.Create(download))
+            {
+                source.CopyTo(target);
+            }
+
+            var info = new FileInfo(download);
+            if (info.Length != update.Size)
+            {
+                throw new IOException(L.T("téléchargement incomplet", "incomplete download", "descarga incompleta"));
+            }
+            using (var fs = File.OpenRead(download))
+            {
+                if (fs.ReadByte() != 'M' || fs.ReadByte() != 'Z')
+                {
+                    throw new IOException(L.T("le fichier téléchargé n'est pas un exe", "the downloaded file is not an exe", "el archivo descargado no es un exe"));
+                }
+                fs.Position = 0;
+                var hash = Convert.ToHexString(SHA256.HashData(fs));
+                if (!hash.Equals(update.Sha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new IOException(L.T("empreinte SHA-256 incorrecte", "wrong SHA-256 checksum", "suma de comprobación SHA-256 incorrecta"));
+                }
+            }
+
+            // The standby process may run the current exe: stop it (it is restarted from the new exe).
+            if (OperatingSystem.IsWindows())
+            {
+                FortniteWatch.StopStandby();
+            }
+            if (File.Exists(old))
+            {
+                try { File.Delete(old); } catch { old = exe + $".{DateTime.Now:yyyyMMddHHmmss}.old"; }
+            }
+            File.Move(exe, old);
+            File.Move(download, exe);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            try { File.Delete(download); } catch { }
+            // The current exe was already renamed: put it back, or the shortcut and the Run key point to nothing.
+            // (the "open with Fortnite" watcher is started again by the counter at its next start)
+            try { if (!File.Exists(exe) && File.Exists(old)) File.Move(old, exe); } catch { }
+            return ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// Deletes the files left by the previous update (also under the 1.0.x file name), and the installed copy of 1.0.x
+    /// once it was renamed.
+    /// </summary>
+    public static void CleanupOld()
+    {
+        var exe = AppInfo.ExePath;
+        var dir = exe != null ? Path.GetDirectoryName(exe) : null;
+        if (dir == null)
+        {
+            return;
+        }
+        foreach (var name in new[] { Path.GetFileName(exe!), Legacy.ExeName }.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            foreach (var f in Directory.EnumerateFiles(dir, name + ".*"))
+            {
+                if (f.EndsWith(".old", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".download", StringComparison.OrdinalIgnoreCase))
+                {
+                    try { File.Delete(f); } catch { /* still in use: next time */ }
+                }
+            }
+        }
+        if (OperatingSystem.IsWindows())
+        {
+            Installer.DeleteLegacyExe(exe);
+        }
+    }
+}

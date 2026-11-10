@@ -1,0 +1,14 @@
+<Project>
+  <!-- Shared by every project of the solution (app, replay parser, tests). -->
+  <PropertyGroup>
+    <Product>Fortnite - Chest Tracker</Product>
+    <Authors>ayman-studio</Authors>
+    <Company>ayman-studio</Company>
+    <Copyright>Copyright (c) 2026 ayman-studio</Copyright>
+    <RepositoryUrl>https://github.com/ayman-studio/fortnite-chest-tracker</RepositoryUrl>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625;CS8629;CS0168;CS0219;CS1998;CS8619;CS8620;CS8765;CS8767</NoWarn>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,10 @@
+# Cloudflare redirects (https://developers.cloudflare.com/workers/static-assets/redirects/).
+# /index.html -> / and /fr -> /fr/ are already done by Cloudflare itself (wrangler.jsonc), so they are not repeated here.
+
+# The site used to live under /fortnite-chest-tracker/ (GitHub Pages): keep old links working
+/fortnite-chest-tracker /  301
+/fortnite-chest-tracker/* /:splat 301
+
+# English is the root page
+/en /  301
+/en/* /  301

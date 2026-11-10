@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Windows app without a console: web interface, tray icon and an invisible standby process. -->
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>FortniteChestTracker</AssemblyName>
+    <RootNamespace>FortniteChestTracker</RootNamespace>
+    <Version>1.1.0</Version>
+    <!-- GitHub repository ("owner/name") whose releases update the exe. Empty = local build, updates unavailable.
+         The GitHub workflow passes its own repository: -p:TrackerRepo=${{ github.repository }} -->
+    <TrackerRepo Condition="'$(TrackerRepo)' == ''"></TrackerRepo>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <!-- Single-file publish: the parser discovers its types by reflection, so no trimming. -->
+    <PublishTrimmed>false</PublishTrimmed>
+    <!-- Small idle footprint: workstation, non-concurrent GC (no background GC thread) and a GC that gives memory back. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Idle most of the time: the GC compacts more to give memory back (about -35 % private memory at rest). -->
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="UpdateRepo" Value="$(TrackerRepo)" />
+    <InternalsVisibleTo Include="FortniteChestTracker.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The web interface and the icon live inside the exe (single file, nothing to install next to it). -->
+    <EmbeddedResource Include="Web\wwwroot\*" LogicalName="FortniteChestTracker.wwwroot.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Web/wwwroot/img/*" LogicalName="FortniteChestTracker.wwwroot.img.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Web/wwwroot/cursors/*" LogicalName="FortniteChestTracker.wwwroot.cursors.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Web/wwwroot/models/*" LogicalName="FortniteChestTracker.wwwroot.models.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Web/wwwroot/fonts/*" LogicalName="FortniteChestTracker.wwwroot.fonts.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Assets/hud/*" LogicalName="FortniteChestTracker.hud.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Web/wwwroot/vendor/three/*" LogicalName="FortniteChestTracker.wwwroot.vendor.three.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Assets/app.ico" LogicalName="FortniteChestTracker.app.ico" />
+    <!-- Licence notices of the third-party code and assets, served at /notices. -->
+    <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.txt" LogicalName="FortniteChestTracker.notices.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Replay\FortniteReplayReader\FortniteReplayReader.csproj" />
+  </ItemGroup>
+</Project>

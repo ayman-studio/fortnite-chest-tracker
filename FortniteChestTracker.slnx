@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FortniteChestTracker/FortniteChestTracker.csproj" />
+  </Folder>
+  <Folder Name="/src/Replay/">
+    <Project Path="src/Replay/FortniteReplayReader/FortniteReplayReader.csproj" />
+    <Project Path="src/Replay/OozSharp/OozSharp.csproj" />
+    <Project Path="src/Replay/Unreal.Core/Unreal.Core.csproj" />
+    <Project Path="src/Replay/Unreal.Encryption/Unreal.Encryption.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FortniteChestTracker.Tests/FortniteChestTracker.Tests.csproj" />
+  </Folder>
+</Solution>

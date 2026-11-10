@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!--BASE-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="meta_title">Fortnite - Chest Tracker · Count every chest you open</title>
+<meta name="description" content="" data-i18n-attr="content:meta_desc">
+<meta name="theme-color" content="#071447">
+<!--LANG-REDIRECT-->
+<!--SEO-->
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preload" href="fonts/anton-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<!--I18N-->
+<script defer src="main.js"></script>
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+
+<div class="hud compact hero-hud" id="hero-hud" aria-hidden="true"></div>
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="Fortnite - Chest Tracker">
+      <img src="img/relic-chest.webp" alt="" width="40" height="40">
+      <span><small>FORTNITE</small><b>CHEST <em>TRACKER</em></b></span>
+    </a>
+    <nav class="links" id="links" data-i18n-attr="aria-label:nav_label">
+      <a href="#gallery" data-i18n="nav_gallery">Preview</a>
+      <a href="#features" data-i18n="nav_features">Features</a>
+      <a href="#hud" data-i18n="nav_hud">Overlay</a>
+      <a href="#odds" data-i18n="nav_odds">Odds</a>
+      <a href="#faq" data-i18n="nav_faq">FAQ</a>
+    </nav>
+    <div class="nav-right">
+      <div class="lang" role="group" data-i18n-attr="aria-label:lang_label">
+        <button type="button" data-lang="en" lang="en" aria-label="English" aria-pressed="false">EN</button><button type="button" data-lang="fr" lang="fr" aria-label="Français" aria-pressed="false">FR</button><button type="button" data-lang="es" lang="es" aria-label="Español" aria-pressed="false">ES</button>
+      </div>
+      <a class="btn btn-lime btn-sm dl" href="https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 21h14"/></svg><span data-i18n="cta_short">Download</span></a>
+      <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="links" data-i18n-attr="aria-label:menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+<!-- ============ Hero: the real 3D island of the app ============ -->
+<section class="hero home-page" id="top">
+  <div id="scene" data-zoom="off" aria-hidden="true"></div>
+  <div class="wrap hero-in">
+    <div class="hero-copy">
+      <span class="eyebrow"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg><span data-i18n="hero_eyebrow">Free · Windows 10 / 11 · Open source</span></span>
+      <h1 data-i18n-html="hero_title">How many chests have you <em>really</em> opened?</h1>
+      <p class="lead" data-i18n="hero_sub"></p>
+      <div class="cta-row">
+        <a class="btn btn-lime btn-xl dl dl-main" href="https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.5 10.5 4.4v7.1H3zm0 13L10.5 19.6v-7H3zm8.5 1.2L21 21v-8.4h-9.5zm0-15.4v7.2H21V3z"/></svg>
+          <span data-i18n="cta_download">Download for Windows</span>
+        </a>
+        <button type="button" class="btn btn-lime btn-xl send-pc">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v11H3zM8 20h8M12 16v4M12 7v6m-3-3 3 3 3-3"/></svg>
+          <span data-i18n="send_pc">Send to my PC</span>
+        </button>
+        <a class="btn btn-ghost btn-xl" href="#how"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5 3.5-5 3.5z"/></svg><span data-i18n="cta_how">How it works</span></a>
+      </div>
+      <p class="phone-note"><span data-i18n="phone_note"></span> <a class="dl" href="https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest" data-i18n="dl_anyway"></a></p>
+      <div class="dl-info">
+        <p class="dl-facts" id="dl-facts" hidden>
+          <span class="fact"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg><span class="ver"></span></span>
+          <span class="fact"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg><span id="dl-size"></span></span>
+          <span class="fact"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="dl-date"></span></span>
+          <span class="fact"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><a id="dl-notes" href="https://github.com/ayman-studio/fortnite-chest-tracker/releases" data-i18n="changelog">Changelog</a></span>
+          <button type="button" class="sha fact" id="dl-sha" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg><span>SHA-256</span> <code></code></button>
+        </p>
+      </div>
+      <p class="proof" id="proof" hidden><span id="proof-stars" hidden></span><span id="proof-dl" hidden></span></p>
+    </div>
+  </div>
+  <div class="stage"></div>
+</section>
+
+<!-- ============ Promises: a slow ticker (a still row with reduced motion) ============ -->
+<section class="trust" id="trust" data-i18n-attr="aria-label:trust_label">
+  <div class="marquee" id="marquee">
+    <div class="mq-track">
+      <ul class="mq-group">
+        <li class="chip"><i class="ico t-lime" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 14l2 2 4-4"/></svg></i><span><b data-i18n="trust_1_t"></b><span data-i18n="trust_1"></span></span></li>
+        <li class="chip"><i class="ico t-aqua" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></i><span><b data-i18n="trust_2_t"></b><span data-i18n="trust_2"></span></span></li>
+        <li class="chip"><i class="ico t-coral" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M3 3l18 18"/></svg></i><span><b data-i18n="trust_3_t"></b><span data-i18n="trust_3"></span></span></li>
+        <li class="chip"><i class="ico t-violet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></i><span><b data-i18n="trust_4_t"></b><span data-i18n="trust_4"></span></span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Gallery ============ -->
+<section class="section" id="gallery">
+  <div class="wrap">
+    <header class="sec-head" data-reveal>
+      <span class="kicker"><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="15" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></svg></i><span data-i18n="gal_kicker"></span></span>
+      <h2 data-i18n="gal_title"></h2>
+      <p data-i18n="gal_sub"></p>
+    </header>
+    <div class="gal" id="gal">
+      <div class="gal-tabs" role="tablist" id="gal-tabs" data-i18n-attr="aria-label:gal_kicker" data-reveal>
+        <button type="button" role="tab" id="gal-tab-home" data-shot="home" aria-controls="gal-panel" aria-selected="true" tabindex="0" class="on"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11 12 4l9 7M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg><span data-i18n="g_home"></span></button>
+        <button type="button" role="tab" id="gal-tab-matches" data-shot="matches" aria-controls="gal-panel" aria-selected="false" tabindex="-1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span data-i18n="g_matches"></span></button>
+        <button type="button" role="tab" id="gal-tab-stats" data-shot="stats" aria-controls="gal-panel" aria-selected="false" tabindex="-1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></svg><span data-i18n="g_stats"></span></button>
+        <button type="button" role="tab" id="gal-tab-treasures" data-shot="treasures" aria-controls="gal-panel" aria-selected="false" tabindex="-1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M12 21 8 9l2-6M12 21l4-12-2-6"/></svg><span data-i18n="g_treasures"></span></button>
+        <button type="button" role="tab" id="gal-tab-overlay" data-shot="overlay" aria-controls="gal-panel" aria-selected="false" tabindex="-1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4M6 8h5v4H6z"/></svg><span data-i18n="g_overlay"></span></button>
+        <button type="button" role="tab" id="gal-tab-share" data-shot="share" aria-controls="gal-panel" aria-selected="false" tabindex="-1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span data-i18n="g_share"></span></button>
+        <button type="button" role="tab" id="gal-tab-estimate" data-shot="estimate" aria-controls="gal-panel" aria-selected="false" tabindex="-1"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 3"/></svg><span data-i18n="g_estimate"></span></button>
+      </div>
+      <figure class="window" id="gal-panel" role="tabpanel" aria-labelledby="gal-tab-home" data-reveal>
+        <div class="window-bar" aria-hidden="true"><i></i><i></i><i></i><span>127.0.0.1:5317</span></div>
+        <div class="window-body">
+          <button type="button" class="gal-arrow prev" id="gal-prev" data-i18n-attr="aria-label:gal_prev"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+          <img id="gal-img" src="shots/en-home.webp" data-i18n-attr="alt:g_home" width="1600" height="900" loading="lazy" decoding="async">
+          <button type="button" class="gal-arrow next" id="gal-next" data-i18n-attr="aria-label:gal_next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+        </div>
+        <figcaption id="gal-cap" data-i18n="gc_home"></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Features: loot cards ============ -->
+<section class="section" id="features">
+  <div class="wrap">
+    <header class="sec-head" data-reveal>
+      <span class="kicker"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg></i><span data-i18n="feat_kicker"></span></span>
+      <h2 data-i18n="feat_title"></h2>
+      <p data-i18n="feat_sub"></p>
+    </header>
+    <div class="features">
+      <article class="loot r-legendary" data-reveal><div class="loot-in">
+        <div class="loot-art" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M12 8v4M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/></svg></div>
+        <div class="loot-body"><h3 data-i18n="f1_t"></h3><p data-i18n="f1"></p></div>
+      </div></article>
+      <article class="loot r-rare" data-reveal><div class="loot-in">
+        <div class="loot-art" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4M6 8h5v4H6z"/></svg></div>
+        <div class="loot-body"><h3 data-i18n="f2_t"></h3><p data-i18n="f2"></p></div>
+      </div></article>
+      <article class="loot r-mythic" data-reveal><div class="loot-in">
+        <div class="loot-art" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg></div>
+        <div class="loot-body"><h3 data-i18n="f3_t"></h3><p data-i18n="f3"></p></div>
+      </div></article>
+      <article class="loot r-epic" data-reveal><div class="loot-in">
+        <div class="loot-art" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></svg></div>
+        <div class="loot-body"><h3 data-i18n="f4_t"></h3><p data-i18n="f4"></p></div>
+      </div></article>
+      <article class="loot r-uncommon" data-reveal><div class="loot-in">
+        <div class="loot-art" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-8 8"/></svg></div>
+        <div class="loot-body"><h3 data-i18n="f5_t"></h3><p data-i18n="f5"></p></div>
+      </div></article>
+      <article class="loot r-rare" data-reveal><div class="loot-in">
+        <div class="loot-art" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 3"/></svg></div>
+        <div class="loot-body"><h3 data-i18n="f6_t"></h3><p data-i18n="f6"></p></div>
+      </div></article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ How it works: a quest track ============ -->
+<section class="section how" id="how">
+  <div class="wrap">
+    <header class="sec-head" data-reveal>
+      <span class="kicker"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/></svg></i><span data-i18n="how_kicker"></span></span>
+      <h2 data-i18n="how_title"></h2>
+    </header>
+    <ol class="quest" id="quest">
+      <li class="q-step">
+        <div class="q-node" aria-hidden="true"><span>1</span></div>
+        <div class="q-card card">
+          <div class="q-top"><i class="ico t-coral" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg></i><span class="q-tag"><span data-i18n="how_step"></span> 1/3</span></div>
+          <h3 data-i18n="s1_t"></h3><p data-i18n="s1"></p>
+        </div>
+      </li>
+      <li class="q-step">
+        <div class="q-node" aria-hidden="true"><span>2</span></div>
+        <div class="q-card card">
+          <div class="q-top"><i class="ico t-aqua" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v11m-4-4 4 4 4-4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></i><span class="q-tag"><span data-i18n="how_step"></span> 2/3</span></div>
+          <h3 data-i18n="s2_t"></h3><p data-i18n="s2"></p>
+        </div>
+      </li>
+      <li class="q-step">
+        <div class="q-node" aria-hidden="true"><span>3</span></div>
+        <div class="q-card card">
+          <div class="q-top"><i class="ico t-violet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-4 3.6L2 15a3 3 0 0 0 5.2 2.1L9 15h6l1.8 2.1A3 3 0 0 0 22 15l-.7-6.4A4 4 0 0 0 17.3 5z"/></svg></i><span class="q-tag"><span data-i18n="how_step"></span> 3/3</span></div>
+          <h3 data-i18n="s3_t"></h3><p data-i18n="s3"></p>
+        </div>
+      </li>
+      <li class="q-step q-goal">
+        <div class="q-node" aria-hidden="true"><img src="img/chest-pirate.webp" alt="" width="64" height="64" loading="lazy"></div>
+        <div class="q-card card">
+          <span class="q-tag"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg><span data-i18n="how_reward_k"></span></span>
+          <h3 data-i18n="how_reward"></h3>
+        </div>
+      </li>
+    </ol>
+    <p class="note" data-reveal><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg><span data-i18n="how_note"></span></p>
+  </div>
+</section>
+
+<!-- ============ HUD demo ============ -->
+<section class="section" id="hud">
+  <div class="wrap split">
+    <div class="split-copy" data-reveal>
+      <span class="kicker"><i aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></i><span data-i18n="hud_kicker"></span></span>
+      <h2 data-i18n="hud_title"></h2>
+      <p data-i18n="hud_sub"></p>
+      <ul class="checks">
+        <li data-i18n="hud_b1"></li><li data-i18n="hud_b2"></li><li data-i18n="hud_b3"></li>
+      </ul>
+      <div class="demo-ctrl">
+        <button type="button" class="btn btn-lime" id="demo-open"><img src="img/chest-pirate.webp" alt=""><span data-i18n="hud_open"></span></button>
+        <button type="button" class="btn btn-ghost" id="demo-new"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></svg><span data-i18n="hud_new"></span></button>
+        <div class="seg" role="group" data-i18n-attr="aria-label:hud_style">
+          <button type="button" class="on" aria-pressed="true" data-style="full" data-i18n="hud_full"></button><button type="button" aria-pressed="false" data-style="compact" data-i18n="hud_compact"></button>
+        </div>
+      </div>
+      <p class="obs"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19A10 10 0 0 1 5 5"/></svg><span data-i18n="hud_obs"></span></p>
+    </div>
+    <div class="game-view" data-reveal>
+      <div class="game-bg" aria-hidden="true"></div>
+      <div class="hud" id="demo-hud" aria-live="polite" aria-atomic="true"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Odds calculator ============ -->
+<section class="section" id="odds">
+  <div class="wrap">
+    <header class="sec-head" data-reveal>
+      <span class="kicker"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg></i><span data-i18n="odds_kicker"></span></span>
+      <h2 data-i18n="odds_title"></h2>
+      <p data-i18n="odds_sub"></p>
+    </header>
+    <div class="calc card" data-reveal>
+      <div class="calc-in">
+        <label class="calc-field">
+          <span data-i18n="calc_label"></span>
+          <input type="number" id="calc-n" min="0" max="10000000" step="1" value="2000" inputmode="numeric">
+        </label>
+        <input type="range" id="calc-r" min="0" max="1000" value="500" data-i18n-attr="aria-label:calc_range">
+        <label class="check"><input type="checkbox" id="calc-h"><span class="box"></span><span data-i18n="calc_hours"></span></label>
+        <div class="calc-big">
+          <img src="img/token.webp" alt="">
+          <div><b id="calc-pirate" aria-live="polite">0 %</b><span data-i18n="calc_big"></span></div>
+        </div>
+        <p class="calc-half" id="calc-half"></p>
+      </div>
+      <div class="calc-out">
+        <div class="calc-row head"><span data-i18n="calc_th1"></span><span class="rate" data-i18n="calc_th2"></span><span data-i18n="calc_th3"></span></div>
+        <div id="calc-rows"></div>
+        <p class="small muted" data-i18n="calc_note"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ: question cards, the short answer first ============ -->
+<section class="section" id="faq">
+  <div class="wrap">
+    <header class="sec-head" data-reveal>
+      <span class="kicker"><i aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.6 9.5a2.4 2.4 0 1 1 3.2 2.3c-.5.2-.8.6-.8 1.1v.3M12 16h.01"/></svg></i><span data-i18n="faq_kicker"></span></span>
+      <h2 data-i18n="faq_title"></h2>
+      <p data-i18n="faq_sub"></p>
+    </header>
+    <div class="faq" id="faq-list">
+      <details class="qa" data-reveal><summary><i class="ico t-lime" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></i><span class="qa-q"><b data-i18n="q1"></b><span class="qa-s" data-i18n="a1_s"></span></span></summary><p data-i18n="a1"></p></details>
+      <details class="qa" data-reveal><summary><i class="ico t-amber" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3v3a5 5 0 0 0 10 0V3M7 21v-3a5 5 0 0 1 10 0v3"/></svg></i><span class="qa-q"><b data-i18n="q2"></b><span class="qa-s" data-i18n="a2_s"></span></span></summary><p data-i18n="a2"></p></details>
+      <details class="qa" data-reveal><summary><i class="ico t-aqua" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M12 8v4M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/></svg></i><span class="qa-q"><b data-i18n="q3"></b><span class="qa-s" data-i18n="a3_s"></span></span></summary><p data-i18n="a3"></p></details>
+      <details class="qa" data-reveal><summary><i class="ico t-violet" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 22h8M12 18v4M6 8h5v4H6z"/></svg></i><span class="qa-q"><b data-i18n="q4"></b><span class="qa-s" data-i18n="a4_s"></span></span></summary><p data-i18n="a4"></p></details>
+      <details class="qa" data-reveal><summary><i class="ico t-coral" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 3"/></svg></i><span class="qa-q"><b data-i18n="q5"></b><span class="qa-s" data-i18n="a5_s"></span></span></summary><p data-i18n="a5"></p></details>
+      <details class="qa" data-reveal><summary><i class="ico t-green" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></i><span class="qa-q"><b data-i18n="q6"></b><span class="qa-s" data-i18n="a6_s"></span></span></summary><p data-i18n="a6"></p></details>
+      <details class="qa" data-reveal><summary><i class="ico t-amber" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></svg></i><span class="qa-q"><b data-i18n="q7"></b><span class="qa-s" data-i18n="a7_s"></span></span></summary><p data-i18n="a7"></p></details>
+      <a class="qa qa-more" data-reveal href="https://github.com/ayman-studio/fortnite-chest-tracker/issues/new"><i class="ico t-lime" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg></i><span class="qa-q"><b data-i18n="faq_more_t"></b><span class="qa-s" data-i18n="faq_more"></span></span><svg class="i qa-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Final call ============ -->
+<section class="final">
+  <div class="wrap final-in" data-reveal>
+    <img src="img/relic-chest.webp" alt="" width="120" height="120" loading="lazy">
+    <h2 data-i18n="final_title"></h2>
+    <p data-i18n="final_sub"></p>
+    <div class="cta-row center">
+      <a class="btn btn-lime btn-xl dl dl-main" href="https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.5 10.5 4.4v7.1H3zm0 13L10.5 19.6v-7H3zm8.5 1.2L21 21v-8.4h-9.5zm0-15.4v7.2H21V3z"/></svg>
+        <span data-i18n="cta_download"></span>
+      </a>
+      <button type="button" class="btn btn-lime btn-xl send-pc">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v11H3zM8 20h8M12 16v4M12 7v6m-3-3 3 3 3-3"/></svg>
+        <span data-i18n="send_pc">Send to my PC</span>
+      </button>
+      <a class="btn btn-ghost btn-xl" href="https://github.com/ayman-studio/fortnite-chest-tracker">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5a3.9 3.9 0 0 1 1-2.7 3.6 3.6 0 0 1 .1-2.7s.8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2"/></svg>
+        <span data-i18n="final_gh"></span>
+      </a>
+    </div>
+    <p class="final-ver"><span class="fact"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg><span class="ver"></span></span></p>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <div class="foot-brand">
+      <a class="brand" href="#top"><img src="img/relic-chest.webp" alt="" width="36" height="36" loading="lazy"><span><small>FORTNITE</small><b>CHEST <em>TRACKER</em></b></span></a>
+      <p data-i18n="foot_tag"></p>
+    </div>
+    <div class="foot-links">
+      <b data-i18n="foot_links"></b>
+      <a href="https://github.com/ayman-studio/fortnite-chest-tracker"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg><span>GitHub</span></a>
+      <a href="https://github.com/ayman-studio/fortnite-chest-tracker/releases"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><span data-i18n="foot_releases"></span></a>
+      <a href="https://github.com/ayman-studio/fortnite-chest-tracker/issues/new"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M12 11v9M8 11H4M20 11h-4M8 16H4M20 16h-4M9.5 3.5 11 6M14.5 3.5 13 6"/></svg><span data-i18n="foot_issues"></span></a>
+      <a href="https://github.com/ayman-studio/fortnite-chest-tracker/issues/new"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z"/></svg><span data-i18n="foot_disc"></span></a>
+      <button type="button" class="foot-legal-btn" id="legal-open" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span data-i18n="foot_legal"></span></button>
+    </div>
+  </div>
+</footer>
+<dialog class="legal" id="legal" aria-labelledby="legal-title">
+  <div class="legal-in">
+    <div class="legal-h">
+      <h2 id="legal-title" data-i18n="foot_legal"></h2>
+      <button type="button" class="legal-x" id="legal-close" data-i18n-attr="aria-label:close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <p data-i18n-html="foot_credits"></p>
+    <p data-i18n-html="foot_epic"></p>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

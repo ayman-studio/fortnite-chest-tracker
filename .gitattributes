@@ -1,0 +1,14 @@
+# Text files are stored with LF; Windows scripts keep CRLF, shell scripts LF (they run on the CI's Linux runner).
+* text=auto
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.sh text eol=lf
+
+# Pictures, 3D models, fonts and icons are never diffed or converted.
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.glb binary
+*.ttf binary
+*.woff2 binary

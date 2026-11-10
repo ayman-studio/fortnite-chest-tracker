@@ -1,0 +1,14 @@
+{
+  "name": "Fortnite - Chest Tracker",
+  "short_name": "Chest Tracker",
+  "description": "Free Windows app that counts every chest you open in Fortnite.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#071447",
+  "theme_color": "#071447",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="fct-token" content="{{TOKEN}}">
+<meta name="color-scheme" content="dark">
+<title>Fortnite - Chest Tracker</title>
+<link rel="icon" href="/img/favicon.ico">
+<link rel="stylesheet" href="/app.css?v={{VERSION}}">
+<script src="/app.js?v={{VERSION}}" defer></script>
+<script type="module" src="/scene.js?v={{VERSION}}"></script>
+</head>
+<body>
+<div id="scene" aria-hidden="true"></div>
+<div id="app" aria-live="polite">
+  <div class="boot"><div class="spin"></div></div>
+</div>
+<div id="modal-root"></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="offline" hidden>
+  <div class="offline-card">
+    <div class="spin"></div>
+    <div>
+      <b data-t="offlineTitle">Le compteur est fermé</b>
+      <p class="muted" data-t="offlineText">Cette page se reconnecte toute seule dès que le compteur est relancé.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

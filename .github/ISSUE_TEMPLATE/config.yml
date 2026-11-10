@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Website / Site web
+    url: https://fortnite-chest-tracker.com/
+    about: Download, features, odds calculator and FAQ.
+  - name: Releases / Versions
+    url: https://github.com/ayman-studio/fortnite-chest-tracker/releases
+    about: Latest version of FortniteChestTracker.exe and its changelog.
