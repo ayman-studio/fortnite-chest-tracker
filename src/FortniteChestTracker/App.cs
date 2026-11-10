@@ -998,6 +998,7 @@ public sealed class App
             "errors" => File.Exists(_store.ErrorLogPath) ? _store.ErrorLogPath : null,
             "repo" => AppInfo.RepoUrl,
             "issues" => AppInfo.IssuesUrl,
+            "author" => AppInfo.AuthorUrl,
             "release" => _update?.PageUrl,
             "fortnitegg" => EstimatePlayer() is { Length: > 0 } who ? Estimates.FortniteGgUrl(who) : "https://fortnite.gg/stats",
             "fortniteapi" => "https://dash.fortnite-api.com/account",

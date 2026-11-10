@@ -160,6 +160,7 @@ public static class UiTexts
         ("openErrors", "Journal d'erreurs", "Error log", "Registro de errores"),
         ("about", "À propos", "About", "Acerca de"),
         ("reportBug", "Signaler un problème", "Report a problem", "Informar de un problema"),
+        ("madeBy", "Créé par", "Made by", "Creado por"),
 
         // Setup wizard
         ("setupLanguage", "Bienvenue", "Welcome", "Bienvenido"),

@@ -690,3 +690,9 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(198, 255, 61, .18); }
 @container (max-height: 175px) { .ms-grid { gap: 6px; } .ms { padding: 3px 10px; gap: 3px; } .ms-v b { font-size: 18px; } .ms-k { font-size: 11px; } }
 @container (max-height: 130px) { .ms-bar { display: none; } }
 @container (max-height: 560px) { .match-card .big { font-size: clamp(40px, 15cqh, 64px); } .tl { min-height: 70px; gap: 4px; } .tl-plot { min-height: 30px; } }
+/* Author credit in About */
+.by { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; color: var(--text-3); }
+.by b { color: var(--text-2); }
+.by a { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; color: inherit; text-decoration: none; }
+.by a:hover { border-color: var(--lime); color: var(--lime); }
+.by svg { width: 11px; height: 11px; fill: currentColor; }

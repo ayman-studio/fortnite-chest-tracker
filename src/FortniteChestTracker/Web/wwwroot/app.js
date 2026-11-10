@@ -743,7 +743,8 @@ function settings() {
       ${button(esc(t('checkNow')), `data-cmd="update/check"${u.checking || u.mode === 'off' ? ' disabled' : ''}`, 'btn-sm')}</div></div>`;
   }
   const about = card('s4', t('about'), `${updates}<div class="divider"></div>
-    <div class="row" style="gap:12px"><img src="/img/relic-chest.webp" alt="" style="width:40px;height:40px"><div><b>Fortnite - Chest Tracker ${esc(S.app.version)}</b><div class="faint small"><a href="#" data-open="repo">GitHub</a> · <a href="#" data-open="issues">${esc(t('reportBug'))}</a> · <a href="/notices" target="_blank" rel="noopener">${esc(t('licenses'))}</a></div></div></div>
+    <div class="row" style="gap:12px"><img src="/img/relic-chest.webp" alt="" style="width:40px;height:40px"><div><b>Fortnite - Chest Tracker ${esc(S.app.version)}</b><div class="faint small"><a href="#" data-open="repo">GitHub</a> · <a href="#" data-open="issues">${esc(t('reportBug'))}</a> · <a href="/notices" target="_blank" rel="noopener">${esc(t('licenses'))}</a></div>
+      <div class="by small">${esc(t('madeBy'))} <b>Ayman Studio</b><a href="#" data-open="author"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.65l-5.21-6.82-5.97 6.82H1.68l7.73-8.84L1.25 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z"/></svg>@ayman_studioo</a></div></div></div>
     <p class="faint small" style="margin:16px 0 0">${esc(t('notAffiliated'))}</p>
     <p class="faint small" style="margin:8px 0 0">${esc(t('credits'))}</p>`);
   return `<div class="page" style="grid-template-rows:minmax(0,1fr);align-items:start">${general}${replays}${about}</div>`;

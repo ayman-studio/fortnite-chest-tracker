@@ -16,6 +16,9 @@ public static class AppInfo
     /// <summary>Address of the tool's website, shown at the bottom of the overlays. Empty = not shown.</summary>
     public const string SiteName = "fortnite-chest-tracker.com";
 
+    /// <summary>The author, credited in About (link opened by the "author" command).</summary>
+    public const string AuthorUrl = "https://x.com/ayman_studioo";
+
     /// <summary>
     /// GitHub repository ("owner/name") whose releases update this exe, set at build time with
     /// <c>-p:TrackerRepo=owner/name</c> (the GitHub workflow passes its own repository). Null for a local build:

@@ -70,7 +70,7 @@ function seo(L, T, version) {
     operatingSystem: 'Windows 10, Windows 11', applicationCategory: 'GameApplication',
     downloadUrl: `https://github.com/${REPO}/releases/latest`, license: 'https://opensource.org/licenses/MIT', isAccessibleForFree: true,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
-    author: { '@type': 'Person', name: 'ayman-studio', url: 'https://github.com/ayman-studio' },
+    author: { '@type': 'Person', name: 'Ayman Studio', url: 'https://x.com/ayman_studioo', sameAs: ['https://github.com/ayman-studio'] },
     ...(version ? { softwareVersion: version } : {}),
   };
   return [
