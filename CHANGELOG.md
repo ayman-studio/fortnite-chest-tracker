@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 (2026-11-10)
+
+- The 3D island no longer stutters for a few seconds when the app opens.
+- About: credit to Ayman Studio, with a link to [@ayman_studioo](https://x.com/ayman_studioo) on X.
+- Licence: the code is MIT, but the exe includes a GPL-3.0 replay decompressor, so the exe is distributed under the
+  GPL-3.0. Its full text is now in the licences (About → Licences).
+
 ## 1.1.0 (2026-11-10)
 
 - New name everywhere: the app is now `FortniteChestTracker.exe`. An installed 1.0.x copy updates itself as usual,
