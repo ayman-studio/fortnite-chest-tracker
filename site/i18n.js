@@ -3,7 +3,9 @@
 // The speech bubbles of the 3D island come from the app (UiTexts.cs), see BUBBLES at the end.
 window.I18N = {
   en: {
-    meta_title: 'Fortnite - Chest Tracker · Count every chest you open',
+    meta_title: 'Fortnite Chest Tracker · Free chest counter for Windows',
+    odds_more: 'Full odds table and Treasure Hours', how_more: 'Replays not saved? The full guide',
+    foot_guides: 'Guides', foot_g_odds: 'Pirate token odds', foot_g_replays: 'Turn on Fortnite replays',
     meta_desc: "Free Windows app: counts every chest you open in Fortnite, shows an in-game HUD and works out your odds of the pirate token with Epic's real drop rates.",
     nav_features: 'Features', nav_hud: 'Overlay', nav_odds: 'Odds', nav_gallery: 'Preview', nav_faq: 'FAQ',
     cta_short: 'Download',
@@ -82,7 +84,9 @@ window.I18N = {
     soon: 'Coming soon',
   },
   fr: {
-    meta_title: 'Fortnite - Chest Tracker · Compte chaque coffre que tu ouvres',
+    meta_title: 'Fortnite Chest Tracker · Compteur de coffres gratuit pour Windows',
+    odds_more: 'Tableau complet des chances et Heures du trésor', how_more: 'Replays pas enregistrés ? Le guide complet',
+    foot_guides: 'Guides', foot_g_odds: 'Chances du jeton pirate', foot_g_replays: 'Activer les replays Fortnite',
     meta_desc: "Appli gratuite pour Windows : compte chaque coffre ouvert dans Fortnite, affiche un HUD en jeu et calcule tes chances d'avoir le jeton pirate avec les vrais taux d'Epic.",
     nav_features: 'Fonctionnalités', nav_hud: 'Overlay', nav_odds: 'Chances', nav_gallery: 'Aperçu', nav_faq: 'FAQ',
     cta_short: 'Télécharger',
@@ -161,7 +165,9 @@ window.I18N = {
     soon: 'Bientôt disponible',
   },
   es: {
-    meta_title: 'Fortnite - Chest Tracker · Cuenta cada cofre que abres',
+    meta_title: 'Fortnite Chest Tracker · Contador de cofres gratis para Windows',
+    odds_more: 'Tabla completa de probabilidades y Horas del tesoro', how_more: '¿No se guardan las repeticiones? La guía completa',
+    foot_guides: 'Guías', foot_g_odds: 'Probabilidad de la ficha pirata', foot_g_replays: 'Activar las repeticiones de Fortnite',
     meta_desc: 'App gratuita para Windows: cuenta cada cofre que abres en Fortnite, muestra un HUD en el juego y calcula tu probabilidad de la ficha pirata con las tasas reales de Epic.',
     nav_features: 'Funciones', nav_hud: 'Overlay', nav_odds: 'Probabilidades', nav_gallery: 'Vista previa', nav_faq: 'FAQ',
     cta_short: 'Descargar',

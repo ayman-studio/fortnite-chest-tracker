@@ -114,6 +114,8 @@ main:focus { outline: none; }
 .dl-info { display: grid; gap: 6px; justify-items: center; margin-top: 18px; padding: 10px 18px; border-radius: 16px; background: rgba(6, 16, 58, .58); border: 1px solid var(--line);
   backdrop-filter: blur(8px); color: #dce6ff; font-size: 13.5px; line-height: 1.4; text-wrap: balance; }
 .dl-info p { margin: 0; }
+/* The facts arrive from GitHub after the first paint: their line is reserved (no jump of the island below) */
+@media (min-width: 760px) { .js .dl-info { min-height: 44px; } .js .dl-info:has(> .dl-facts[hidden]) { visibility: hidden; } }
 .dl-facts { flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 16px; }
 .dl-facts:not([hidden]) { display: flex; }
 .fact { display: inline-flex; align-items: center; gap: 6px; }
@@ -429,7 +431,7 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .final-ver .fact { padding: 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .08); border: 1px solid var(--line); }
 @keyframes float { 50% { transform: translateY(-10px) rotate(-2deg); } }
 .foot { background: #050d33; border-top: 1px solid var(--line); padding: 48px 0 40px; color: var(--text-3); font-size: 13.5px; }
-.foot-in { display: grid; grid-template-columns: 1fr auto; gap: 24px 48px; }
+.foot-in { display: grid; grid-template-columns: 1fr auto auto; gap: 24px 56px; }
 .foot-brand p { margin: 12px 0 0; }
 .foot-by { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--text-3); }
 .foot-by b { color: var(--text-2); font-weight: 700; }
@@ -568,3 +570,46 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .nf-code { margin: 0; font: 110px/.9 var(--display); color: var(--lime); text-shadow: 0 8px 30px rgba(2, 6, 30, .5); }
 .nf h1 { font-size: clamp(32px, 6vw, 54px); }
 .nf-sub { margin: 0 0 12px; max-width: 520px; color: #dce6ff; font-size: 17px; }
+
+/* ---- Links to the guides (home page) */
+.more { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; color: var(--lime); font-weight: 700; font-size: 14.5px; }
+.more svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.more:hover svg { transform: translateX(3px); }
+.more-row { text-align: center; margin: 6px 0 0; }
+
+/* ---- Guide pages (static, no script) */
+.guide { padding: calc(var(--nav-h) + 40px) 0 72px; }
+.g-in { max-width: 860px; }
+.g-crumbs { display: flex; gap: 8px; margin-bottom: 18px; color: var(--text-3); font-size: 13.5px; }
+.g-crumbs a { color: var(--text-2); }
+.guide h1 { margin: 16px 0 14px; font-size: clamp(36px, 5vw, 60px); }
+.guide h2 { margin: 42px 0 12px; font-size: clamp(24px, 3vw, 32px); }
+.guide p, .guide li { color: var(--text-2); font-size: 16.5px; line-height: 1.65; }
+.guide b { color: var(--text); }
+.g-lead { font-size: 19px !important; color: #dce6ff !important; }
+.guide ul, .g-steps { padding-left: 22px; }
+.guide li { margin: 6px 0; }
+.g-steps li::marker { color: var(--lime); font-weight: 700; }
+.guide code { padding: 2px 7px; border-radius: 7px; background: rgba(4, 14, 52, .6); border: 1px solid var(--line); color: var(--text); font-size: .92em; }
+.g-path { display: inline-block; padding: 10px 14px !important; font-size: 15px !important; user-select: all; word-break: break-all; }
+.g-table-wrap { overflow-x: auto; margin: 18px 0; border-radius: 16px; border: 1px solid var(--line); background: var(--panel, rgba(6, 16, 58, .58)); }
+.g-table { width: 100%; border-collapse: collapse; font-size: 15px; white-space: nowrap; }
+.g-table th, .g-table td { padding: 12px 14px; text-align: right; border-bottom: 1px solid var(--line); }
+.g-table th:first-child { text-align: left; }
+.g-table thead th { color: var(--text-3); font: 700 12px/1.25 var(--font); text-transform: uppercase; letter-spacing: .05em; white-space: normal; vertical-align: bottom; min-width: 84px; }
+.g-table tbody th { color: var(--text); font-weight: 700; }
+.g-table tbody th img { vertical-align: -5px; margin-right: 8px; }
+.g-table td { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.g-table tr.hl th, .g-table tr.hl td { background: rgba(198, 255, 61, .08); color: var(--lime); }
+.g-table tbody tr:last-child th, .g-table tbody tr:last-child td { border-bottom: 0; }
+.g-cta { margin: 48px 0 18px; padding: 28px; border-radius: 20px; text-align: center; background: rgba(6, 16, 58, .58); border: 1px solid var(--line); }
+.g-free { margin: 0 0 16px !important; color: var(--lime) !important; font-weight: 700; font-size: 14px !important; }
+.g-cta-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.g-other { font-size: 15px !important; }
+.g-lang a { display: grid; place-items: center; height: 30px; padding: 0 10px; border-radius: 8px; color: var(--text-2); font: 700 12.5px/1 var(--font); }
+.g-lang a:hover { color: var(--text); background: rgba(255, 255, 255, .07); }
+.g-lang a.on { background: var(--lime); color: var(--lime-ink); }
+.g-foot { display: grid; gap: 8px; }
+.g-foot p { margin: 0; }
+@media (max-width: 620px) { .guide-page .nav .btn { display: none; } .g-table { font-size: 13.5px; } .g-table th, .g-table td { padding: 10px; } }
+@media (max-width: 760px) { .foot-in { grid-template-columns: 1fr 1fr; } .foot-brand { grid-column: 1 / -1; } }

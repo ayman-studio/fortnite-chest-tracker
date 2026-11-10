@@ -1,0 +1,22 @@
+# Fortnite Chest Tracker
+
+> Free Windows app (Windows 10 / 11, open source) that counts every chest you open in Fortnite from the replays the game saves on your PC, shows the count in an in-game overlay once each match ends, and works out your chance of getting each chest treasure (pirate token, gold outfit, vehicle...) with Epic's announced drop rates. Fan project, not affiliated with or endorsed by Epic Games.
+
+- It only reads the replay files Fortnite writes itself (`%LOCALAPPDATA%\FortniteGame\Saved\Demos`), once the match is over: no memory reading, no injection, no game file changed.
+- Chests are counted a few seconds after each match ends (Fortnite keeps the replay locked until then), not live during the match.
+- Needs "Record Replays" turned on in Fortnite (Settings → Game → Replays).
+- One exe, no account, no ads. Code under MIT; the downloadable exe is distributed under GPL-3.0 because it includes a GPL replay decompressor.
+- Made by Ayman Studio (https://x.com/ayman_studioo).
+
+## Pages
+
+- [Home (English)](https://fortnite-chest-tracker.com/): features, in-game overlay, odds calculator, FAQ
+- [Accueil (français)](https://fortnite-chest-tracker.com/fr/)
+- [Inicio (español)](https://fortnite-chest-tracker.com/es/)
+- [Fortnite pirate token odds](https://fortnite-chest-tracker.com/guides/pirate-token-odds/): Epic's rates for every chest treasure, chance after N chests, Treasure Hours
+- [Turn on Fortnite replays and find the replay folder](https://fortnite-chest-tracker.com/guides/fortnite-replays/)
+
+## Download
+
+- [Latest release on GitHub](https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest): FortniteChestTracker.exe
+- [Source code](https://github.com/ayman-studio/fortnite-chest-tracker)

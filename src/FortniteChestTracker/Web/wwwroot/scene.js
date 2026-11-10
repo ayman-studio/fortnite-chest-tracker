@@ -726,6 +726,7 @@ function init() {
       const dropped = place('tool-pickaxe', cx(UPPER_END) - 0.1, upperFloor + 0.03, 0.45, 1.9);
       dropped.rotation.set(Math.PI / 2, 0, 0.6);
       addLife();
+      warmUp(); // the models' shaders, before they are first drawn
     })
     .catch((e) => console.warn('scene models', e));
 
@@ -928,8 +929,18 @@ function init() {
   let lastFrame = 0;
   let cost = 0;            // smoothed cost of a frame, ms
   let justDrawn = false;
+  // Shaders are compiled in the background (parallel compile where the browser has it) before a frame needs them:
+  // otherwise the first frame with new materials blocks the page for a few hundred ms. Meanwhile the canvas keeps
+  // its last picture.
+  let compiling = false;
+  function warmUp() {
+    if (!renderer.compileAsync) return;
+    compiling = true;
+    renderer.compileAsync(scene, camera).catch(() => {}).finally(() => { compiling = false; });
+  }
+  warmUp();
   renderer.setAnimationLoop((now) => {
-    if (!active || document.hidden) { lastFrame = now; justDrawn = false; return; }
+    if (!active || document.hidden || compiling) { lastFrame = now; justDrawn = false; return; }
     // (one slow frame, like the first ones while the models arrive and the shaders compile, counts as 60 ms at most:
     // it must not slow the scene down for seconds afterwards; only frames that stay slow do)
     if (justDrawn) { const c = Math.min(60, now - lastFrame); cost = cost ? cost * 0.8 + c * 0.2 : c; justDrawn = false; }

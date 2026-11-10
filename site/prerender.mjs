@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { buildGuides, GUIDE_PATHS } from './guides.mjs';
 
 const OUT = process.argv[2] || '_site';
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -62,17 +63,35 @@ const redirect = `<script>document.documentElement.classList.add('js');(function
 if(L.indexOf(q)>=0){w=q;try{localStorage.setItem('cct-lang',q)}catch(e){}}else if(c==='en'){if(L.indexOf(s)>=0)w=s;else if(!s){var n=navigator.languages||[navigator.language];for(var i=0;i<n.length;i++){var x=(n[i]||'').slice(0,2).toLowerCase();if(L.indexOf(x)>=0){w=x;break}}}}
 if(w&&(w!==c||q))location.replace(new URL(w==='en'?'./':w+'/',document.baseURI).href+location.hash)})()</script>`;
 
+const strip = (s) => String(s).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
 function seo(L, T, version) {
   const og = `${BASE}og/og-${L}.jpg`;
+  const author = { '@type': 'Person', '@id': `${BASE}#author`, name: 'Ayman Studio', url: 'https://x.com/ayman_studioo', sameAs: ['https://github.com/ayman-studio'] };
+  // WebSite: the site name Google shows above the result; SoftwareApplication: the app; FAQPage: the questions of the page
+  const site = {
+    '@type': 'WebSite', '@id': `${BASE}#website`, url: BASE, name: 'Fortnite Chest Tracker',
+    alternateName: ['Fortnite - Chest Tracker', 'Chest Tracker', 'fortnite-chest-tracker.com'], inLanguage: LANGS,
+  };
   const app = {
-    '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Fortnite - Chest Tracker',
+    '@type': 'SoftwareApplication', '@id': `${BASE}#app`, name: 'Fortnite - Chest Tracker',
     description: T.meta_desc, url: URLS[L], inLanguage: L, image: og,
+    screenshot: ['home', 'overlay', 'treasures', 'stats'].map((s) => `${BASE}shots/${L}-${s}.webp`),
     operatingSystem: 'Windows 10, Windows 11', applicationCategory: 'GameApplication',
-    downloadUrl: `https://github.com/${REPO}/releases/latest`, license: 'https://www.gnu.org/licenses/gpl-3.0.html', // the exe, because of the GPL decompressor isAccessibleForFree: true,
+    downloadUrl: `https://github.com/${REPO}/releases/latest`, isAccessibleForFree: true,
+    license: 'https://www.gnu.org/licenses/gpl-3.0.html', // the exe, because of the GPL replay decompressor
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
-    author: { '@type': 'Person', name: 'Ayman Studio', url: 'https://x.com/ayman_studioo', sameAs: ['https://github.com/ayman-studio'] },
+    author: { '@id': author['@id'] }, publisher: { '@id': author['@id'] },
     ...(version ? { softwareVersion: version } : {}),
   };
+  const faq = {
+    '@type': 'FAQPage', '@id': `${URLS[L]}#faq`, inLanguage: L,
+    mainEntity: Object.keys(T).filter((k) => /^q\d+$/.test(k)).map((k) => ({
+      '@type': 'Question', name: strip(T[k]),
+      acceptedAnswer: { '@type': 'Answer', text: strip(`${T[`a${k.slice(1)}_s`] || ''} ${T[`a${k.slice(1)}`] || ''}`) },
+    })),
+  };
+  const graph = { '@context': 'https://schema.org', '@graph': [site, app, faq, author] };
   return [
     `<link rel="canonical" href="${URLS[L]}">`,
     ...LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${URLS[l]}">`),
@@ -94,7 +113,7 @@ function seo(L, T, version) {
     `<meta name="twitter:description" content="${attr(T.meta_desc)}">`,
     `<meta name="twitter:image" content="${og}">`,
     `<meta name="twitter:image:alt" content="${attr(T.og_alt)}">`,
-    `<script type="application/ld+json">${json(app)}</script>`,
+    `<script type="application/ld+json">${json(graph)}</script>`,
   ].join('\n');
 }
 
@@ -113,6 +132,7 @@ for (const L of LANGS) {
     .replace('<!--SEO-->', () => seo(L, T, version))
     .replace('<!--I18N-->', () => `<script>window.I18N=${json({ [L]: runtimeTexts(T) })};window.BUBBLES=${json({ [L]: BUBBLES[L] })};</script>`)
     .replace(/shots\/en-/g, `shots/${L}-`)
+    .replace(/\{\{guide:(\w+)\}\}/g, (m, id) => '/' + GUIDE_PATHS[id][L])
     .replace(new RegExp(`(data-lang="${L}" lang="${L}" aria-label="[^"]+") aria-pressed="false"`), '$1 aria-pressed="true" class="on"');
   if (sub) html = html.replace(/href="#/g, `href="${L}/#`); // same-page anchors, with <base href="../">
   html = fill(html, T).replace(/\n{3,}/g, '\n\n');
@@ -121,12 +141,14 @@ for (const L of LANGS) {
   writeFileSync(join(dir, 'index.html'), html);
 }
 
+const guides = buildGuides(OUT, version);
 const today = new Date().toISOString().slice(0, 10);
 const alts = LANGS.map((l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${URLS[l]}"/>`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${URLS.en}"/>`;
 writeFileSync(join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${LANGS.map((l) => `  <url>\n    <loc>${URLS[l]}</loc>\n    <lastmod>${today}</lastmod>\n${alts}\n  </url>`).join('\n')}
+${guides.join('\n')}
 </urlset>
 `);
 rmSync(join(OUT, 'i18n.js'), { force: true }); // the texts of each page are inlined in it
-console.log(`pre-rendered ${LANGS.join(', ')}${version ? ` (release ${version})` : ' (no release found)'}`);
+console.log(`pre-rendered ${LANGS.join(', ')} + ${guides.length} guide pages${version ? ` (release ${version})` : ' (no release found)'}`);
