@@ -36,13 +36,13 @@ const pirate = ODDS[0];
 const UI = {
   en: { home: 'Home', guides: 'Guides', download: 'Download', dl_long: 'Download for Windows', free: 'Free · Windows 10 / 11 · Open source',
     see_app: 'See the app', other: 'Other guide', fan: 'Fan project, not affiliated with or endorsed by Epic Games. Fortnite is a trademark of Epic Games, Inc.',
-    by: 'Made by', updated: 'Updated' },
+    by: 'Made by', updated: 'Updated', idea: 'Original idea: <a href="https://github.com/LED-N/Fortnite-ChestCounter" rel="noopener">Fortnite-ChestCounter</a> by LED-N' },
   fr: { home: 'Accueil', guides: 'Guides', download: 'Télécharger', dl_long: 'Télécharger pour Windows', free: 'Gratuit · Windows 10 / 11 · Open source',
     see_app: "Voir l'appli", other: 'Autre guide', fan: "Projet de fan, ni affilié ni approuvé par Epic Games. Fortnite est une marque d'Epic Games, Inc.",
-    by: 'Créé par', updated: 'Mis à jour le' },
+    by: 'Créé par', updated: 'Mis à jour le', idea: 'Idée originale : <a href="https://github.com/LED-N/Fortnite-ChestCounter" rel="noopener">Fortnite-ChestCounter</a> de LED-N' },
   es: { home: 'Inicio', guides: 'Guías', download: 'Descargar', dl_long: 'Descargar para Windows', free: 'Gratis · Windows 10 / 11 · Código abierto',
     see_app: 'Ver la app', other: 'Otra guía', fan: 'Proyecto de fans, no afiliado ni respaldado por Epic Games. Fortnite es una marca de Epic Games, Inc.',
-    by: 'Creado por', updated: 'Actualizado el' },
+    by: 'Creado por', updated: 'Actualizado el', idea: 'Idea original: <a href="https://github.com/LED-N/Fortnite-ChestCounter" rel="noopener">Fortnite-ChestCounter</a> de LED-N' },
 };
 
 const TREASURE = {
@@ -293,6 +293,7 @@ ${LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${BASE + g.path[
   <div class="wrap g-foot">
     <p>${esc(U.fan)}</p>
     <p>${esc(U.by)} <b>Ayman Studio</b> · <a href="https://x.com/ayman_studioo" rel="me noopener">@ayman_studioo</a>${version ? ` · v${esc(version)}` : ''}</p>
+    <p class="foot-idea">${U.idea}</p>
   </div>
 </footer>
 </body>

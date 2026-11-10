@@ -438,6 +438,9 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .foot-by a { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--text); transition: border-color .2s, color .2s; }
 .foot-by a:hover { border-color: var(--lime); color: var(--lime); }
 .foot-by svg { width: 13px; height: 13px; fill: currentColor; }
+.foot-idea { margin-top: 8px !important; color: var(--text-3); font-size: 13px; }
+.foot-idea a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+.foot-idea a:hover { color: var(--lime); }
 .foot-links { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .foot-links b { font: 15px/1 var(--display); text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); margin-bottom: 4px; }
 .foot-links a { display: inline-flex; align-items: center; gap: 9px; color: var(--text-2); }
