@@ -255,6 +255,8 @@ ${LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${BASE + g.path[
 <meta name="twitter:image" content="${og}">
 <script type="application/ld+json">${json(ld)}</script>
 <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/icons/favicon-48.png" type="image/png" sizes="48x48">
+<link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="preload" href="/fonts/anton-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/style.css">

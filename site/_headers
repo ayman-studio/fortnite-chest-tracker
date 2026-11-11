@@ -36,3 +36,5 @@
   Cache-Control: public, max-age=259200, stale-while-revalidate=604800
 /icons/*
   Cache-Control: public, max-age=259200, stale-while-revalidate=604800
+/favicon.ico
+  Cache-Control: public, max-age=259200, stale-while-revalidate=604800
