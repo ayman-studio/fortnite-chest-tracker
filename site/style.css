@@ -654,3 +654,23 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .th-strip .go { padding: 4px 10px; border-radius: 999px; background: var(--lime); color: var(--lime-ink); font-size: 12.5px; }
 .th-strip.on { border-color: rgba(198, 255, 61, .7); box-shadow: 0 0 0 1px rgba(198, 255, 61, .3), 0 10px 30px rgba(198, 255, 61, .18); }
 @media (max-width: 620px) { .th-strip { font-size: 12.5px; } .th-strip .go { display: none; } }
+
+/* ---- Safe and legit: promises + comparison */
+.safe-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 34px; }
+.safe-card { padding: 20px; border-radius: 18px; background: rgba(6, 16, 58, .55); border: 1px solid var(--line); }
+.safe-card b { display: block; font: 19px/1.15 var(--display); text-transform: uppercase; letter-spacing: .02em; color: var(--text); margin-bottom: 8px; }
+.safe-card p { margin: 0; color: var(--text-2); font-size: 14.5px; line-height: 1.55; }
+.cmp-wrap { margin-top: 22px; overflow-x: auto; border-radius: 18px; border: 1px solid var(--line); background: rgba(6, 16, 58, .55); }
+.cmp { width: 100%; border-collapse: collapse; font-size: 15px; }
+.cmp th, .cmp td { padding: 14px 16px; text-align: center; border-bottom: 1px solid var(--line); }
+.cmp tbody tr:last-child th, .cmp tbody tr:last-child td { border-bottom: 0; }
+.cmp thead th { color: var(--text-3); font: 700 12.5px/1.2 var(--font); text-transform: uppercase; letter-spacing: .05em; }
+.cmp thead th.me { color: var(--lime); }
+.cmp tbody th { text-align: left; color: var(--text); font-weight: 700; }
+.cmp td.me { background: rgba(198, 255, 61, .07); }
+.cmp .ck { display: block; margin: 0 auto; width: 22px; height: 22px; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+.cmp .ck.yes { stroke: var(--lime); }
+.cmp .ck.no { stroke: #ff6b8a; opacity: .8; }
+.cmp-txt { color: var(--text-3); font-size: 13.5px; }
+@media (max-width: 1080px) { .safe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .safe-grid { grid-template-columns: 1fr; } .cmp { font-size: 13.5px; } .cmp th, .cmp td { padding: 10px; } }

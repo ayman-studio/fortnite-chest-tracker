@@ -80,6 +80,7 @@
       if (rel.date) $('#dl-date').textContent = t('released', new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(rel.date)));
       $('#dl-notes').href = rel.url;
       const sha = rel.exe && /^sha256:([0-9a-f]{64})$/i.exec(rel.exe.digest);
+      if (sha && $('#vt-link')) $('#vt-link').href = `https://www.virustotal.com/gui/file/${sha[1].toLowerCase()}`;
       if (sha) {
         const b = $('#dl-sha');
         b.hidden = false;
