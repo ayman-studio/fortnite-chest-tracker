@@ -5,7 +5,8 @@ window.I18N = {
   en: {
     meta_title: 'Fortnite Chest Tracker · Free chest counter for Windows',
     odds_more: 'Full odds table and Treasure Hours', how_more: 'Replays not saved? The full guide',
-    foot_guides: 'Guides', foot_g_odds: 'Pirate token odds', foot_g_replays: 'Turn on Fortnite replays',
+    foot_guides: 'Guides', foot_g_season: 'Treasure Hours & weekly prizes', foot_g_odds: 'Pirate token odds',
+    th_go: 'Calendar', th_now: 'Treasure Hour on now · ×{0} pirate token · ends in {1}', th_next: 'Next Treasure Hour in {0}', foot_g_replays: 'Turn on Fortnite replays',
     meta_desc: "Free Windows app: counts every chest you open in Fortnite, shows an in-game HUD and works out your odds of the pirate token with Epic's real drop rates.",
     nav_features: 'Features', nav_hud: 'Overlay', nav_odds: 'Odds', nav_gallery: 'Preview', nav_faq: 'FAQ',
     cta_short: 'Download',
@@ -86,7 +87,8 @@ window.I18N = {
   fr: {
     meta_title: 'Fortnite Chest Tracker · Compteur de coffres gratuit pour Windows',
     odds_more: 'Tableau complet des chances et Heures du trésor', how_more: 'Replays pas enregistrés ? Le guide complet',
-    foot_guides: 'Guides', foot_g_odds: 'Chances du jeton pirate', foot_g_replays: 'Activer les replays Fortnite',
+    foot_guides: 'Guides', foot_g_season: 'Heures du trésor et prix', foot_g_odds: 'Chances du jeton pirate',
+    th_go: 'Calendrier', th_now: 'Heure du trésor en cours · jeton pirate ×{0} · fin dans {1}', th_next: 'Prochaine Heure du trésor dans {0}', foot_g_replays: 'Activer les replays Fortnite',
     meta_desc: "Appli gratuite pour Windows : compte chaque coffre ouvert dans Fortnite, affiche un HUD en jeu et calcule tes chances d'avoir le jeton pirate avec les vrais taux d'Epic.",
     nav_features: 'Fonctionnalités', nav_hud: 'Overlay', nav_odds: 'Chances', nav_gallery: 'Aperçu', nav_faq: 'FAQ',
     cta_short: 'Télécharger',
@@ -167,7 +169,8 @@ window.I18N = {
   es: {
     meta_title: 'Fortnite Chest Tracker · Contador de cofres gratis para Windows',
     odds_more: 'Tabla completa de probabilidades y Horas del tesoro', how_more: '¿No se guardan las repeticiones? La guía completa',
-    foot_guides: 'Guías', foot_g_odds: 'Probabilidad de la ficha pirata', foot_g_replays: 'Activar las repeticiones de Fortnite',
+    foot_guides: 'Guías', foot_g_season: 'Horas del tesoro y premios', foot_g_odds: 'Probabilidad de la ficha pirata',
+    th_go: 'Calendario', th_now: 'Hora del tesoro en curso · ficha pirata ×{0} · termina en {1}', th_next: 'Próxima Hora del tesoro en {0}', foot_g_replays: 'Activar las repeticiones de Fortnite',
     meta_desc: 'App gratuita para Windows: cuenta cada cofre que abres en Fortnite, muestra un HUD en el juego y calcula tu probabilidad de la ficha pirata con las tasas reales de Epic.',
     nav_features: 'Funciones', nav_hud: 'Overlay', nav_odds: 'Probabilidades', nav_gallery: 'Vista previa', nav_faq: 'FAQ',
     cta_short: 'Descargar',

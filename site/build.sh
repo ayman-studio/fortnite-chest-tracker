@@ -15,6 +15,7 @@ mkdir -p "$OUT/docs"
 cp -r "$ROOT/site/." "$OUT/"
 rm -f "$OUT/build.sh" "$OUT/prerender.mjs" "$OUT/guides.mjs"
 cp "$W/scene.js" "$OUT/"
+cp "$W/season.json" "$OUT/"                   # the calendar of the treasure hunt: the app downloads it from here
 cp -r "$W/vendor" "$W/models" "$W/img" "$W/cursors" "$OUT/"
 rm -f "$OUT/img/favicon.ico"                  # the site has its own small PNG icons (icons/)
 cp "$W/fonts/OFL.txt" "$OUT/fonts/"           # the site uses a Latin subset of Anton in WOFF2 (site/fonts)

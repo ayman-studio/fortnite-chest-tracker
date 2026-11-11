@@ -16,6 +16,9 @@
   Cache-Control: public, max-age=0, must-revalidate
 /404.html
   Cache-Control: public, max-age=0, must-revalidate
+/season.json
+  Cache-Control: public, max-age=300
+  Access-Control-Allow-Origin: *
 
 # The Anton subset never changes (a new one would get a new name)
 /fonts/*

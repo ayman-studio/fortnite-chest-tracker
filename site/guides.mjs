@@ -1,8 +1,9 @@
 // Guide pages (static, no script): what players search for around the app. One page per guide and language, with
 // the same look as the home page, their own SEO tags (canonical, hreflang, Open Graph, JSON-LD) and links back to
 // the home page. Used by prerender.mjs: buildGuides(out) writes the pages and returns their sitemap entries.
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const BASE = 'https://fortnite-chest-tracker.com/';
 const REPO_DL = 'https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest';
@@ -51,8 +52,101 @@ const TREASURE = {
   es: { pirate: 'Ficha pirata', gold: 'Atuendo dorado', vehicle: 'Vehículo y calcomanía', pickaxe: 'Pico o mochila', jam: 'Pista musical', loading: 'Pantalla de carga', gizmo: 'Gizmo' },
 };
 
+// ---------------------------------------------------------------- season calendar (the app's season.json)
+const SEASON = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'FortniteChestTracker', 'Web', 'wwwroot', 'season.json'), 'utf8'));
+const S_TXT = {
+  en: { title: 'Fortnite Treasure Hunters: Treasure Hours, weekly prizes and odds · Chest Tracker',
+    desc: 'Every Treasure Hour of the Treasure Hunters season in your local time, with its boosts, a live countdown, the prizes of each week and how the pirate token drops.',
+    h1: 'Treasure Hunters: Treasure Hours and weekly prizes', kicker: 'Season calendar',
+    lead: 'When the next Treasure Hour starts in your time zone, what it boosts, and what each week of the hunt gives away.',
+    next: 'Next Treasure Hour', now: 'Treasure Hour on now', ends: 'ends in', starts: 'starts in', seasonEnd: 'End of the season in', over: 'The season is over.',
+    hoursTitle: 'Every Treasure Hour', when: 'When (your time)', boosts: 'Boosts', status: '', expected: 'usual time, not confirmed yet', past: 'over', live: 'NOW',
+    pirate: 'Pirate token', gold: 'Gold outfit', vehicle: 'Vehicle',
+    weeksTitle: 'Prizes week by week', week: 'Week', unknown: 'Prizes not announced yet: this page updates as soon as they are.',
+    type: { outfit: 'Outfit', pickaxe: 'Pickaxe', backbling: 'Back bling', vehicle: 'Vehicle', jam: 'Jam track', loading: 'Loading screen' }, oneIn: '1 in',
+    rulesTitle: 'Good to know',
+    rules: ['During a Treasure Hour, each chest you open or break gives you more chances for the boosted treasures: the pirate token, the gold outfit and the vehicle of the week.',
+      'A pirate token found by anyone in your party is shared with the whole party.', 'Ranked matches give no treasure-hunt prizes.',
+      'The weekly prizes change every Sunday: what you did not get one week is gone.'],
+    app: 'Chest Tracker counts every chest you open from your replays and works out your real chance, Treasure Hour boosts included. It can also notify you 10 minutes before each Treasure Hour.' },
+  fr: { title: 'Fortnite Treasure Hunters : Heures du trésor, prix de la semaine et chances · Chest Tracker',
+    desc: "Toutes les Heures du trésor de la saison Treasure Hunters à ton heure locale, avec leurs bonus, un compte à rebours, les prix de chaque semaine et comment tombe le jeton pirate.",
+    h1: 'Treasure Hunters : Heures du trésor et prix de la semaine', kicker: 'Calendrier de la saison',
+    lead: "Quand commence la prochaine Heure du trésor chez toi, ce qu'elle booste, et ce que chaque semaine de la chasse fait gagner.",
+    next: 'Prochaine Heure du trésor', now: 'Heure du trésor en cours', ends: 'se termine dans', starts: 'commence dans', seasonEnd: 'Fin de la saison dans', over: 'La saison est terminée.',
+    hoursTitle: 'Toutes les Heures du trésor', when: 'Quand (ton heure)', boosts: 'Bonus', status: '', expected: 'horaire habituel, pas encore confirmé', past: 'passée', live: 'EN COURS',
+    pirate: 'Jeton pirate', gold: 'Tenue dorée', vehicle: 'Véhicule',
+    weeksTitle: 'Les prix semaine par semaine', week: 'Semaine', unknown: "Prix pas encore annoncés : la page se met à jour dès qu'ils le sont.",
+    type: { outfit: 'Tenue', pickaxe: 'Pioche', backbling: 'Sac à dos', vehicle: 'Véhicule', jam: 'Piste musicale', loading: 'Écran de chargement' }, oneIn: '1 sur',
+    rulesTitle: 'Bon à savoir',
+    rules: ["Pendant une Heure du trésor, chaque coffre ouvert ou cassé te donne plus de chances pour les trésors boostés : le jeton pirate, la tenue dorée et le véhicule de la semaine.",
+      "Un jeton pirate trouvé par un membre de ton escouade est partagé avec toute l'escouade.", "Les parties classées ne donnent aucun prix de la chasse au trésor.",
+      "Les prix de la semaine changent chaque dimanche : ce que tu n'as pas eu une semaine est perdu."],
+    app: "Chest Tracker compte chaque coffre que tu ouvres grâce à tes replays et calcule ta vraie chance, bonus des Heures du trésor compris. Il peut aussi te prévenir 10 minutes avant chaque Heure du trésor." },
+  es: { title: 'Fortnite Treasure Hunters: Horas del tesoro, premios semanales y probabilidades · Chest Tracker',
+    desc: 'Todas las Horas del tesoro de la temporada Treasure Hunters en tu hora local, con sus bonificaciones, una cuenta atrás, los premios de cada semana y cómo sale la ficha pirata.',
+    h1: 'Treasure Hunters: Horas del tesoro y premios semanales', kicker: 'Calendario de la temporada',
+    lead: 'Cuándo empieza la próxima Hora del tesoro en tu zona horaria, qué bonifica y qué da cada semana de la búsqueda.',
+    next: 'Próxima Hora del tesoro', now: 'Hora del tesoro en curso', ends: 'termina en', starts: 'empieza en', seasonEnd: 'Fin de la temporada en', over: 'La temporada ha terminado.',
+    hoursTitle: 'Todas las Horas del tesoro', when: 'Cuándo (tu hora)', boosts: 'Bonificaciones', status: '', expected: 'horario habitual, aún sin confirmar', past: 'terminada', live: 'EN CURSO',
+    pirate: 'Ficha pirata', gold: 'Atuendo dorado', vehicle: 'Vehículo',
+    weeksTitle: 'Los premios semana a semana', week: 'Semana', unknown: 'Premios aún sin anunciar: la página se actualiza en cuanto se anuncien.',
+    type: { outfit: 'Atuendo', pickaxe: 'Pico', backbling: 'Mochila', vehicle: 'Vehículo', jam: 'Pista musical', loading: 'Pantalla de carga' }, oneIn: '1 de',
+    rulesTitle: 'Conviene saber',
+    rules: ['Durante una Hora del tesoro, cada cofre que abres o rompes te da más posibilidades para los tesoros bonificados: la ficha pirata, el atuendo dorado y el vehículo de la semana.',
+      'Una ficha pirata encontrada por alguien de tu escuadrón se comparte con todo el escuadrón.', 'Las partidas clasificatorias no dan premios de la búsqueda del tesoro.',
+      'Los premios semanales cambian cada domingo: lo que no conseguiste una semana se pierde.'],
+    app: 'Chest Tracker cuenta cada cofre que abres gracias a tus repeticiones y calcula tu probabilidad real, con las bonificaciones de las Horas del tesoro. También puede avisarte 10 minutos antes de cada Hora del tesoro.' },
+};
+const ODDS_BY_KEY = { odds_pirate: 137500, odds_gold: 1562500, odds_vehicle: 7813, odds_pickaxe: 568, odds_jam: 391, odds_loading: 272 };
+const utcSlot = (a, b) => `${new Date(a).toISOString().slice(0, 16).replace('T', ' ')}–${new Date(b).toISOString().slice(11, 16)} UTC`;
+
+function seasonPage(L) {
+  const T = S_TXT[L];
+  const boostText = (b) => [['odds_pirate', T.pirate], ['odds_gold', T.gold], ['odds_vehicle', T.vehicle]]
+    .filter(([k]) => b[k] > 1).map(([k, n]) => `${esc(n)} <b>×${nf(L, b[k])}</b>`).join(' · ');
+  const hours = SEASON.treasureHours.map((h) => `<tr data-start="${h.start}" data-end="${h.end}"><td data-slot="${h.start}|${h.end}">${esc(utcSlot(h.start, h.end))}</td><td>${boostText(h.boosts)}</td><td class="g-st">${h.confirmed ? '' : `<span class="g-exp">${esc(T.expected)}</span>`}</td></tr>`).join('\n');
+  const weeks = SEASON.weeks.map((w, i) => {
+    const end = i + 1 < SEASON.weeks.length ? SEASON.weeks[i + 1].start : SEASON.end;
+    const prizes = w.prizes.length
+      ? `<div class="g-prizes">${w.prizes.map((p) => `<figure class="g-prize"><img src="/img/${esc(p.img)}" alt="${attr(p.name)}" loading="lazy"><figcaption><b>${esc(p.name)}</b><span>${esc(T.type[p.key] || p.key)}${ODDS_BY_KEY[p.odds] ? ` · ${esc(T.oneIn)} ${nf(L, ODDS_BY_KEY[p.odds])}` : ''}</span></figcaption></figure>`).join('')}</div>`
+      : `<p class="g-unknown">${esc(T.unknown)}</p>`;
+    return `<section class="g-week" data-start="${w.start}" data-end="${end}"><div class="g-week-h">${w.art ? `<img src="/img/${esc(w.art)}" alt="" width="44" height="44">` : ''}<div><b>${esc(T.week)} ${i + 1} · ${esc(w.title)}</b><span data-slot="${w.start}|${end}" data-days="1">${esc(utcSlot(w.start, end))}</span></div></div>${prizes}</section>`;
+  }).join('\n');
+  const script = `<script>(function(){var L=document.documentElement.lang,loc={en:'en-GB',fr:'fr-FR',es:'es-ES'}[L]||'en-GB',D={en:'d',fr:'j',es:'d'}[L]||'d';
+var df=new Intl.DateTimeFormat(loc,{weekday:'short',day:'numeric',month:'short'}),tf=new Intl.DateTimeFormat(loc,{hour:'2-digit',minute:'2-digit'});
+document.querySelectorAll('[data-slot]').forEach(function(el){var p=el.dataset.slot.split('|'),a=new Date(p[0]),b=new Date(p[1]);el.textContent=el.dataset.days?df.format(a)+' → '+df.format(b):df.format(a)+', '+tf.format(a)+'–'+tf.format(b);});
+function left(ms){var m=Math.max(0,Math.floor(ms/6e4)),d=Math.floor(m/1440),h=Math.floor(m%1440/60),mi=m%60,s=Math.max(0,Math.floor(ms/1e3)%60);return d>0?d+' '+D+' '+h+' h':h>0?h+' h '+String(mi).padStart(2,'0'):mi+' min '+String(s).padStart(2,'0')+' s';}
+var rows=[].slice.call(document.querySelectorAll('tr[data-start]')),weeks=[].slice.call(document.querySelectorAll('.g-week')),box=document.getElementById('g-next'),end=Date.parse(${JSON.stringify(SEASON.end)});
+function tick(){var now=Date.now(),cur=null,next=null;rows.forEach(function(r){var a=Date.parse(r.dataset.start),b=Date.parse(r.dataset.end);r.className=now>=b?'past':now>=a?'now':'';if(now>=a&&now<b)cur=r;else if(a>now&&!next)next=r;});
+weeks.forEach(function(w){w.classList.toggle('now',now>=Date.parse(w.dataset.start)&&now<Date.parse(w.dataset.end));});
+var r=cur||next;box.classList.toggle('on',!!cur);box.querySelector('.g-next-t').textContent=cur?${JSON.stringify(T.now)}:r?${JSON.stringify(T.next)}:${JSON.stringify(T.over)};
+box.querySelector('.g-next-c').textContent=r?(cur?${JSON.stringify(T.ends)}:${JSON.stringify(T.starts)})+' '+left(Date.parse(cur?r.dataset.end:r.dataset.start)-now):'';
+box.querySelector('.g-next-w').textContent=r?r.cells[0].textContent:'';box.querySelector('.g-next-b').innerHTML=r?r.cells[1].innerHTML:'';
+document.getElementById('g-end').textContent=now<end?${JSON.stringify(T.seasonEnd)}+' '+left(end-now):${JSON.stringify(T.over)};}
+tick();setInterval(tick,1000);})();</script>`;
+  return {
+    title: T.title, desc: T.desc, h1: T.h1, kicker: T.kicker, lead: T.lead,
+    body: `<div class="g-next" id="g-next"><span class="g-next-t">${esc(T.next)}</span><b class="g-next-c"></b><span class="g-next-w"></span><span class="g-next-b"></span><span class="g-end" id="g-end"></span></div>
+<h2>${esc(T.hoursTitle)}</h2>
+<div class="g-table-wrap"><table class="g-table g-hours"><thead><tr><th>${esc(T.when)}</th><th>${esc(T.boosts)}</th><th></th></tr></thead><tbody>
+${hours}
+</tbody></table></div>
+<h2>${esc(T.weeksTitle)}</h2>
+${weeks}
+<h2>${esc(T.rulesTitle)}</h2>
+<ul>${T.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+<p>${esc(T.app)}</p>
+${script}`,
+  };
+}
+
 // ---------------------------------------------------------------- the guides
 const GUIDES = {
+  season: {
+    path: { en: 'guides/treasure-hunters/', fr: 'fr/guides/chasse-au-tresor/', es: 'es/guides/caza-del-tesoro/' },
+    page: seasonPage,
+  },
   odds: {
     path: { en: 'guides/pirate-token-odds/', fr: 'fr/guides/chances-jeton-pirate/', es: 'es/guides/probabilidad-ficha-pirata/' },
     page: (L) => {
@@ -211,7 +305,8 @@ function render(id, L, version) {
   const U = UI[L];
   const url = BASE + g.path[L];
   const home = BASE + HOME[L];
-  const otherId = id === 'odds' ? 'replays' : 'odds';
+  const ids = Object.keys(GUIDES);
+  const otherId = ids[(ids.indexOf(id) + 1) % ids.length];
   const other = GUIDES[otherId];
   const otherTitle = other.page(L).h1;
   const og = `${BASE}og/og-${L}.jpg`;
