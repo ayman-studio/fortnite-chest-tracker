@@ -171,6 +171,23 @@ if (previewPath != null)
         var frame = renderer.Render(view, scale, edit, 0, pop, pop > 0 ? view.Chests ?? 0 : 0);
         File.WriteAllBytes(file, frame.ToPng());
     }
+    // A Treasure Hour going on / coming, as drawn on those days (the real line depends on the time of the preview)
+    var first = Season.Current.TreasureHours.FirstOrDefault();
+    if (first != null)
+    {
+        foreach (var (suffix, at, style) in new[]
+                 {
+                     ("-event-on", first.Start.AddMinutes(30), OverlayAppearance.Full), ("-event-soon", first.Start.AddMinutes(-134), OverlayAppearance.Full),
+                     ("-compact-event-on", first.Start.AddMinutes(30), OverlayAppearance.Compact),
+                 })
+        {
+            config.OverlayStyle = style;
+            var view = HudModel.Build(previewData, config, null, false) with { };
+            view = view with { Event = HudModel.EventLine(at, out var on), EventOn = on };
+            var file = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(previewPath)) ?? ".", Path.GetFileNameWithoutExtension(previewPath) + suffix + ".png");
+            File.WriteAllBytes(file, renderer.Render(view, scale).ToPng());
+        }
+    }
     return 0;
 }
 

@@ -61,10 +61,17 @@ public sealed record HudView(HudMode Mode, int? Chests, string Total, int Sessio
     /// <summary>Local time ("20:15") the count was last updated, that is when a match was last counted.</summary>
     public string? UpdatedAt { get; init; }
 
+    /// <summary>Treasure Hour line: "HEURE DU TRÉSOR ×1,5 · FIN 21:00" while one is on, or "… DANS 2 H 14" when one starts
+    /// within 12 hours; null otherwise.</summary>
+    public string? Event { get; init; }
+
+    /// <summary>The Treasure Hour of <see cref="Event"/> is going on (drawn in lime).</summary>
+    public bool EventOn { get; init; }
+
     public static HudView Empty { get; } = new(HudMode.Idle, null, "0", 0, 0, null);
 
     /// <summary>Short fingerprint of what is drawn (cache key of the picture served to the page).</summary>
-    public string Key => string.Join("|", Mode, Chests, Total, Session, Treasures, Goal?.Key, Goal?.Chests, Site, Compact, LastChests, LastDuration, UpdatedAt, L.Code);
+    public string Key => string.Join("|", Mode, Chests, Total, Session, Treasures, Goal?.Key, Goal?.Chests, Site, Compact, LastChests, LastDuration, UpdatedAt, Event, L.Code);
 }
 
 /// <summary>Builds the overlay view from the saved matches and the match in progress.</summary>
@@ -113,7 +120,29 @@ public static class HudModel
             LastChests = last?.ChestsOpened,
             LastDuration = last?.DurationSeconds is { } s ? $"{s / 60}:{s % 60:00}" : null,
             UpdatedAt = last == null ? null : d.Matches.Max(m => AsUtc(m.AnalyzedAtUtc)).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture),
+            Event = EventLine(DateTime.UtcNow, out var on),
+            EventOn = on,
         };
+    }
+
+    /// <summary>Treasure Hour going on, or starting within 12 hours, as one line for the overlay.</summary>
+    public static string? EventLine(DateTime utc, out bool on)
+    {
+        on = false;
+        var title = L.T("HEURE DU TRÉSOR", "TREASURE HOUR", "HORA DEL TESORO");
+        if (Season.ActiveAt(utc) is { } now)
+        {
+            on = true;
+            var end = now.End.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
+            return $"{title} ×{L.N1(now.BoostOf("odds_pirate"))} · {L.T("FIN", "ENDS", "FIN")} {end}";
+        }
+        if (Season.NextAfter(utc) is { } next && next.Start - utc <= TimeSpan.FromHours(12))
+        {
+            var left = next.Start - utc;
+            var inText = left.TotalHours >= 1 ? $"{(int)left.TotalHours} H {left.Minutes:00}" : $"{Math.Max(1, (int)Math.Ceiling(left.TotalMinutes))} MIN";
+            return $"{title} {L.T("DANS", "IN", "EN")} {inText}";
+        }
+        return null;
     }
 
     private static DateTime AsUtc(DateTime t) => t.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(t, DateTimeKind.Utc) : t.ToUniversalTime();

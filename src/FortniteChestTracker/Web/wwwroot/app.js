@@ -475,7 +475,7 @@ function home() {
   const token = `<section class="hud hud-token"><div class="hud-label">${target.key === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : icon('star')}${esc(heading)}</div>
     <div class="row" style="align-items:baseline;gap:12px"><div class="hud-big num accent">${esc(pctx(chanceOf(h, target)))}</div><div class="hud-note">${esc(t('huntChance'))}</div></div>
     <div class="dig"><i style="width:${Math.max(1.5, Math.min(1, h.chests / target.odds) * 100).toFixed(1)}%"></i></div>
-    <div class="hud-foot">${esc(t('tokenDug', nf(h.chests), nf(target.odds), since))}</div>
+    <div class="hud-foot">${esc(t('tokenDug', nf(h.chests), nf(target.odds), since))}${seasonChip()}</div>
     <div class="goals" role="group" aria-label="${esc(t('goalPick'))}">${chips}</div></section>`;
 
   let last;
@@ -613,6 +613,86 @@ function estimate() {
   return `<div class="page" style="grid-template-rows:minmax(0,1fr)">${form}${result}</div>`;
 }
 
+// ---- Season: Treasure Hours, weekly prizes, token timer (live countdowns: [data-until] ticks every second)
+const msLeft = (iso) => Date.parse(iso) - Date.now();
+function leftText(ms) {
+  const m = Math.max(0, Math.floor(ms / 60000));
+  const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), min = m % 60;
+  if (d > 0) return `${d} ${t('dayShort')} ${h} h`;
+  if (h > 0) return `${h} h ${String(min).padStart(2, '0')}`;
+  const s = Math.max(0, Math.floor(ms / 1000) % 60);
+  return `${min} min ${String(s).padStart(2, '0')} s`;
+}
+const until = (iso, key) => `<span data-until="${esc(iso)}" data-key="${esc(key)}">${esc(t(key, leftText(msLeft(iso))))}</span>`;
+function tickCountdowns() {
+  document.querySelectorAll('[data-until]').forEach((el) => {
+    const left = msLeft(el.dataset.until);
+    el.textContent = t(el.dataset.key, leftText(left));
+    if (left <= 0 && !el.dataset.done) { el.dataset.done = '1'; setTimeout(() => render(), 1500); }
+  });
+}
+setInterval(tickCountdowns, 1000);
+
+function seasonNow() {
+  const s = S.season;
+  if (!s) return null;
+  const now = Date.now();
+  return {
+    s,
+    on: now >= Date.parse(s.start) && now < Date.parse(s.end),
+    active: s.hours.find((h) => now >= Date.parse(h.start) && now < Date.parse(h.end)),
+    next: s.hours.find((h) => Date.parse(h.start) > now),
+  };
+}
+const boostList = (b) => ['odds_pirate', 'odds_gold', 'odds_vehicle'].filter((k) => b[k] > 1).map((k) => `${t('short_' + k)} ×${nf1(b[k]).replace(/[.,]0$/, '')}`).join(' · ');
+const slot = (h) => `${dayLabel(h.start)}, ${time(h.start)}–${time(h.end)}`;
+
+// Home: a chip on the goal card while a Treasure Hour is on, or when one starts within a day
+function seasonChip() {
+  const n = seasonNow();
+  if (!n || !n.on) return '';
+  if (n.active) return `<span class="tag th-chip on">${icon('bolt')}${esc(t('thChip', nf1(n.active.boosts.odds_pirate || 1).replace(/[.,]0$/, '')))} · ${until(n.active.end, 'thEndsIn')}</span>`;
+  if (n.next && msLeft(n.next.start) < 24 * 3600e3) return `<span class="tag th-chip">${icon('clock')}${until(n.next.start, 'thChipIn')}</span>`;
+  return '';
+}
+
+function seasonCard() {
+  const n = seasonNow();
+  if (!n) return '';
+  const { s } = n;
+  if (!n.on) return card('s12 season-card', t('seasonTitle', s.name), `<p class="faint" style="margin:0">${esc(Date.now() >= Date.parse(s.end) ? t('seasonOver') : t('seasonEnds', leftText(msLeft(s.start))))}</p>`);
+  // Treasure Hours
+  const h = n.active || n.next;
+  const th = `<div class="ss-col ss-th${n.active ? ' on' : ''}"><div class="ss-h">${icon('bolt')}${esc(t('thTitle'))}${n.active ? `<span class="badge b-lime">${esc(t('thNow'))}</span>` : ''}</div>
+    ${h ? `<div class="ss-big">${n.active ? until(n.active.end, 'thEndsIn') : until(n.next.start, 'thIn')}</div>
+      <div class="ss-sub">${esc(n.active ? slot(n.active) : t('thNext', slot(n.next)))}</div>
+      <div class="ss-boost">${esc(boostList(h.boosts))}</div>${h.confirmed ? '' : `<div class="ss-note">${esc(t('thExpected'))}</div>`}`
+      : `<div class="ss-sub">${esc(t('thNone'))}</div>`}
+    <label class="dock-sw ss-notify"><span class="switch"><input type="checkbox" id="season-notify" data-change="season-notify"${s.notify ? ' checked' : ''}><span></span></span><span>${esc(t('thNotify'))}</span></label></div>`;
+  // This week's prizes
+  const wi = Math.max(0, s.week);
+  const w = s.weeks[wi];
+  const prizes = w && w.prizes.length
+    ? `<div class="ss-prizes">${w.prizes.map((p) => `<div class="ss-prize${p.found ? ' found' : ''}" title="${esc(p.name)}"><img src="/img/${esc(p.img)}" alt="" loading="lazy"><b>${esc(p.name)}</b><span>${esc(t('prize_' + p.key))}${p.odds ? ` · 1/${nf(S.hunt.odds.find((o) => o.key === p.odds)?.odds ?? 0)}` : ''}</span>${p.found ? `<i class="ss-got">${icon('check')}${esc(t('prizeFound'))}</i>` : ''}</div>`).join('')}</div>`
+    : `<p class="faint small" style="margin:6px 0 0">${esc(t('weekUnknown'))}</p>`;
+  const week = w ? `<div class="ss-col ss-week"><div class="ss-h">${w.art ? `<img class="ss-art" src="/img/${esc(w.art)}" alt="">` : icon('treasures')}${esc(t('weekTitle', wi + 1, s.weeks.length, w.title))}</div>
+    ${prizes}<div class="ss-foot"><span>${esc(t('weekChests', nf(w.chests)))}</span><span>${until(w.end, 'weekEnds')}</span></div></div>` : '';
+  // Token timer + end of the season
+  let token;
+  if (s.tokenActivated) {
+    const end = new Date(Date.parse(s.tokenActivated) + 14 * 864e5).toISOString();
+    token = msLeft(end) > 0
+      ? `<div class="ss-big">${until(end, 'tokenLeft')}</div><div class="ss-sub">${esc(t('tokenUntil', dateTime(end)))}</div>`
+      : `<div class="ss-sub">${esc(t('tokenOver'))}</div>`;
+    token += `<button class="btn btn-sm btn-ghost" data-act="token-reset">${esc(t('tokenReset'))}</button>`;
+  } else {
+    token = `<p class="ss-sub" style="margin:0">${esc(t('tokenHint'))}</p><button class="btn btn-sm" data-act="token-activate">${esc(t('tokenActivate'))}</button>`;
+  }
+  const side = `<div class="ss-col ss-token"><div class="ss-h"><img class="ico-img" src="/img/token.webp" alt="">${esc(t('tokenTimer'))}</div>${token}
+    <div class="ss-end">${icon('clock')}${until(s.end, 'seasonEnds')}</div></div>`;
+  return card('s12 season-card', t('seasonTitle', s.name), `<div class="ss-grid">${th}${week}${side}</div>`);
+}
+
 // Drop rates announced by Epic, with the player's chance and the expected count from the chests of the season.
 function oddsCard() {
   const h = S.hunt;
@@ -624,7 +704,7 @@ function oddsCard() {
     ${h.combined ? luckMeter('star', t(single(h.gizmos) ? 'foundTreasuresOne' : 'foundTreasuresMany', nf(h.gizmos), nf1(h.gizmosExpected)), h.gizmoLuck) + `<p class="faint small" style="margin:0">${esc(t('luckCombinedHint'))}</p>`
       : luckMeter('star', t(single(h.gizmos) ? 'foundGizmosOne' : 'foundGizmosMany', nf(h.gizmos), nf1(h.gizmosExpected)), h.gizmoLuck)
         + luckMeter('treasures', t(single(h.rewards) ? 'foundRewardsOne' : 'foundRewardsMany', nf(h.rewards), nf1(h.rewardsExpected)), h.rewardLuck)}</div>`;
-  const note = t('oddsNote', nf(h.chests), since);
+  const note = [t('oddsNote', nf(h.chests), since), h.rankedChests ? t('oddsRanked', nf(h.rankedChests)) : '', h.boostedChests ? t('oddsBoosted', nf(h.boostedChests)) : ''].filter(Boolean).join(' ');
   return card('s12 odds-card', t('oddsTitle'), `<div class="odds-grid"><table class="tbl static compact" title="${esc(note)}"><colgroup><col><col style="width:16%"><col style="width:16%"><col style="width:16%"><col style="width:12%"></colgroup>
     <thead><tr><th>${esc(t('treasure'))}</th><th class="r">${esc(t('oddsPer'))}</th><th class="r">${esc(t('oddsHours'))}</th><th class="r">${esc(t('oddsChance'))}</th><th class="r">${esc(t('oddsExpected'))}</th></tr></thead>
     <tbody>${rows}</tbody></table>${luck}</div>
@@ -655,7 +735,7 @@ function treasures() {
   const list = card('s12', t('treasuresTitle'), S.treasures.length
     ? `<div class="fit" data-fit="treasures" data-row="56">${rows}</div>${pager('treasures', S.treasures.length)}`
     : empty(t('noTreasures'), t('treasureLegend')), { hint: count(S.treasures.length, 'treasure') });
-  return `<div class="page treasures-page" style="grid-template-rows:auto minmax(200px,1fr)">${oddsCard()}${list}</div>`;
+  return `<div class="page treasures-page" style="grid-template-rows:max-content max-content minmax(340px,1fr)">${seasonCard()}${oddsCard()}${list}</div>`;
 }
 
 // Preview of the in-game overlay: the very picture the counter draws for the game window (and OBS)
@@ -1218,6 +1298,8 @@ document.addEventListener('click', async (e) => {
       break;
     case 'notice-next': ui.notice = (ui.notice || 0) + 1; render(); break;
     case 'share': openShare(); break;
+    case 'token-activate': await cmd('token/activate'); break;
+    case 'token-reset': await cmd('token/reset'); break;
     case 'share-close': closeShare(); break;
     case 'share-copy': copyShare(); break;
     case 'quit':
@@ -1252,6 +1334,7 @@ document.addEventListener('change', (e) => {
     case 'set-update': cmd('settings', { updateMode: v }); break;
     case 'set-archive': cmd('settings', { archiveFolder: v ? '*' : '' }); break;
     case 'est-include': cmd('settings', { includeEstimate: v }); break;
+    case 'season-notify': cmd('season/notify', { on: v }); break;
     case 'setup-install': if (ui.setup) ui.setup.install = v; break;
     default: break;
   }

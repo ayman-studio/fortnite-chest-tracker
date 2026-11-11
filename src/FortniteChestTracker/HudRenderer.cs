@@ -176,11 +176,20 @@ internal sealed class HudRenderer : IDisposable
         var right = w - margin;
 
         var heroH = icon;
+        var fEvent = Font(anton, S(14), 400);
+        var eventH = v.Event != null ? S(12) + fEvent.Cap + S(10) : 0;
         var goalH = v.Goal != null ? S(16) + S(26) + S(13) + S(8) + fSmall.Cap : 0;
         var statsH = S(16) + fStat.Cap + S(7) + fSmall.Cap;
         var site = string.IsNullOrWhiteSpace(v.Site) ? null : v.Site.Trim();
         var siteH = site != null ? S(14) + fSite.Cap : 0;
-        var h = margin + heroH + goalH + statsH + (lastRow != null ? statsH : 0) + siteH + margin + S(4);
+        if (v.Event != null)
+        {
+            contentW = Math.Max(contentW, Advance(fEvent, v.Event) + S(40));
+            w = Math.Max(minWidth, contentW + 2 * margin);
+            contentW = w - 2 * margin;
+            right = w - margin;
+        }
+        var h = margin + heroH + eventH + goalH + statsH + (lastRow != null ? statsH : 0) + siteH + margin + S(4);
 
         var f = NewFrame(w, h);
         var cv = new Canvas(f);
@@ -222,6 +231,28 @@ internal sealed class HudRenderer : IDisposable
             Text(cv, fPct, plus, nx + numW - S(4), (int)(numTop - S(14) - rise), Col.Hex(0xe9ffad), Lime, S(3), S(2), Math.Min(1, pop * 1.6f));
         }
         y += heroH;
+
+        // ---- Treasure Hour: a pill under the hero (lime while it is on)
+        if (v.Event is { } ev)
+        {
+            y += S(12);
+            var pillH = fEvent.Cap + S(10);
+            var pillW = Advance(fEvent, ev) + S(30);
+            var pill = Cached($"evpill{pillW}x{pillH}", () => Gfx.RoundRect(pillW, pillH, pillH / 2f));
+            cv.Fill(pill, x0, y - S(5), v.EventOn ? Lime : Col.Hex(0x0b1a4a), v.EventOn ? 0.95f : 0.85f);
+            var bolt = v.EventOn ? Col.Hex(0x0b1a4a) : Lime;
+            var mark = Cached($"evbolt{fEvent.Cap}", () => Gfx.Poly(S(9), fEvent.Cap, new (float, float)[] { (S(6), 0f), (0f, fEvent.Cap * 0.58f), (S(4), fEvent.Cap * 0.58f), (S(3), (float)fEvent.Cap), (S(9), fEvent.Cap * 0.38f), (S(5), fEvent.Cap * 0.38f) }));
+            cv.Fill(mark, x0 + S(10), y, bolt, 1f);
+            if (v.EventOn)
+            {
+                Text(cv, fEvent, ev, x0 + S(23), y, Col.Hex(0x0b1a4a), Col.Hex(0x0b1a4a), 0, 0);
+            }
+            else
+            {
+                Text(cv, fEvent, ev, x0 + S(23), y, White, Ice, S(2), 0);
+            }
+            y += fEvent.Cap + S(5);
+        }
 
         // ---- Goal: token, name, chance, segmented "dig" bar, chests / odds
         if (v.Goal is { } goal)
@@ -335,6 +366,7 @@ internal sealed class HudRenderer : IDisposable
             ? L.T($"Dernière : {L.N(lastChests)} coffres", $"Last: {L.N(lastChests)} chests", $"Última: {L.N(lastChests)} cofres") + (v.LastDuration != null ? " · " + v.LastDuration : "")
             : null;
         var updated = v.UpdatedAt != null ? L.T("MàJ ", "Updated ", "Act. ") + v.UpdatedAt : null;
+        var fEvent = Font(anton, S(12), 400);
 
         // + room on the right for the padlock of the edit mode (the width stays the same locked or not)
         var contentW = Math.Max(icon + S(8) + numW + S(12) + Math.Max(tagW + S(6), goalW) + S(20), S(210));
@@ -346,10 +378,14 @@ internal sealed class HudRenderer : IDisposable
         {
             contentW = Math.Max(contentW, Advance(fInfo, lastLine) + (updated != null ? S(14) + Advance(fInfo, updated) : 0));
         }
+        if (v.Event != null)
+        {
+            contentW = Math.Max(contentW, Advance(fEvent, v.Event) + S(12));
+        }
         var w = Math.Max(minWidth, contentW + 2 * margin);
         contentW = w - 2 * margin;
         var barH = S(7);
-        var h = margin + icon + (v.Goal != null ? S(9) + barH : 0) + (lastLine != null ? S(9) + fInfo.Cap : 0) + (site != null ? S(9) + fSite.Cap : 0) + margin + S(2);
+        var h = margin + icon + (v.Goal != null ? S(9) + barH : 0) + (v.Event != null ? S(9) + fEvent.Cap : 0) + (lastLine != null ? S(9) + fInfo.Cap : 0) + (site != null ? S(9) + fSite.Cap : 0) + margin + S(2);
 
         var f = NewFrame(w, h);
         var cv = new Canvas(f);
@@ -408,6 +444,12 @@ internal sealed class HudRenderer : IDisposable
             y += S(9);
             Bar(cv, x0, y, contentW, barH, g2.Progress, S, segments: 16);
             y += barH;
+        }
+        if (v.Event is { } ev)
+        {
+            y += S(9);
+            Text(cv, fEvent, ev, x0, y, v.EventOn ? Col.Hex(0xe9ffad) : White, v.EventOn ? Lime : Ice, S(3), S(2));
+            y += fEvent.Cap;
         }
         if (lastLine != null)
         {

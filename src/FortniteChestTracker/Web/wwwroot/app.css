@@ -696,3 +696,38 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(198, 255, 61, .18); }
 .by a { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; color: inherit; text-decoration: none; }
 .by a:hover { border-color: var(--lime); color: var(--lime); }
 .by svg { width: 11px; height: 11px; fill: currentColor; }
+
+/* Season card (Treasures page): Treasure Hour, this week's prizes, token timer */
+.b-lime { background: var(--lime); color: var(--lime-ink); }
+.season-card .card-h { margin-bottom: 10px; }
+.ss-grid { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2.2fr) minmax(220px, 1fr); gap: 18px; }
+.ss-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 14px 16px; border-radius: 14px; background: rgba(4, 14, 52, .45); border: 1px solid var(--line); }
+.ss-th.on { border-color: rgba(198, 255, 61, .55); box-shadow: 0 0 0 1px rgba(198, 255, 61, .25), 0 10px 30px rgba(198, 255, 61, .12); }
+.ss-h { display: flex; align-items: center; gap: 8px; font: 15px/1.1 var(--display); letter-spacing: .03em; text-transform: uppercase; color: var(--text); }
+.ss-h svg { width: 16px; height: 16px; color: var(--lime); }
+.ss-h .ico-img { width: 22px; height: 22px; }
+.ss-art { width: 26px; height: 26px; border-radius: 8px; object-fit: cover; }
+.ss-big { font: 26px/1.05 var(--display); color: var(--lime); letter-spacing: .01em; }
+.ss-sub { color: var(--text-2); font-size: 13px; }
+.ss-boost { color: var(--text); font-size: 13px; font-weight: 700; }
+.ss-note { color: var(--text-3); font-size: 12px; }
+.ss-notify { margin-top: auto; padding-top: 6px; font-size: 12.5px; color: var(--text-2); }
+.ss-prizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.ss-prize { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px; border-radius: 12px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); text-align: center; min-width: 0; }
+.ss-prize img { width: 100%; height: 58px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .35)); }
+.ss-prize b { font-size: 11.5px; line-height: 1.2; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.ss-prize span { font-size: 10.5px; color: var(--text-3); }
+.ss-prize.found { border-color: var(--lime); background: rgba(198, 255, 61, .08); }
+.ss-got { position: absolute; top: 6px; right: 6px; display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 6px; background: var(--lime); color: var(--lime-ink); font: normal 700 10px/1.2 var(--font); }
+.ss-got svg { width: 10px; height: 10px; }
+.ss-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 4px; font-size: 12.5px; color: var(--text-2); }
+.ss-token .btn { align-self: flex-start; margin-top: 4px; }
+.ss-end { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 8px; font-size: 12.5px; color: var(--text-2); }
+.ss-end svg { width: 14px; height: 14px; }
+.th-chip { margin-left: 8px; }
+.th-chip.on { background: var(--lime); color: var(--lime-ink); }
+@media (max-width: 1100px) { .ss-grid { grid-template-columns: 1fr 1fr; } .ss-week { grid-column: 1 / -1; order: -1; } }
+/* The Treasures page holds the season, the rates and the list: it scrolls instead of squeezing them */
+.treasures-page { overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; padding-right: 4px; }
+.treasures-page > .season-card, .treasures-page > .odds-card { min-height: max-content; }
+.treasures-page > .season-card > *, .treasures-page > .odds-card > * { flex: none; }
