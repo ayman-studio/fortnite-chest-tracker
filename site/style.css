@@ -186,25 +186,25 @@ main:focus { outline: none; }
     linear-gradient(160deg, rgba(255, 255, 255, .6), rgba(190, 150, 255, .2) 45%, rgba(130, 230, 255, .8)) border-box;
   box-shadow: 0 18px 36px -10px rgba(2, 8, 40, .65), 0 0 0 1px rgba(0, 0, 0, .25), 0 0 38px rgba(150, 110, 255, .35); }
 .spirit img { z-index: 1; inset: -11%; width: 122%; height: 122%; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(10, 4, 40, .5)); }
-/* Key art: in the bottom-right corner, as far from the edge as the character in the bottom-left one, low enough
-   to stay clear of the island's crystals */
+/* Key art: on the right, close to the edge, beside the top of the island (higher on tall screens, where the island
+   is wider, to stay clear of its crystals) */
 .art { width: var(--aw); height: calc(var(--aw) * 9 / 16); --dp: 10px; --r: -4deg; --t: 6.1s; --d: -.8s; --in: .35s;
-  --x: calc(92% + var(--cw) / 2 - var(--aw) / 2); --y: calc(96% - var(--aw) * 9 / 32); }
+  --x: calc(97.5% - var(--aw) / 2); --y: calc(312px + 25%); }
 .art img { inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: var(--R); }
 .art .face::before { z-index: 1; background: none; border-color: rgba(255, 255, 255, .45); }
 /* Places: characters in the corners, spirits between them a little inwards */
 .c1 { --x: 9%;  --y: 27%; --r: -6deg; --t: 6.4s; --in: .05s; }
 .c2 { --x: 91%; --y: 27%; --r: 6deg;  --t: 5.9s; --d: -2.2s; --in: .15s; }
-.c3 { --x: 8%;  --y: calc(94% - var(--ch) / 2); --r: 5deg; --t: 6.8s; --d: -3s; --in: .25s; }
-.s1 { --x: 15%; --y: calc(50% - var(--ch) / 4); --r: -8deg; --t: 5.2s; --d: -1.5s; --in: .4s; }
+.c3 { --x: 8%;  --y: 62%; --r: 5deg; --t: 6.8s; --d: -3s; --in: .25s; }
+.s1 { --x: 14%; --y: calc(50% - var(--ch) / 4); --r: -8deg; --t: 5.2s; --d: -1.5s; --in: .4s; }
 /* Wide screens next to the live island only (phones and narrow windows keep the still picture alone) */
 .hero.poster-only .crew { display: none; }
 @media (max-width: 1279px), (max-aspect-ratio: 4/3) { .crew { display: none; } }
 @media (prefers-reduced-motion: reduce) { .flo, .hero.live3d .face { animation: none; } .flo { transition: none; } }
 
-/* The demo HUD sits in the top bar, left of the logo, and stays there while scrolling (wide screens only:
+/* The demo HUD sits on its own in the top-left corner, left of the logo, and stays there while scrolling (wide screens only:
    it needs the free space left of the content) */
-.hero-hud { position: fixed !important; z-index: 60; left: 10px; top: 0; pointer-events: none; transform: scale(.72); transform-origin: top left; }
+.hero-hud { position: fixed !important; z-index: 60; left: 28px; top: 22px; pointer-events: none; transform: scale(.82); transform-origin: top left; }
 
 /* Speech bubbles and "+1" labels of the island (same as the app) */
 .scene-bubble { position: fixed; z-index: 1; pointer-events: none; transform: translate(-50%, -100%); padding: 7px 12px; border-radius: 12px;
