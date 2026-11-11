@@ -666,6 +666,11 @@ public sealed class Tracker
             + (destroyed > 0 ? L.T($" (dont {L.Count(destroyed, "détruit", "", "")})", $" ({destroyed} destroyed)", $" ({L.Count(destroyed, "", "", "destruido")})") : "")
             + $"  →  total{L.T(" : ", ": ", ": ")}{L.N(total)}");
 
+        if (!updated && ThisSession.Contains(m) && m.TreasureFinds.FirstOrDefault(f => f.FromGoldenChest) is { } prize)
+        {
+            NativeTray.Notify(L.T("Trésor !", "Treasure!", "¡Tesoro!"),
+                L.T($"{prize.DisplayName} dans ta dernière partie. Bien joué !", $"{prize.DisplayName} in your last match. Well played!", $"{prize.DisplayName} en tu última partida. ¡Bien jugado!"));
+        }
         foreach (var find in m.TreasureFinds)
         {
             Activity.Treasure($"{(find.FromGoldenChest ? "★★" : "★")} {L.T("Trésor obtenu : ", "Treasure obtained: ", "Tesoro obtenido: ")}{find.DisplayName} ({Pretty.Obtained(find)})");

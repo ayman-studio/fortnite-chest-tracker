@@ -91,3 +91,20 @@ public class HuntTests
         Assert.True(TreasureOdds.ExpectedFor(vehicle, twoWeeks, Since) > TreasureOdds.ExpectedFor(vehicle, oneWeek, Since));
     }
 }
+
+/// <summary>History file (export / import between PCs).</summary>
+public class HistoryFileTests
+{
+    [Fact]
+    public void A_history_file_is_read_back_and_anything_else_is_refused()
+    {
+        var json = "{\"Matches\":[{\"SessionId\":\"abc\",\"ChestsOpened\":12,\"MatchStartUtc\":\"2026-11-03T12:00:00\",\"AnalyzedAtUtc\":\"2026-11-03T12:30:00\"}],\"ProcessedFiles\":{\"a.replay\":\"abc\"}}";
+        var data = Store.ParseData(json);
+        Assert.NotNull(data);
+        Assert.Single(data!.Matches);
+        Assert.Equal(12, data.Matches[0].ChestsOpened);
+        Assert.Equal(DateTimeKind.Utc, data.Matches[0].MatchStartUtc!.Value.Kind);
+        Assert.Null(Store.ParseData("{ not json"));
+        Assert.Null(Store.ParseData("[1, 2]"));
+    }
+}

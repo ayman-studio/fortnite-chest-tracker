@@ -95,7 +95,12 @@ public sealed class App
         _tracker.Changed += Publish; // raised by Scan, on this thread: lets the page follow a long batch
         Publish(); // a first state before the server answers anything
 
-        _server = new WebServer(() => { var s = _state; return (s.Version, s.Json); }, RunCommandAsync, UiTexts.Json) { HudPng = HudPng };
+        _server = new WebServer(() => { var s = _state; return (s.Version, s.Json); }, RunCommandAsync, UiTexts.Json)
+        {
+            HudPng = HudPng,
+            ExportData = () => File.Exists(_store.DataPath) ? File.ReadAllBytes(_store.DataPath) : System.Text.Encoding.UTF8.GetBytes("{}"),
+            ImportData = ImportHistoryAsync,
+        };
         if (_server.Start())
         {
             try { File.WriteAllText(UrlFile(_store), _server.Url); } catch { /* only used by a second launch */ }
@@ -354,7 +359,58 @@ public sealed class App
         if (NativeOverlay.IsRunning)
         {
             NativeOverlay.Update(view);
+            // "hide while playing": hidden when a match starts, back in the lobby (only if it was hidden by this)
+            var playing = view.Mode != HudMode.Idle;
+            if (_config.OverlayHideInMatch && playing && NativeOverlay.IsVisible)
+            {
+                NativeOverlay.SetVisible(false);
+                _hiddenForMatch = true;
+            }
+            else if (_hiddenForMatch && (!playing || !_config.OverlayHideInMatch))
+            {
+                NativeOverlay.SetVisible(true);
+                _hiddenForMatch = false;
+            }
         }
+    }
+
+    private bool _hiddenForMatch;
+
+    /// <summary>Adds the matches of a history file (export of this app, from another PC) that are not known yet.</summary>
+    private Task<CommandResult> ImportHistoryAsync(string json)
+    {
+        var done = new TaskCompletionSource<CommandResult>();
+        Post(() =>
+        {
+            try
+            {
+                var imported = Store.ParseData(json);
+                if (imported == null)
+                {
+                    done.SetResult(CommandResult.Fail(L.T("ce fichier n'est pas un historique Chest Tracker", "this file is not a Chest Tracker history", "este archivo no es un historial de Chest Tracker")));
+                    return;
+                }
+                static string KeyOf(MatchRecord m) => !string.IsNullOrEmpty(m.SessionId) ? m.SessionId : $"{m.ReplayFile}|{m.MatchStartUtc:o}";
+                var known = _data.Matches.Select(KeyOf).ToHashSet();
+                var added = imported.Matches.Where(m => known.Add(KeyOf(m))).ToList();
+                _data.Matches.AddRange(added);
+                foreach (var (file, value) in imported.ProcessedFiles)
+                {
+                    _data.ProcessedFiles.TryAdd(file, value);
+                }
+                _store.SaveData(_data);
+                UpdateOverlay();
+                var what = L.Count(added.Count, "partie ajoutée", "parties ajoutées", "match added", "matches added", "partida añadida", "partidas añadidas");
+                Activity.Success(L.T($"Historique importé : {what}", $"History imported: {what}", $"Historial importado: {what}"));
+                done.SetResult(CommandResult.Done);
+            }
+            catch (Exception ex)
+            {
+                ErrorLog.Write("Importing a history", ex);
+                done.SetResult(CommandResult.Fail(ex.Message));
+            }
+        });
+        return done.Task;
     }
 
     // Latest overlay view, also drawn for the page (/hud.png) and the OBS file.
@@ -941,6 +997,19 @@ public sealed class App
             _config.OverlayStyle = style;
             UpdateOverlay();
         }
+        if (Bool(args, "hideInMatch") is { } hideInMatch)
+        {
+            _config.OverlayHideInMatch = hideInMatch;
+            UpdateOverlay();
+        }
+        if (Bool(args, "scene3d") is { } scene3d)
+        {
+            _config.Scene3D = scene3d;
+        }
+        if (Int(args, "overlayCorner") is { } corner and >= 0 and <= 3)
+        {
+            NativeOverlay.SnapTo(corner);
+        }
         if (Int(args, "overlayOpacity") is { } opacity)
         {
             _config.OverlayOpacity = OverlayAppearance.ClampOpacity(opacity);
@@ -1212,7 +1281,11 @@ public sealed class App
             new UiSettings(L.Code, _config.StartWithFortnite, AppInfo.ExePath != null, _config.UpdateMode, _config.ShowOverlay, _config.OverlaySize,
                 _config.OverlayOpacity, _config.OpenUiOnStart, _config.DemosFolder, OverlayAppearance.Sizes, OverlayAppearance.Opacities,
                 L.Codes.Select(c => new UiLanguage(c, L.NativeName(c))).ToList(), _config.ArchiveFolder, Tracker.ArchiveCount(_config.ArchiveFolder),
-                Installer.IsInstalled, AppInfo.ExePath != null, !Installer.IsInstalled && AppInfo.ExePath != null && Installer.InstalledExeExists),
+                Installer.IsInstalled, AppInfo.ExePath != null, !Installer.IsInstalled && AppInfo.ExePath != null && Installer.InstalledExeExists)
+            {
+                HideInMatch = _config.OverlayHideInMatch,
+                Scene3D = _config.Scene3D,
+            },
             Notices(demosExists, profiles.Count),
             UiStateBuilder.Activity(),
             EstimateState(view),

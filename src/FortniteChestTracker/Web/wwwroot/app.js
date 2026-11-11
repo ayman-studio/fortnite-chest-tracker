@@ -88,7 +88,7 @@ function updateScene() {
   const h = S.hunt;
   const target = h ? huntTarget(h) : null;
   window.dispatchEvent(new CustomEvent('fct-scene', { detail: {
-    visible: ui.page === 'home' && !S.setup, live: S.live.inProgress, total: S.stats.total, treasures: S.stats.treasures,
+    visible: ui.page === 'home' && !S.setup && S.settings.scene3D !== false, live: S.live.inProgress, total: S.stats.total, treasures: S.stats.treasures,
     chance: target ? chanceOf(h, target) : 0,
     dug: target ? Math.min(1, h.chests / target.odds) : 0, instant: !!ui.sceneInstant, treasureLabel: t('sceneTreasure'),
     bubbles: {
@@ -146,6 +146,8 @@ const ICONS = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
   check: '<path d="m5 12 5 5 9-10"/>',
+  download: '<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',
+  upload: '<path d="M12 20V9m-5 5 5-5 5 5M5 4h14"/>',
   key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/>',
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
 };
@@ -778,6 +780,8 @@ function overlay() {
     <div class="setting"><div class="what"><b>${esc(t('overlayStyle'))}</b><span>${esc(t('overlayStyleHint'))}</span></div>${ovStyleSeg()}</div>
     <div class="setting"><div class="what"><b>${esc(t('overlaySize'))}</b></div>${sel('ov-size', S.settings.sizes, o.size)}</div>
     <div class="setting"><div class="what"><b>${esc(t('overlayOpacity'))}</b></div>${sel('ov-opacity', S.settings.opacities, o.opacity)}</div>
+    ${sw('ov-hide-match', 'ov-hide-match', !!S.settings.hideInMatch, t('overlayHideInMatch'), t('overlayHideInMatchHint'), false)}
+    <div class="setting"><div class="what"><b>${esc(t('overlayPlace'))}</b></div><div class="corners">${[0, 1, 2, 3].map((c) => `<button class="btn btn-sm" data-corner="${c}"${o.running ? '' : ' disabled'} title="${esc(t('corner_' + c))}" aria-label="${esc(t('corner_' + c))}"><i class="corner c${c}"></i></button>`).join('')}</div></div>
     <div class="section-title">${esc(t('hotkeys'))}</div>
     ${key(t('keyToggle'), o.toggleHotkey, t('hotkeyToggleText'))}${key(t('keyLock'), o.lockHotkey, t('hotkeyLockText'))}`);
   const previewCard = card('s5', t('overlayPreview'), `<div class="ov-stage">${ovPreview()}</div>
@@ -800,6 +804,7 @@ function settings() {
     ${sw('set-openui', s.openUiOnStart, t('openUiOnStart'), t('openUiOnStartHint'))}
     ${sw('set-fortnite', s.startWithFortnite, t('startWithFortnite'), s.canStartWithFortnite ? t('startWithFortniteHint') : t('startWithFortniteUnavailable'), !s.canStartWithFortnite)}
     ${S.overlay.available ? sw('set-overlay', s.showOverlay, t('overlayEnabled'), t('overlayEnabledHint')) : ''}
+    ${sw('set-scene', s.scene3D !== false, t('scene3d'), t('scene3dHint'))}
     ${installRow(s)}`);
   const replays = card('s4', t('replays'), `
     <label class="field">${esc(t('demosFolder'))}<div class="row"><input type="text" id="set-demos" data-draft value="${esc(draft('set-demos', s.demosFolder))}" style="flex:1" data-enter="set-demos-save">
@@ -811,7 +816,11 @@ function settings() {
     <p class="faint small" style="margin:6px 0 0">${esc(t('archiveCount', count(s.archiveCount, 'replay')))}</p>` : ''}
     <div class="section-title">${esc(t('data'))}</div>
     <div class="row wrap" style="gap:8px">${button(`${icon('folder')}${esc(t('openData'))}`, 'data-open="data"', 'btn-sm')}${button(`${icon('alert')}${esc(t('openErrors'))}`, 'data-open="errors"', 'btn-sm')}</div>
-    <p class="faint small" style="margin:12px 0 0;word-break:break-all">${esc(S.app.dataFolder)}</p>`);
+    <p class="faint small" style="margin:12px 0 0;word-break:break-all">${esc(S.app.dataFolder)}</p>
+    <div class="section-title">${esc(t('historyFile'))}</div>
+    <div class="row wrap" style="gap:8px"><a class="btn btn-sm" href="/export?t=${esc(TOKEN)}" download>${icon('download')}${esc(t('exportHistory'))}</a>
+      <label class="btn btn-sm">${icon('upload')}${esc(t('importHistory'))}<input type="file" id="import-file" accept=".json,application/json" data-change="import-file" hidden></label></div>
+    <p class="faint small" style="margin:6px 0 0">${esc(t('historyHint'))}</p>`);
   const u = S.update;
   let updates;
   if (!u.available) {
@@ -1191,7 +1200,7 @@ document.addEventListener('click', async (e) => {
   if (e.target.matches && e.target.matches('[data-share-backdrop]')) { closeShare(); return; }
   const pickGoal = e.target.closest && e.target.closest('[data-share-goal]');
   if (pickGoal) { shareGoal(pickGoal.dataset.shareGoal); return; }
-  const el = e.target.closest('[data-cmd],[data-act],[data-open],[data-nav],[data-sub],[data-range],[data-ovstyle],[data-goal],[data-rename],[data-page],[data-select],[data-goto],[data-notice],[data-copy],[data-prize],[data-setup],[data-setup-choice]');
+  const el = e.target.closest('[data-cmd],[data-act],[data-open],[data-nav],[data-sub],[data-range],[data-ovstyle],[data-corner],[data-goal],[data-rename],[data-page],[data-select],[data-goto],[data-notice],[data-copy],[data-prize],[data-setup],[data-setup-choice]');
   if (!el || el.disabled) return;
   if (el.dataset.nav) { go(el.dataset.nav); return; }
   if (el.dataset.goal) { ui.goal = el.dataset.goal; localStorage.setItem('fct-goal', ui.goal); ui.sceneInstant = true; cmd('goal', { key: ui.goal }); render(); return; }
@@ -1201,6 +1210,7 @@ document.addEventListener('click', async (e) => {
     if (S.overlay.style !== el.dataset.ovstyle) { S.overlay.style = el.dataset.ovstyle; render(); cmd('settings', { overlayStyle: el.dataset.ovstyle }); }
     return;
   }
+  if (el.dataset.corner) { cmd('settings', { overlayCorner: Number(el.dataset.corner) }); return; }
   if (el.dataset.range) { ui.range = Number(el.dataset.range); localStorage.setItem('fct-range', ui.range); render(); return; }
   if (el.dataset.page) {
     const [key, dir] = el.dataset.page.split(':');
@@ -1316,7 +1326,7 @@ document.addEventListener('click', async (e) => {
   }
 });
 
-document.addEventListener('change', (e) => {
+document.addEventListener('change', async (e) => {
   const el = e.target.closest('[data-change]');
   if (!el) return;
   const v = el.type === 'checkbox' ? el.checked : el.value;
@@ -1335,6 +1345,19 @@ document.addEventListener('change', (e) => {
     case 'set-archive': cmd('settings', { archiveFolder: v ? '*' : '' }); break;
     case 'est-include': cmd('settings', { includeEstimate: v }); break;
     case 'season-notify': cmd('season/notify', { on: v }); break;
+    case 'ov-hide-match': cmd('settings', { hideInMatch: v }); break;
+    case 'set-scene': await cmd('settings', { scene3d: v }); updateScene(); break;
+    case 'import-file': {
+      const file = el.files && el.files[0];
+      if (!file) break;
+      try {
+        const res = await fetch('/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tracker-Token': TOKEN }, body: await file.text() });
+        const r = await res.json();
+        toast(r.ok ? 'success' : 'error', r.ok ? t('importDone') : t('error', r.error || res.status));
+      } catch (e) { toast('error', t('error', e.message)); }
+      el.value = '';
+      break;
+    }
     case 'setup-install': if (ui.setup) ui.setup.install = v; break;
     default: break;
   }

@@ -731,3 +731,11 @@ input:focus, select:focus { box-shadow: 0 0 0 3px rgba(198, 255, 61, .18); }
 .treasures-page { overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; padding-right: 4px; }
 .treasures-page > .season-card, .treasures-page > .odds-card { min-height: max-content; }
 .treasures-page > .season-card > *, .treasures-page > .odds-card > * { flex: none; }
+/* Overlay: move to a corner (a little screen with the corner lit) */
+.corners { display: flex; gap: 6px; }
+.corners .btn { width: 38px; padding: 0; justify-content: center; }
+.corner { position: relative; display: block; width: 20px; height: 14px; border: 2px solid currentColor; border-radius: 3px; opacity: .85; }
+.corner::after { content: ""; position: absolute; width: 7px; height: 5px; border-radius: 1px; background: var(--lime); }
+.corner.c0::after { top: 1px; left: 1px; } .corner.c1::after { top: 1px; right: 1px; }
+.corner.c2::after { bottom: 1px; left: 1px; } .corner.c3::after { bottom: 1px; right: 1px; }
+label.btn { cursor: url("/cursors/hand.png") 8 2, pointer; }

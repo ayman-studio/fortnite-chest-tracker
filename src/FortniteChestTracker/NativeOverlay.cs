@@ -88,6 +88,15 @@ public static class NativeOverlay
         }
     }
 
+    /// <summary>Moves the overlay to a corner of its screen: 0 top left, 1 top right, 2 bottom left, 3 bottom right.</summary>
+    public static void SnapTo(int corner)
+    {
+        if (_hwnd != IntPtr.Zero)
+        {
+            PostMessageW(_hwnd, WM_APP_CORNER, (IntPtr)corner, IntPtr.Zero);
+        }
+    }
+
     public static void Toggle()
     {
         if (_hwnd != IntPtr.Zero)
@@ -276,6 +285,24 @@ public static class NativeOverlay
                 SetVisible(hwnd, !IsWindowVisible(hwnd));
                 return IntPtr.Zero;
 
+            case WM_APP_CORNER:
+            {
+                var info = new MONITORINFO { cbSize = (uint)Marshal.SizeOf<MONITORINFO>() };
+                if (GetWindowRect(hwnd, out var now) && GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), ref info))
+                {
+                    var work = info.rcWork;
+                    var gap = (int)(16 * _dpiScale);
+                    int ww = now.Right - now.Left, hh = now.Bottom - now.Top;
+                    var c = (long)wParam;
+                    var x = c is 0 or 2 ? work.Left + gap : work.Right - ww - gap;
+                    var y = c is 0 or 1 ? work.Top + gap : work.Bottom - hh - gap;
+                    SetWindowPos(hwnd, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+                    _onMoved?.Invoke(x, y);
+                    Present(hwnd);
+                }
+                return IntPtr.Zero;
+            }
+
             case WM_APP_RELAYOUT:
             {
                 var added = Interlocked.Exchange(ref _popPending, 0);
@@ -454,7 +481,7 @@ public static class NativeOverlay
     private const int GWL_EXSTYLE = -20, HTCLIENT = 1, HTCAPTION = 2;
     private const uint WM_DESTROY = 0x0002, WM_SETCURSOR = 0x0020, WM_NCHITTEST = 0x0084, WM_NCRBUTTONUP = 0x00A5, WM_TIMER = 0x0113,
         WM_LBUTTONUP = 0x0202, WM_EXITSIZEMOVE = 0x0232, WM_HOTKEY = 0x0312,
-        WM_APP_TOGGLE = 0x8001, WM_APP_RELAYOUT = 0x8002, WM_APP_LOCK = 0x8003, WM_APP_APPEARANCE = 0x8004, WM_APP_SHOW = 0x8005;
+        WM_APP_TOGGLE = 0x8001, WM_APP_RELAYOUT = 0x8002, WM_APP_LOCK = 0x8003, WM_APP_APPEARANCE = 0x8004, WM_APP_SHOW = 0x8005, WM_APP_CORNER = 0x8006;
     private const uint MOD_CONTROL = 0x2, MOD_SHIFT = 0x4, MOD_NOREPEAT = 0x4000, VK_O = 0x4F, VK_L = 0x4C;
     private const int SW_HIDE = 0, SW_SHOWNOACTIVATE = 4, LOGPIXELSY = 90;
     private const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOACTIVATE = 0x10, SWP_FRAMECHANGED = 0x20;

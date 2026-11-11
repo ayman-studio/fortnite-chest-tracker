@@ -60,6 +60,8 @@ public class UiTextsTests
         used.Remove("overlayStyle_");
         foreach (var prize in Season.Current.Weeks.SelectMany(w => w.Prizes).Select(p => p.Key).Append("outfit")) used.Add("prize_" + prize); // season prizes: 'prize_' + kind
         used.Remove("prize_");
+        for (var c = 0; c < 4; c++) used.Add("corner_" + c); // overlay corners: 'corner_' + index
+        used.Remove("corner_");
 
         Assert.True(used.Count > 100, $"only {used.Count} keys found: the regex no longer matches the page");
         foreach (var lang in new[] { "fr", "en", "es" })

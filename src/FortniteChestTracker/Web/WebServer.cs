@@ -41,6 +41,14 @@ public sealed class WebServer : IDisposable
     /// <summary>The overlay as a PNG (GET /hud.png, shown as a preview by the page). Null = none.</summary>
     public Func<byte[]?>? HudPng { get; init; }
 
+    /// <summary>The history as a JSON file (GET /export?t=token, a download for a backup or another PC).</summary>
+    public Func<byte[]>? ExportData { get; init; }
+
+    /// <summary>Merges a history file sent by the page (POST /api/import, token header); returns the result.</summary>
+    public Func<string, Task<CommandResult>>? ImportData { get; init; }
+
+    private const int MaxImport = 64 * 1024 * 1024;
+
     public string Token { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
 
     /// <param name="state">Latest state (version + JSON), read from any thread.</param>
@@ -290,6 +298,41 @@ public sealed class WebServer : IDisposable
                 case ("GET", "/api/events"):
                     await Events(res);
                     return;
+                case ("GET", "/export") when ExportData != null:
+                {
+                    if (!CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(req.QueryString["t"] ?? ""), Encoding.UTF8.GetBytes(Token)))
+                    {
+                        await Text(res, 403, "text/plain", "Forbidden");
+                        return;
+                    }
+                    var bytes = ExportData();
+                    res.StatusCode = 200;
+                    res.ContentType = "application/json; charset=utf-8";
+                    res.Headers["Content-Disposition"] = $"attachment; filename=\"fortnite-chest-tracker-{DateTime.Now:yyyy-MM-dd}.json\"";
+                    res.Headers["Cache-Control"] = "no-store";
+                    res.ContentLength64 = bytes.Length;
+                    await res.OutputStream.WriteAsync(bytes);
+                    res.Close();
+                    return;
+                }
+                case ("POST", "/api/import") when ImportData != null:
+                {
+                    if (!OriginAllowed(req) || !CryptographicOperations.FixedTimeEquals(
+                            Encoding.UTF8.GetBytes(req.Headers["X-Tracker-Token"] ?? ""), Encoding.UTF8.GetBytes(Token)))
+                    {
+                        await Json(res, 403, CommandResult.Fail("forbidden"));
+                        return;
+                    }
+                    if (req.ContentLength64 > MaxImport)
+                    {
+                        await Json(res, 413, CommandResult.Fail("too large"));
+                        return;
+                    }
+                    using var reader = new StreamReader(req.InputStream, Encoding.UTF8);
+                    var body = await reader.ReadToEndAsync();
+                    await Json(res, 200, await ImportData(body));
+                    return;
+                }
                 case ("POST", _) when path.StartsWith("/api/cmd/", StringComparison.Ordinal):
                     await Command(req, res, path["/api/cmd/".Length..]);
                     return;

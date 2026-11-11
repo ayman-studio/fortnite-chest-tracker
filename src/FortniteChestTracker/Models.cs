@@ -143,6 +143,12 @@ public sealed class Config
 
     /// <summary>Notification next to the clock 10 minutes before each Treasure Hour.</summary>
     public bool NotifyTreasureHours { get; set; } = true;
+
+    /// <summary>Hide the overlay while a match is being played (shown again in the lobby).</summary>
+    public bool OverlayHideInMatch { get; set; }
+
+    /// <summary>The animated 3D island of the home page (off = lighter for small PCs).</summary>
+    public bool Scene3D { get; set; } = true;
 }
 
 public sealed class TrackerData
@@ -273,6 +279,35 @@ public sealed class Store
         return data;
     }
     public void SaveData(TrackerData data) => Save(DataPath, data);
+
+    /// <summary>A history file (data.json of this app), or null when it is not one.</summary>
+    public static TrackerData? ParseData(string json)
+    {
+        try
+        {
+            var data = JsonSerializer.Deserialize<TrackerData>(json, Json);
+            if (data == null || data.Matches == null)
+            {
+                return null;
+            }
+            foreach (var m in data.Matches)
+            {
+                if (m.MatchStartUtc is { Kind: DateTimeKind.Unspecified } start)
+                {
+                    m.MatchStartUtc = DateTime.SpecifyKind(start, DateTimeKind.Utc);
+                }
+                if (m.AnalyzedAtUtc.Kind == DateTimeKind.Unspecified)
+                {
+                    m.AnalyzedAtUtc = DateTime.SpecifyKind(m.AnalyzedAtUtc, DateTimeKind.Utc);
+                }
+            }
+            return data;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     private static T? Load<T>(string path) where T : class
     {

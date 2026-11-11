@@ -141,7 +141,14 @@ public sealed record UiUpdate(bool Available, string Mode, string? FoundVersion,
 public sealed record UiSettings(string Language, bool StartWithFortnite, bool CanStartWithFortnite, string UpdateMode, bool ShowOverlay,
     int OverlaySize, int OverlayOpacity, bool OpenUiOnStart, string DemosFolder, IReadOnlyList<int> Sizes, IReadOnlyList<int> Opacities,
     IReadOnlyList<UiLanguage> Languages, string ArchiveFolder = "", int ArchiveCount = 0, bool Installed = false, bool CanInstall = false,
-    bool InstalledElsewhere = false);
+    bool InstalledElsewhere = false)
+{
+    /// <summary>Overlay hidden while a match is played.</summary>
+    public bool HideInMatch { get; init; }
+
+    /// <summary>Animated 3D island on the home page.</summary>
+    public bool Scene3D { get; init; } = true;
+}
 
 public sealed record UiLanguage(string Code, string Name);
 
