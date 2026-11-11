@@ -90,7 +90,7 @@ main:focus { outline: none; }
 .menu-btn span { width: 18px; height: 2px; border-radius: 2px; background: var(--text); }
 
 /* ---- Hero ---- */
-.hero { position: relative; min-height: max(680px, 100vh); overflow: hidden; display: flex; flex-direction: column;
+.hero { position: relative; min-height: max(600px, 100vh); overflow: hidden; display: flex; flex-direction: column;
   background: radial-gradient(1200px 520px at 50% 108%, rgba(80, 220, 255, .55), transparent 70%),
     linear-gradient(180deg, #071447 0%, #0d2a86 34%, #1752cf 68%, #2d8ff0 100%); }
 #scene { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .8s; }
@@ -132,49 +132,80 @@ main:focus { outline: none; }
 .proof span { padding: 4px 12px; border-radius: 999px; background: rgba(6, 16, 58, .58); border: 1px solid var(--line); color: var(--text); font-size: 13.5px; font-weight: 700; }
 .phone-note { margin: 12px 0 0; color: #dce6ff; font-size: 14px; }
 .phone-note a { color: var(--lime); text-decoration: underline; }
-.stage { position: relative; z-index: 1; flex: 1; min-height: 360px; margin: 0 24px 40px; }
+.stage { position: relative; z-index: 1; flex: 1; min-height: clamp(150px, 24vh, 200px); margin: 0 24px clamp(14px, 3vh, 40px); }
+/* Short windows (a 1080p screen once the browser bars are counted): tighter text, so the hero and its island fit */
+@media (max-height: 1000px) and (min-width: 760px) {
+  .hero-in { padding-top: calc(var(--nav-h) + 18px); }
+  .hero h1 { margin: 10px 0; font-size: clamp(40px, min(5.2vw, 7.4vh), 74px); }
+  .cta-row { margin-top: 18px; }
+  .dl-info { margin-top: 12px; }
+  .proof { margin-top: 8px; }
+}
 /* Still picture of the island: what phones and Save-Data get, and what shows until the live scene has started */
 .stage::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url("img/island-wide.webp") center / auto 100% no-repeat; transition: opacity .8s; }
 .hero.live3d .stage::before { opacity: 0; }
 @media (max-width: 1080px), (max-aspect-ratio: 4/3) { .stage::before { background-image: url("img/island.webp"); background-size: contain; } }
-/* Framed pictures floating around the island. scene.js gives the land's place in the hero: --isle-x (centre),
-   --isle-y (grass line), --isle-hw (half-width) and --isle-u (one world unit, ~ a block is half of it), so the
-   cards follow the island at every window size. Each card: --x across the land (0 left edge, 1 right edge),
-   --y in units under the grass, --w/--h in units, --r its tilt. */
-.crew { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .8s .3s; }
-.hero.live3d .crew { opacity: 1; }
-.card { --u: var(--isle-u, 50px); position: absolute; margin: 0; pointer-events: auto;
-  left: clamp(calc(var(--w) * var(--u) * .6 + 8px), calc(var(--isle-x, 50%) + (var(--x) * 2 - 1) * var(--isle-hw, 40vw)), calc(100% - var(--w) * var(--u) * .6 - 8px)); top: calc(var(--isle-y, 50%) + var(--y) * var(--u));
-  width: calc(var(--w) * var(--u)); height: calc(var(--h) * var(--u));
-  translate: -50% -50%; rotate: var(--r); transition: scale .25s, rotate .25s, filter .25s;
-  animation: card-float var(--t, 6s) ease-in-out var(--d, 0s) infinite alternate; filter: drop-shadow(0 14px 18px rgba(2, 8, 40, .45)); }
-.card:hover { scale: 1.07; rotate: 0deg; filter: drop-shadow(0 18px 26px rgba(2, 8, 40, .55)) brightness(1.06); }
-@keyframes card-float { from { transform: translateY(calc(var(--u) * -.14)); } to { transform: translateY(calc(var(--u) * .14)); } }
-/* The frame: dark at the top, warm at the bottom, a light rim */
-.card::before { content: ""; position: absolute; inset: 0; border-radius: calc(var(--u) * .28);
-  background: radial-gradient(120% 70% at 50% 100%, rgba(214, 160, 70, .55), transparent 70%), linear-gradient(180deg, #2c3038 0%, #3a3a3c 50%, #6b5634 100%);
-  border: 1px solid rgba(255, 255, 255, .2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14); }
-.card img { position: absolute; display: block; max-width: none; pointer-events: none; }
-/* Characters: zoomed from the head to the thighs, the head a little past the top, cut at the bottom */
-.card .pic { position: absolute; left: 0; right: 0; bottom: 0; top: -30%; overflow: hidden; border-radius: 0 0 calc(var(--u) * .28) calc(var(--u) * .28); pointer-events: none; }
-.card.port img { left: 50%; top: 18%; width: 172%; height: auto; translate: -50% 0; }
-/* The key art fills its frame */
-.card.wide::before { display: none; }
-.card.wide img { inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: calc(var(--u) * .28); border: 1px solid rgba(255, 255, 255, .25); box-sizing: border-box; }
-/* Small sprites stand in the middle of their frame, a little bigger than it */
-.card.sprite img { inset: -8%; width: 116%; height: 116%; object-fit: contain; }
-.card.diamond::before { inset: 15%; rotate: 45deg; }
-.c1 { --x: -.08; --y: .9;  --w: 3.1; --h: 4;   --r: -6deg; --t: 6.4s; }
-.c2 { --x: 1.05; --y: -.7; --w: 2;   --h: 2;   --r: 8deg;  --t: 5.2s; --d: -1.5s; }
-.c3 { --x: .04;  --y: 6.3; --w: 2.4; --h: 3.1; --r: -11deg; --t: 5.8s; --d: -3s; }
-.c4 { --x: .25;  --y: 6.5; --w: 2.3; --h: 2.9; --r: 5deg;  --t: 6.8s; --d: -2.2s; }
-.c5 { --x: .5;   --y: 5.8; --w: 5.8; --h: 3.26; --r: -2deg; --t: 7.2s; --d: -4s; }
-.c6 { --x: .77;  --y: 6.5; --w: 2.3; --h: 2.9; --r: -6deg; --t: 6s;  --d: -.8s; }
-.c7 { --x: .94;  --y: 6.1; --w: 2.3; --h: 2.3; --r: 4deg;  --t: 5.5s; --d: -2.7s; }
-/* Only next to the live island on a wide screen (phones and narrow windows keep the still picture alone) */
+/* ---- Framed pictures all around the hero ----
+   Four characters (one size), two spirits (one size) and the key art. Characters stand in the corners, the spirits
+   between them, the key art hangs under the island: scene.js gives the land's place in the hero (--isle-x centre,
+   --isle-y grass line, --isle-b room under it, --isle-u one world unit). They lean with the mouse (--mx/--my, main.js),
+   tilt towards the pointer when hovered (--tx/--ty) and float gently. */
+.crew { position: absolute; inset: 0; z-index: 1; pointer-events: none; visibility: hidden; --mx: 0; --my: 0;
+  --cw: clamp(150px, 11.5vw, 300px); --ch: calc(var(--cw) * 1.25); --sw: clamp(96px, 6.6vw, 170px); }
+.hero.live3d .crew { visibility: visible; }
+.flo { position: absolute; margin: 0; left: var(--x); top: var(--y); pointer-events: auto; will-change: transform;
+  translate: calc(-50% + var(--mx) * var(--dp)) calc(-50% + var(--my) * var(--dp)); transition: translate 1s cubic-bezier(.16, .8, .3, 1);
+  animation: card-float var(--t, 6s) ease-in-out var(--d, 0s) infinite alternate; }
+@keyframes card-float { from { transform: translateY(-7px); } to { transform: translateY(7px); } }
+.face { position: absolute; inset: 0; --R: 16px; rotate: var(--r);
+  transform: perspective(900px) rotateX(calc(var(--ty, 0) * -14deg)) rotateY(calc(var(--tx, 0) * 16deg));
+  transition: transform .5s cubic-bezier(.2, .8, .3, 1), rotate .45s, scale .35s cubic-bezier(.2, .8, .3, 1.4); }
+.flo:hover .face { rotate: 0deg; scale: 1.06; transition: transform .12s linear, rotate .45s, scale .35s cubic-bezier(.2, .8, .3, 1.4); }
+.hero.live3d .face { animation: card-in .9s cubic-bezier(.2, .9, .3, 1.25) var(--in, 0s) backwards; }
+@keyframes card-in { from { opacity: 0; scale: .7; translate: 0 40px; } }
+/* Frame: gradient rim, dark top, warm glow at the bottom, a faint diagonal weave */
+.face::before { content: ""; position: absolute; inset: 0; border-radius: var(--R); border: 2px solid transparent;
+  background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 14px) padding-box,
+    radial-gradient(90% 55% at 50% 100%, rgba(255, 180, 72, .72), transparent 72%) padding-box,
+    radial-gradient(70% 45% at 50% 0%, rgba(120, 160, 255, .2), transparent 70%) padding-box,
+    linear-gradient(180deg, #1c2030 0%, #2a2b35 55%, #4d3a22 100%) padding-box,
+    linear-gradient(160deg, rgba(255, 255, 255, .55), rgba(255, 214, 140, .14) 40%, rgba(255, 186, 84, .75)) border-box;
+  box-shadow: 0 22px 44px -10px rgba(2, 8, 40, .65), 0 0 0 1px rgba(0, 0, 0, .25), 0 0 34px rgba(255, 190, 90, .12); }
+/* Light sweeping across on hover */
+.face::after { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: var(--R); pointer-events: none;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, .32) 47%, rgba(255, 255, 255, .06) 54%, transparent 68%) 130% 0 / 260% 100% no-repeat; }
+.flo:hover .face::after { background-position: -40% 0; transition: background-position .9s ease-out; }
+.face img { position: absolute; display: block; max-width: none; pointer-events: none; }
+/* Characters: from the head to the thighs, the head a little past the top, cut at the bottom of the frame */
+.char { width: var(--cw); height: var(--ch); --dp: 14px; }
+.char .pic { position: absolute; z-index: 1; inset: -30% 2px 2px; overflow: hidden; border-radius: 0 0 14px 14px; }
+.char img { left: 50%; top: 18%; width: 172%; height: auto; translate: -50% 0; }
+/* Spirits: a violet, magic frame; the creature a little bigger than it */
+.spirit { width: var(--sw); height: var(--sw); --dp: 26px; }
+.spirit .face { --R: 22px; }
+.spirit .face::before { background: radial-gradient(65% 65% at 50% 55%, rgba(176, 120, 255, .7), transparent 72%) padding-box,
+    linear-gradient(160deg, #1d1846 0%, #2c1d62 55%, #44206a 100%) padding-box,
+    linear-gradient(160deg, rgba(255, 255, 255, .6), rgba(190, 150, 255, .2) 45%, rgba(130, 230, 255, .8)) border-box;
+  box-shadow: 0 18px 36px -10px rgba(2, 8, 40, .65), 0 0 0 1px rgba(0, 0, 0, .25), 0 0 38px rgba(150, 110, 255, .35); }
+.spirit img { z-index: 1; inset: -11%; width: 122%; height: 122%; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(10, 4, 40, .5)); }
+/* Key art: under the island, below the player's tunnel (the miner stays in sight), as big as the room allows */
+.art { --ah: clamp(130px, calc(var(--isle-b, 300px) - 4.75 * var(--isle-u, 40px) - 14px), calc(min(22vw, 500px) * 9 / 16));
+  width: calc(var(--ah) * 16 / 9); height: var(--ah); --dp: 8px;
+  --x: var(--isle-x, 50%); --y: calc(var(--isle-y, 60%) + 4.75 * var(--isle-u, 40px) + var(--ah) / 2); --r: -1.5deg; --t: 7.4s; --d: -4s; --in: .5s; }
+.art img { inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: var(--R); }
+.art .face::before { z-index: 1; background: none; border-color: rgba(255, 255, 255, .45); }
+/* Places: characters in the corners, spirits between them a little inwards */
+.c1 { --x: 9%;  --y: 27%; --r: -6deg; --t: 6.4s; --in: .05s; }
+.c2 { --x: 91%; --y: 27%; --r: 6deg;  --t: 5.9s; --d: -2.2s; --in: .15s; }
+.c3 { --x: 8%;  --y: calc(94% - var(--ch) / 2); --r: 5deg; --t: 6.8s; --d: -3s; --in: .25s; }
+.c4 { --x: 92%; --y: calc(94% - var(--ch) / 2); --r: -5deg; --t: 6.1s; --d: -.8s; --in: .35s; }
+.s1 { --x: 17%; --y: calc(57% - var(--ch) / 4); --r: -8deg; --t: 5.2s; --d: -1.5s; --in: .4s; }
+.s2 { --x: 83%; --y: calc(57% - var(--ch) / 4); --r: 9deg;  --t: 5.6s; --d: -2.7s; --in: .45s; }
+/* Wide screens next to the live island only (phones and narrow windows keep the still picture alone) */
 .hero.poster-only .crew { display: none; }
-@media (max-width: 1080px), (max-aspect-ratio: 4/3) { .crew { display: none; } }
-@media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+@media (max-width: 1279px), (max-aspect-ratio: 4/3) { .crew { display: none; } }
+@media (max-height: 720px) { .art { display: none; } } /* no room under the island */
+@media (prefers-reduced-motion: reduce) { .flo, .hero.live3d .face { animation: none; } .flo { transition: none; } }
 
 /* The demo HUD sits in the top bar, left of the logo, and stays there while scrolling (wide screens only:
    it needs the free space left of the content) */

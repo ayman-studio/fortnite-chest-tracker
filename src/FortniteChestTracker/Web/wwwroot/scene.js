@@ -786,11 +786,13 @@ function init() {
     camera.bottom = -(h - view.cy) / ppu;
     camera.updateProjectionMatrix();
     // Where the land sits, for the page around it (the website's floating cards): its centre at the grass line,
-    // its half-width and one world unit, in pixels of the scene's box
+    // the room under it, its half-width and one world unit, in pixels of the scene's box
     const host = root.parentElement;
     if (host) {
       host.style.setProperty('--isle-x', `${view.cx.toFixed(1)}px`);
-      host.style.setProperty('--isle-y', `${(view.cy + (grassTop - look.y) * -ppu).toFixed(1)}px`);
+      const grassY = view.cy - (grassTop - look.y) * ppu;
+      host.style.setProperty('--isle-y', `${grassY.toFixed(1)}px`);
+      host.style.setProperty('--isle-b', `${(h - grassY).toFixed(1)}px`);
       host.style.setProperty('--isle-hw', `${((COLS * CELL) / 2 * ppu).toFixed(1)}px`);
       host.style.setProperty('--isle-u', `${ppu.toFixed(2)}px`);
     }

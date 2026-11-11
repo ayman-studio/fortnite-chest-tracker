@@ -287,6 +287,31 @@
     heroVisible = e.isIntersecting;
     sendScene();
   }, { threshold: 0.08 }).observe(heroEl);
+  // The framed pictures around the hero lean with the mouse (like the island) and tilt towards the pointer when
+  // hovered. One write per frame at most, nothing while the hero is off screen or with reduced motion.
+  const crew = $('.crew');
+  if (crew && !posterOnly && matchMedia('(pointer: fine)').matches) {
+    let raf = 0, mx = 0, my = 0;
+    addEventListener('pointermove', (e) => {
+      if (!heroVisible || reducedMotion.matches || e.pointerType === 'touch') return;
+      mx = (e.clientX / innerWidth) * 2 - 1;
+      my = (e.clientY / innerHeight) * 2 - 1;
+      raf ||= requestAnimationFrame(() => {
+        raf = 0;
+        crew.style.setProperty('--mx', (-mx).toFixed(3)); // away from the mouse, as the island turns
+        crew.style.setProperty('--my', (-my).toFixed(3));
+      });
+    }, { passive: true });
+    for (const card of crew.querySelectorAll('.flo')) {
+      card.addEventListener('pointermove', (e) => {
+        if (reducedMotion.matches) return;
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--tx', ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+        card.style.setProperty('--ty', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+      });
+      card.addEventListener('pointerleave', () => { card.style.removeProperty('--tx'); card.style.removeProperty('--ty'); });
+    }
+  }
   // A match is played, then counted: the hero HUD shows "+N", the chests fly to the pile and the cannon fires
   setInterval(() => {
     if (document.hidden || reducedMotion.matches) return; // the HUD stays on screen everywhere on the page
