@@ -163,7 +163,7 @@ internal sealed class HudRenderer : IDisposable
             (v.UpdatedAt ?? "—", L.T("MISE À JOUR", "UPDATED", "ACTUALIZADO"), White),
         } : null;
         int RowWidth((string Value, string Label, Col Color)[] row) => row.Sum(s => Math.Max(Advance(fStat, s.Value), Advance(fSmall, s.Label))) + 2 * S(34);
-        var statsW = Math.Max(RowWidth(stats), lastRow != null ? RowWidth(lastRow) : 0);
+        var statsW = Math.Max(v.ShowStats ? RowWidth(stats) : 0, lastRow != null ? RowWidth(lastRow) : 0);
         if (lastRow != null) // equal columns: the first one ("1 234 COFFRES") must fit before its separator
         {
             statsW = Math.Max(statsW, 3 * (Math.Max(Advance(fStat, lastRow[0].Value), Advance(fSmall, lastRow[0].Label)) + S(10)));
@@ -189,7 +189,7 @@ internal sealed class HudRenderer : IDisposable
             contentW = w - 2 * margin;
             right = w - margin;
         }
-        var h = margin + heroH + eventH + goalH + statsH + (lastRow != null ? statsH : 0) + siteH + margin + S(4);
+        var h = margin + heroH + eventH + goalH + (v.ShowStats ? statsH : 0) + (lastRow != null ? statsH : 0) + siteH + margin + S(4);
 
         var f = NewFrame(w, h);
         var cv = new Canvas(f);
@@ -309,7 +309,10 @@ internal sealed class HudRenderer : IDisposable
             }
             y += fStat.Cap + S(7) + fSmall.Cap;
         }
-        StatRow(stats);
+        if (v.ShowStats)
+        {
+            StatRow(stats);
+        }
         if (lastRow != null)
         {
             StatRow(lastRow);

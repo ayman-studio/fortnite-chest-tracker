@@ -211,6 +211,11 @@ public static class UiTexts
         ("oddsBoosted", "{0} coffres ouverts pendant les Heures du trésor comptent avec leur bonus.", "{0} chests opened during Treasure Hours count with their boost.", "{0} cofres abiertos durante las Horas del tesoro cuentan con su bonificación."),
         ("dayShort", "j", "d", "d"),
         ("weekShort", "Cette semaine", "This week", "Esta semana"),
+        ("overlayParts", "Blocs affichés", "Blocks shown", "Bloques mostrados"),
+        ("part_goal", "Objectif", "Goal", "Objetivo"),
+        ("part_stats", "Total · session · trésors", "Total · session · treasures", "Total · sesión · tesoros"),
+        ("part_last", "Dernière partie", "Last match", "Última partida"),
+        ("part_site", "Site", "Website", "Sitio"),
         ("madeBy", "Créé par", "Made by", "Creado por"),
 
         // Setup wizard

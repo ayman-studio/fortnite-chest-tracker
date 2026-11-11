@@ -148,6 +148,9 @@ public sealed record UiSettings(string Language, bool StartWithFortnite, bool Ca
 
     /// <summary>Animated 3D island on the home page.</summary>
     public bool Scene3D { get; init; } = true;
+
+    /// <summary>Blocks of the overlay shown (goal, stats, last, site).</summary>
+    public IReadOnlyDictionary<string, bool>? Parts { get; init; }
 }
 
 public sealed record UiLanguage(string Code, string Name);

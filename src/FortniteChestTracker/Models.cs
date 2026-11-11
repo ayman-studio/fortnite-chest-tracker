@@ -149,6 +149,12 @@ public sealed class Config
 
     /// <summary>The animated 3D island of the home page (off = lighter for small PCs).</summary>
     public bool Scene3D { get; set; } = true;
+
+    /// <summary>Blocks of the overlay the player keeps: the goal (chance + bar), the stats line, the last match line, the website.</summary>
+    public bool OverlayGoal { get; set; } = true;
+    public bool OverlayStats { get; set; } = true;
+    public bool OverlayLast { get; set; } = true;
+    public bool OverlaySite { get; set; } = true;
 }
 
 public sealed class TrackerData

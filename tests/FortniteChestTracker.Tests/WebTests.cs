@@ -62,6 +62,8 @@ public class UiTextsTests
         used.Remove("prize_");
         for (var c = 0; c < 4; c++) used.Add("corner_" + c); // overlay corners: 'corner_' + index
         used.Remove("corner_");
+        foreach (var part in new[] { "goal", "stats", "last", "site" }) used.Add("part_" + part); // overlay blocks: 'part_' + key
+        used.Remove("part_");
 
         Assert.True(used.Count > 100, $"only {used.Count} keys found: the regex no longer matches the page");
         foreach (var lang in new[] { "fr", "en", "es" })

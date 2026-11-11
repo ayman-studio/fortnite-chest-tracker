@@ -1006,6 +1006,15 @@ public sealed class App
         {
             _config.Scene3D = scene3d;
         }
+        var parts = false;
+        if (Bool(args, "partGoal") is { } partGoal) { _config.OverlayGoal = partGoal; parts = true; }
+        if (Bool(args, "partStats") is { } partStats) { _config.OverlayStats = partStats; parts = true; }
+        if (Bool(args, "partLast") is { } partLast) { _config.OverlayLast = partLast; parts = true; }
+        if (Bool(args, "partSite") is { } partSite) { _config.OverlaySite = partSite; parts = true; }
+        if (parts)
+        {
+            UpdateOverlay();
+        }
         if (Int(args, "overlayCorner") is { } corner and >= 0 and <= 3)
         {
             NativeOverlay.SnapTo(corner);
@@ -1285,6 +1294,7 @@ public sealed class App
             {
                 HideInMatch = _config.OverlayHideInMatch,
                 Scene3D = _config.Scene3D,
+                Parts = new Dictionary<string, bool> { ["goal"] = _config.OverlayGoal, ["stats"] = _config.OverlayStats, ["last"] = _config.OverlayLast, ["site"] = _config.OverlaySite },
             },
             Notices(demosExists, profiles.Count),
             UiStateBuilder.Activity(),

@@ -780,6 +780,7 @@ function overlay() {
     <div class="setting"><div class="what"><b>${esc(t('overlayStyle'))}</b><span>${esc(t('overlayStyleHint'))}</span></div>${ovStyleSeg()}</div>
     <div class="setting"><div class="what"><b>${esc(t('overlaySize'))}</b></div>${sel('ov-size', S.settings.sizes, o.size)}</div>
     <div class="setting"><div class="what"><b>${esc(t('overlayOpacity'))}</b></div>${sel('ov-opacity', S.settings.opacities, o.opacity)}</div>
+    <div class="setting"><div class="what"><b>${esc(t('overlayParts'))}</b></div><div class="parts">${['goal', 'stats', 'last', 'site'].map((k) => `<label class="part-chip"><input type="checkbox" data-change="ov-part" data-part="${k}"${S.settings.parts?.[k] !== false ? ' checked' : ''}><span>${esc(t('part_' + k))}</span></label>`).join('')}</div></div>
     ${sw('ov-hide-match', 'ov-hide-match', !!S.settings.hideInMatch, t('overlayHideInMatch'), t('overlayHideInMatchHint'), false)}
     <div class="setting"><div class="what"><b>${esc(t('overlayPlace'))}</b></div><div class="corners">${[0, 1, 2, 3].map((c) => `<button class="btn btn-sm" data-corner="${c}"${o.running ? '' : ' disabled'} title="${esc(t('corner_' + c))}" aria-label="${esc(t('corner_' + c))}"><i class="corner c${c}"></i></button>`).join('')}</div></div>
     <div class="section-title">${esc(t('hotkeys'))}</div>
@@ -1347,6 +1348,7 @@ document.addEventListener('change', async (e) => {
     case 'est-include': cmd('settings', { includeEstimate: v }); break;
     case 'season-notify': cmd('season/notify', { on: v }); break;
     case 'ov-hide-match': cmd('settings', { hideInMatch: v }); break;
+    case 'ov-part': cmd('settings', { ['part' + el.dataset.part[0].toUpperCase() + el.dataset.part.slice(1)]: v }); break;
     case 'set-scene': await cmd('settings', { scene3d: v }); updateScene(); break;
     case 'import-file': {
       const file = el.files && el.files[0];

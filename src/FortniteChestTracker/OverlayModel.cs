@@ -68,10 +68,13 @@ public sealed record HudView(HudMode Mode, int? Chests, string Total, int Sessio
     /// <summary>The Treasure Hour of <see cref="Event"/> is going on (drawn in lime).</summary>
     public bool EventOn { get; init; }
 
+    /// <summary>The line total · session · treasures (full layout), unless the player hid it.</summary>
+    public bool ShowStats { get; init; } = true;
+
     public static HudView Empty { get; } = new(HudMode.Idle, null, "0", 0, 0, null);
 
     /// <summary>Short fingerprint of what is drawn (cache key of the picture served to the page).</summary>
-    public string Key => string.Join("|", Mode, Chests, Total, Session, Treasures, Goal?.Key, Goal?.Chests, Site, Compact, LastChests, LastDuration, UpdatedAt, Event, L.Code);
+    public string Key => string.Join("|", Mode, Chests, Total, Session, Treasures, Goal?.Key, Goal?.Chests, Site, Compact, LastChests, LastDuration, UpdatedAt, Event, ShowStats, L.Code);
 }
 
 /// <summary>Builds the overlay view from the saved matches and the match in progress.</summary>
@@ -113,7 +116,7 @@ public static class HudModel
             : inProgress ? (HudMode.InProgress, (int?)null)
             : (HudMode.Idle, last?.ChestsOpened);
 
-        return new HudView(mode, chests, estimated > 0 ? "≈" + L.N(total) : L.N(total), session, treasures, Goal(config.Goal, huntChests, weighted))
+        var built = new HudView(mode, chests, estimated > 0 ? "≈" + L.N(total) : L.N(total), session, treasures, Goal(config.Goal, huntChests, weighted))
         {
             Compact = config.OverlayStyle == OverlayAppearance.Compact,
             Matches = d.Matches.Count,
@@ -122,7 +125,27 @@ public static class HudModel
             UpdatedAt = last == null ? null : d.Matches.Max(m => AsUtc(m.AnalyzedAtUtc)).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture),
             Event = EventLine(DateTime.UtcNow, out var on),
             EventOn = on,
+            ShowStats = config.OverlayStats,
         };
+        return Trim(built, config);
+    }
+
+    /// <summary>Removes the blocks the player chose to hide.</summary>
+    private static HudView Trim(HudView v, Config config)
+    {
+        if (!config.OverlayGoal)
+        {
+            v = v with { Goal = null };
+        }
+        if (!config.OverlayLast)
+        {
+            v = v with { LastChests = null, LastDuration = null, UpdatedAt = null };
+        }
+        if (!config.OverlaySite)
+        {
+            v = v with { Site = "" };
+        }
+        return v;
     }
 
     /// <summary>Treasure Hour going on, or starting within 12 hours, as one line for the overlay.</summary>
