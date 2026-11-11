@@ -141,11 +141,92 @@ ${script}`,
   };
 }
 
+// ---------------------------------------------------------------- help (troubleshooting) and changelog
+const HELP_TXT = {
+  en: { title: 'Fortnite Chest Tracker not counting? Fixes for every problem', h1: 'Something does not work?', kicker: 'Help',
+    desc: 'Chests not counted, overlay not showing, Windows or antivirus warning, page not opening, history lost after changing PC: the fixes, step by step.',
+    lead: 'The most common problems and how to fix them in a minute.',
+    items: [
+      ['No chest is counted', ['Check that <b>Record Replays</b> is on in Fortnite (Settings → Game → Replays): only matches played after that are saved.', 'A match is counted a few seconds <b>after it ends</b>: Fortnite locks the replay until then.', 'Only <b>Battle Royale</b> matches are counted (not Creative, LEGO or Festival).', 'In the app, the Replays card of Settings must say <b>Folder found</b>.']],
+      ['The overlay does not show in game', ['Set Fortnite to <b>Windowed Fullscreen</b> (Settings → Video → Window Mode): Windows cannot draw anything over exclusive fullscreen.', 'Press <b>Ctrl+Shift+O</b> to show or hide it, and check that it is on in the app (Settings → Overlay).']],
+      ['"Windows protected your PC"', ['The exe is not signed (a signature costs money): click <b>More info</b>, then <b>Run anyway</b>.', 'The code is public and the exe is built by GitHub from that code.']],
+      ['My antivirus blocks it', ['A brand-new exe is sometimes flagged by mistake. Check the file on VirusTotal (link on the home page), then add an exception if you are sure.']],
+      ['The page of the app does not open', ['The app waits next to the clock: click the <b>chest icon</b> in the taskbar corner (look under the small arrow).', 'Or run FortniteChestTracker.exe again: it opens the page of the copy already running.']],
+      ['My numbers differ from the in-game quest', ['The quest counter of the game stops at 1,000 chests. Chest Tracker counts every chest you open or break in the matches whose replay was saved.', 'Matches played before replays were turned on can be estimated in the app (Settings → Older matches).']],
+      ['New PC: how do I keep my history?', ['Copy the folder <code>%APPDATA%\\FortniteChestTracker</code> from the old PC to the same place on the new one, before the first start.']],
+    ] },
+  fr: { title: 'Fortnite Chest Tracker ne compte rien ? Les solutions à chaque problème', h1: 'Quelque chose ne marche pas ?', kicker: 'Aide',
+    desc: "Coffres pas comptés, overlay invisible, avertissement Windows ou antivirus, page qui ne s'ouvre pas, historique perdu en changeant de PC : les solutions, étape par étape.",
+    lead: 'Les problèmes les plus courants et comment les régler en une minute.',
+    items: [
+      ["Aucun coffre n'est compté", ["Vérifie que <b>Enregistrer les replays</b> est activé dans Fortnite (Paramètres → Jeu → Replays) : seules les parties jouées après sont enregistrées.", "Une partie est comptée quelques secondes <b>après sa fin</b> : Fortnite verrouille le replay jusque-là.", "Seules les parties <b>Battle Royale</b> sont comptées (pas Créatif, LEGO ou Festival).", "Dans l'appli, la carte Replays des Réglages doit afficher <b>Dossier trouvé</b>."]],
+      ["L'overlay ne s'affiche pas en jeu", ["Mets Fortnite en <b>Plein écran fenêtré</b> (Paramètres → Vidéo → Mode de fenêtre) : Windows ne peut rien dessiner par-dessus le plein écran exclusif.", "Appuie sur <b>Ctrl+Maj+O</b> pour l'afficher ou le masquer, et vérifie qu'il est activé dans l'appli (Réglages → Overlay)."]],
+      ["« Windows a protégé votre ordinateur »", ["L'exe n'est pas signé (une signature est payante) : clique sur <b>Informations complémentaires</b>, puis <b>Exécuter quand même</b>.", "Le code est public et l'exe est compilé par GitHub à partir de ce code."]],
+      ["Mon antivirus le bloque", ["Un exe tout neuf est parfois signalé par erreur. Vérifie le fichier sur VirusTotal (lien sur l'accueil), puis ajoute une exception si tu es sûr."]],
+      ["La page de l'appli ne s'ouvre pas", ["L'appli attend à côté de l'horloge : clique sur l'<b>icône du coffre</b> dans le coin de la barre des tâches (regarde sous la petite flèche).", "Ou relance FortniteChestTracker.exe : il ouvre la page de celui qui tourne déjà."]],
+      ["Mes chiffres sont différents de la quête du jeu", ["Le compteur de quêtes du jeu s'arrête à 1 000 coffres. Chest Tracker compte chaque coffre ouvert ou cassé dans les parties dont le replay a été enregistré.", "Les parties jouées avant l'activation des replays peuvent être estimées dans l'appli (Réglages → Anciennes parties)."]],
+      ["Nouveau PC : comment garder mon historique ?", ["Copie le dossier <code>%APPDATA%\\FortniteChestTracker</code> de l'ancien PC au même endroit sur le nouveau, avant le premier lancement."]],
+    ] },
+  es: { title: '¿Fortnite Chest Tracker no cuenta? Soluciones para cada problema', h1: '¿Algo no funciona?', kicker: 'Ayuda',
+    desc: 'Cofres que no se cuentan, overlay invisible, aviso de Windows o del antivirus, página que no se abre, historial perdido al cambiar de PC: las soluciones, paso a paso.',
+    lead: 'Los problemas más comunes y cómo arreglarlos en un minuto.',
+    items: [
+      ['No se cuenta ningún cofre', ['Comprueba que <b>Grabar repeticiones</b> está activado en Fortnite (Ajustes → Juego → Repeticiones): solo se guardan las partidas jugadas después.', 'Una partida se cuenta unos segundos <b>después de terminar</b>: Fortnite bloquea la repetición hasta entonces.', 'Solo se cuentan las partidas <b>Battle Royale</b> (no Creativo, LEGO ni Festival).', 'En la app, la tarjeta Repeticiones de Ajustes debe indicar <b>Carpeta encontrada</b>.']],
+      ['El overlay no aparece en el juego', ['Pon Fortnite en <b>Pantalla completa en ventana</b> (Ajustes → Vídeo → Modo de ventana): Windows no puede dibujar nada sobre la pantalla completa exclusiva.', 'Pulsa <b>Ctrl+Mayús+O</b> para mostrarlo u ocultarlo, y comprueba que está activado en la app (Ajustes → Overlay).']],
+      ['«Windows protegió su PC»', ['El exe no está firmado (una firma cuesta dinero): haz clic en <b>Más información</b> y luego en <b>Ejecutar de todas formas</b>.', 'El código es público y GitHub compila el exe a partir de ese código.']],
+      ['Mi antivirus lo bloquea', ['Un exe nuevo a veces se marca por error. Comprueba el archivo en VirusTotal (enlace en la página de inicio) y añade una excepción si estás seguro.']],
+      ['La página de la app no se abre', ['La app espera junto al reloj: haz clic en el <b>icono del cofre</b> en la esquina de la barra de tareas (mira bajo la flechita).', 'O vuelve a abrir FortniteChestTracker.exe: abre la página de la copia que ya está en marcha.']],
+      ['Mis cifras no coinciden con la misión del juego', ['El contador de misiones del juego se para en 1000 cofres. Chest Tracker cuenta cada cofre que abres o rompes en las partidas cuya repetición se guardó.', 'Las partidas jugadas antes de activar las repeticiones se pueden estimar en la app (Ajustes → Partidas antiguas).']],
+      ['PC nuevo: ¿cómo conservo mi historial?', ['Copia la carpeta <code>%APPDATA%\\FortniteChestTracker</code> del PC antiguo al mismo sitio en el nuevo, antes del primer inicio.']],
+    ] },
+};
+function helpPage(L) {
+  const T = HELP_TXT[L];
+  return { title: T.title, desc: T.desc, h1: T.h1, kicker: T.kicker, lead: T.lead,
+    body: T.items.map(([q, list]) => `<h2>${esc(q)}</h2>\n<ul>${list.map((x) => `<li>${x}</li>`).join('')}</ul>`).join('\n') };
+}
+
+const CL_TXT = {
+  en: { title: "What's new in Fortnite Chest Tracker · Changelog", h1: "What's new", kicker: 'Changelog', desc: 'Every version of Fortnite Chest Tracker and what changed, newest first.', lead: 'Every version and what it changed, newest first. The app updates itself.' },
+  fr: { title: 'Nouveautés de Fortnite Chest Tracker · Historique des versions', h1: 'Nouveautés', kicker: 'Versions', desc: 'Chaque version de Fortnite Chest Tracker et ce qui a changé, la plus récente en premier.', lead: "Chaque version et ce qu'elle a changé, la plus récente en premier (notes en anglais). L'appli se met à jour toute seule." },
+  es: { title: 'Novedades de Fortnite Chest Tracker · Historial de versiones', h1: 'Novedades', kicker: 'Versiones', desc: 'Cada versión de Fortnite Chest Tracker y lo que cambió, la más reciente primero.', lead: 'Cada versión y lo que cambió, la más reciente primero (notas en inglés). La app se actualiza sola.' },
+};
+// CHANGELOG.md (written in English) as simple HTML: "## x.y.z (date)" headings and "- " items
+function changelogHtml() {
+  const md = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'CHANGELOG.md'), 'utf8').replace(/\r/g, '');
+  const inline = (t) => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
+  let html = '', list = false, item = null;
+  const flush = () => { if (item != null) { html += `<li>${inline(item)}</li>`; item = null; } };
+  for (const line of md.split('\n')) {
+    if (line.startsWith('# ')) continue;
+    if (line.startsWith('## ')) { flush(); if (list) { html += '</ul>'; list = false; } html += `<h2>${inline(line.slice(3))}</h2>`; continue; }
+    if (/^- /.test(line)) { flush(); if (!list) { html += '<ul>'; list = true; } item = line.slice(2); continue; }
+    if (/^\s{2,}\S/.test(line) && item != null) { item += ' ' + line.trim(); continue; }
+    if (line.trim()) { flush(); if (list) { html += '</ul>'; list = false; } html += `<p>${inline(line)}</p>`; }
+  }
+  flush();
+  if (list) html += '</ul>';
+  return html;
+}
+function changelogPage(L) {
+  const T = CL_TXT[L];
+  return { title: T.title, desc: T.desc, h1: T.h1, kicker: T.kicker, lead: T.lead, body: changelogHtml() };
+}
+
 // ---------------------------------------------------------------- the guides
 const GUIDES = {
   season: {
     path: { en: 'guides/treasure-hunters/', fr: 'fr/guides/chasse-au-tresor/', es: 'es/guides/caza-del-tesoro/' },
     page: seasonPage,
+  },
+  help: {
+    path: { en: 'help/', fr: 'fr/aide/', es: 'es/ayuda/' },
+    page: helpPage,
+  },
+  changelog: {
+    path: { en: 'changelog/', fr: 'fr/nouveautes/', es: 'es/novedades/' },
+    page: changelogPage,
   },
   odds: {
     path: { en: 'guides/pirate-token-odds/', fr: 'fr/guides/chances-jeton-pirate/', es: 'es/guides/probabilidad-ficha-pirata/' },
