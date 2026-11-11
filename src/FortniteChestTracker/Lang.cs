@@ -45,6 +45,9 @@ public static class L
 
     public static string N(int n) => n.ToString("N0", Culture).Replace('\u202F', '\u00A0');
 
+    /// <summary>"1,5" / "1.5" / "2": one decimal at most.</summary>
+    public static string N1(double n) => n.ToString("0.#", Culture);
+
     /// <summary>"3 coffres" / "3 chests" / "3 cofres" (regular plurals: + "s").</summary>
     public static string Count(int n, string fr, string en, string es) => Count(n, fr, fr + "s", en, en + "s", es, es + "s");
 

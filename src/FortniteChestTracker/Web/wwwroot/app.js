@@ -64,6 +64,8 @@ const duration = (s) => (s == null ? '—' : `${Math.floor(s / 60)}:${String(s %
 // Treasure hunt: chance of at least one drop after n chests at 1 in `odds` (rates announced by Epic, per chest).
 const nfx = (n) => (n >= 0.1 || n === 0 ? nf1(n) : fixSpace(numFormat({ maximumSignificantDigits: 1 }).format(n)));
 const dropChance = (n, odds) => 1 - Math.pow(1 - 1 / odds, n);
+// Chance for one treasure of the hunt: its chests weighted by the Treasure Hours boosts (Ranked left out, by the app)
+const chanceOf = (h, o) => dropChance(o.weighted ?? h.chests, o.odds);
 // Percentages that stay readable when tiny: 18 %, 2.4 %, 0.29 %, 0.025 %.
 const pctx = (p) => {
   const o = p >= 0.1 ? { maximumFractionDigits: 0 } : p >= 0.01 ? { maximumFractionDigits: 1 } : { maximumSignificantDigits: 2 };
@@ -87,7 +89,7 @@ function updateScene() {
   const target = h ? huntTarget(h) : null;
   window.dispatchEvent(new CustomEvent('fct-scene', { detail: {
     visible: ui.page === 'home' && !S.setup, live: S.live.inProgress, total: S.stats.total, treasures: S.stats.treasures,
-    chance: target ? dropChance(h.chests, target.odds) : 0,
+    chance: target ? chanceOf(h, target) : 0,
     dug: target ? Math.min(1, h.chests / target.odds) : 0, instant: !!ui.sceneInstant, treasureLabel: t('sceneTreasure'),
     bubbles: {
       you: t('bub_you'), others: t('bub_others'),
@@ -467,11 +469,11 @@ function home() {
     const on = ui.goal === k;
     const label = k === 'auto' ? t('goalAuto') : t('short_' + k);
     const title = o ? `${t(o.key)} · 1 / ${nf(o.odds)}` : t('goalAutoHint');
-    return `<button class="goal${k === 'odds_pirate' ? ' featured' : ''}${on ? ' on' : ''}" data-goal="${k}" title="${esc(title)}">${k === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : ''}<span>${esc(label)}</span>${o ? `<b>${esc(pctx(dropChance(h.chests, o.odds)))}</b>` : ''}</button>`;
+    return `<button class="goal${k === 'odds_pirate' ? ' featured' : ''}${on ? ' on' : ''}" data-goal="${k}" title="${esc(title)}">${k === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : ''}<span>${esc(label)}</span>${o ? `<b>${esc(pctx(chanceOf(h, o)))}</b>` : ''}</button>`;
   }).join('');
   const heading = ui.goal === 'auto' ? t('huntNext', t(target.key)) : t('goalTitle', t(target.key));
   const token = `<section class="hud hud-token"><div class="hud-label">${target.key === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : icon('star')}${esc(heading)}</div>
-    <div class="row" style="align-items:baseline;gap:12px"><div class="hud-big num accent">${esc(pctx(dropChance(h.chests, target.odds)))}</div><div class="hud-note">${esc(t('huntChance'))}</div></div>
+    <div class="row" style="align-items:baseline;gap:12px"><div class="hud-big num accent">${esc(pctx(chanceOf(h, target)))}</div><div class="hud-note">${esc(t('huntChance'))}</div></div>
     <div class="dig"><i style="width:${Math.max(1.5, Math.min(1, h.chests / target.odds) * 100).toFixed(1)}%"></i></div>
     <div class="hud-foot">${esc(t('tokenDug', nf(h.chests), nf(target.odds), since))}</div>
     <div class="goals" role="group" aria-label="${esc(t('goalPick'))}">${chips}</div></section>`;
@@ -617,7 +619,7 @@ function oddsCard() {
   const since = date(h.since, { day: 'numeric', month: 'long' });
   const rows = h.odds.map((o) => `<tr><td>${esc(t(o.key))}</td><td class="r num">${nf(o.odds)}</td>
     <td class="r">${o.hourBoost ? `<span class="badge b-gold">×${esc(nf1(o.hourBoost).replace(/[.,]0$/, ''))}</span>` : '<span class="faint">—</span>'}</td>
-    <td class="r strong">${esc(pctx(dropChance(h.chests, o.odds)))}</td><td class="r num">${esc(nfx(o.expected ?? h.chests / o.odds))}</td></tr>`).join('');
+    <td class="r strong">${esc(pctx(chanceOf(h, o)))}</td><td class="r num">${esc(nfx(o.expected ?? h.chests / o.odds))}</td></tr>`).join('');
   const luck = `<div class="luck-col"><div class="luck-h">${esc(t('luckTitle'))}</div>
     ${h.combined ? luckMeter('star', t(single(h.gizmos) ? 'foundTreasuresOne' : 'foundTreasuresMany', nf(h.gizmos), nf1(h.gizmosExpected)), h.gizmoLuck) + `<p class="faint small" style="margin:0">${esc(t('luckCombinedHint'))}</p>`
       : luckMeter('star', t(single(h.gizmos) ? 'foundGizmosOne' : 'foundGizmosMany', nf(h.gizmos), nf1(h.gizmosExpected)), h.gizmoLuck)
@@ -924,7 +926,7 @@ function drawCard(c, goal, shotImage, art = {}) {
   const withEst = e.configured && e.include;
   const tiles = [
     { label: t('hudChests'), value: withEst ? '≈' + nf(e.totalWithEstimate) : nf(s.total), accent: false, art: art.chest },
-    { label: t('short_' + target.key), value: pctx(dropChance(h.chests, target.odds)), accent: true, sub: t('shareRate', nf(target.odds)), art: target.key === 'odds_pirate' ? art.token : null },
+    { label: t('short_' + target.key), value: pctx(chanceOf(h, target)), accent: true, sub: t('shareRate', nf(target.odds)), art: target.key === 'odds_pirate' ? art.token : null },
     { label: t('timePlayed'), value: s.minutesPlayed ? hoursText(s.minutesPlayed / 60) : '—', accent: false },
     { label: t('matches'), value: nf(s.matches), accent: false },
     { label: t('bestOneMatch'), value: nf(s.best), accent: false },
@@ -1014,7 +1016,7 @@ function shareModal() {
   const chips = order.map((k) => {
     const o = h.odds.find((x) => x.key === k);
     const label = k === 'auto' ? t('goalAuto') : t('short_' + k);
-    return `<button class="goal${k === 'odds_pirate' ? ' featured' : ''}${sh.goal === k ? ' on' : ''}" data-share-goal="${k}"${sh.making ? ' disabled' : ''}>${k === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : ''}<span>${esc(label)}</span>${o ? `<b>${esc(pctx(dropChance(h.chests, o.odds)))}</b>` : ''}</button>`;
+    return `<button class="goal${k === 'odds_pirate' ? ' featured' : ''}${sh.goal === k ? ' on' : ''}" data-share-goal="${k}"${sh.making ? ' disabled' : ''}>${k === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : ''}<span>${esc(label)}</span>${o ? `<b>${esc(pctx(chanceOf(h, o)))}</b>` : ''}</button>`;
   }).join('');
   const picker = `<div class="share-pick"><span>${esc(t('shareGoal'))}</span><div class="goals">${chips}</div></div>`;
   const body = picker + (sh.url

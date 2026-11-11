@@ -91,14 +91,22 @@ public static class HudModel
         var treasures = d.Matches.Sum(m => m.TreasureFinds.Count) + (live?.TreasureFinds.Count ?? 0);
 
         var since = HuntSince(config);
-        var huntChests = d.Matches.Where(m => (m.MatchStartUtc ?? m.AnalyzedAtUtc).ToUniversalTime() >= since).Sum(m => m.ChestsOpened) + liveChests;
+        var hunt = d.Matches.Where(m => Hunt.Counts(m, since)).ToList();
+        // the match in progress has no start time yet: it counts unless it is Ranked
+        if (live != null && (live.MatchStartUtc == null ? Season.Current.Ranked || !Hunt.IsRanked(live.Playlist) : Hunt.Counts(live, since)))
+        {
+            hunt.Add(live);
+        }
+        var huntChests = hunt.Sum(m => m.ChestsOpened);
+        var goalKey = TreasureOdds.All.Any(o => o.Key == config.Goal) ? config.Goal! : config.Goal == "auto" ? Goal("auto", huntChests).Key : DefaultGoal;
+        var weighted = Hunt.Weighted(hunt, goalKey);
 
         var last = d.Matches.OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc).FirstOrDefault();
         var (mode, chests) = live != null ? (HudMode.Live, (int?)live.ChestsOpened)
             : inProgress ? (HudMode.InProgress, (int?)null)
             : (HudMode.Idle, last?.ChestsOpened);
 
-        return new HudView(mode, chests, estimated > 0 ? "≈" + L.N(total) : L.N(total), session, treasures, Goal(config.Goal, huntChests))
+        return new HudView(mode, chests, estimated > 0 ? "≈" + L.N(total) : L.N(total), session, treasures, Goal(config.Goal, huntChests, weighted))
         {
             Compact = config.OverlayStyle == OverlayAppearance.Compact,
             Matches = d.Matches.Count,
@@ -111,7 +119,8 @@ public static class HudModel
     private static DateTime AsUtc(DateTime t) => t.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(t, DateTimeKind.Utc) : t.ToUniversalTime();
 
     /// <summary>The chosen treasure, or with "auto" the first weekly treasure (most common first) not reached on average yet.</summary>
-    public static HudGoal Goal(string? key, int chests)
+    /// <param name="weighted">Chests weighted by the Treasure Hours boosts (null = the chests as they are).</param>
+    public static HudGoal Goal(string? key, int chests, double? weighted = null)
     {
         var entry = TreasureOdds.All.FirstOrDefault(o => o.Key == key);
         if (entry == null)
@@ -119,7 +128,7 @@ public static class HudModel
             var list = TreasureOdds.All.Where(o => o.Key != "odds_gizmo").OrderBy(o => o.Odds).ToList();
             entry = key == "auto" ? list.FirstOrDefault(o => chests < o.Odds) ?? list[^1] : TreasureOdds.All.First(o => o.Key == DefaultGoal);
         }
-        return new HudGoal(entry.Key, UiTexts.Get("short_" + entry.Key), TreasureOdds.Chance(chests, entry.Odds),
+        return new HudGoal(entry.Key, UiTexts.Get("short_" + entry.Key), TreasureOdds.Chance(weighted ?? chests, entry.Odds),
             Math.Min(1, (double)chests / entry.Odds), chests, entry.Odds);
     }
 

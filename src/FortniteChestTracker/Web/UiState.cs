@@ -29,7 +29,11 @@ public sealed record UiState(
     IReadOnlyList<UiWeekday> ByWeekday,
     UiHunt Hunt,
     IReadOnlyList<UiLootBucket> ChestsVsPlacement,
-    IReadOnlyList<UiMilestone> Milestones);
+    IReadOnlyList<UiMilestone> Milestones)
+{
+    /// <summary>Calendar of the treasure hunt.</summary>
+    public UiSeason? Season { get; init; }
+}
 
 /// <summary>
 /// Treasure hunt of the season: chests opened since it started, treasures found since then (gizmos apart from the
@@ -38,13 +42,39 @@ public sealed record UiState(
 /// <param name="GizmoLuck">"Luckier than X % of players" for gizmos (1–99), null when too few were expected.</param>
 /// <param name="RewardLuck">Same for the weekly rewards.</param>
 public sealed record UiHunt(DateTime Since, int Chests, int Matches, int Gizmos, int Rewards, IReadOnlyList<UiOdds> Odds,
-    double GizmosExpected = 0, double RewardsExpected = 0, int? GizmoLuck = null, int? RewardLuck = null, bool Combined = false);
+    double GizmosExpected = 0, double RewardsExpected = 0, int? GizmoLuck = null, int? RewardLuck = null, bool Combined = false)
+{
+    /// <summary>Chests of Ranked matches since the start of the hunt: no treasure-hunt rewards there, left out of the chances.</summary>
+    public int RankedChests { get; init; }
+
+    /// <summary>Chests opened during Treasure Hours (they count more for the boosted treasures).</summary>
+    public int BoostedChests { get; init; }
+}
+
+/// <summary>One prize of a week of the hunt; Found = the player got it (its prize id came out of one of their chests).</summary>
+public sealed record UiSeasonPrize(string Key, string Name, string? Img, string? Odds, bool Found);
+
+/// <summary>A week of the hunt: its prizes, the player's chests that week (Ranked apart) and the prizes they found.</summary>
+public sealed record UiSeasonWeek(DateTime Start, DateTime End, string Title, string? Art, IReadOnlyList<UiSeasonPrize> Prizes, int Chests, int Found);
+
+/// <summary>Treasure Hours window: rate multiplier per treasure (odds_* key).</summary>
+public sealed record UiBoostWindow(DateTime Start, DateTime End, IReadOnlyDictionary<string, double> Boosts, bool Confirmed);
+
+/// <summary>Calendar of the treasure hunt (season.json, updated from the website) and the player's token timer.</summary>
+/// <param name="Week">Index of the week going on (-1 = outside the season).</param>
+/// <param name="TokenActivated">When the player activated their Pirate Shop Access (14 days from then), null = not done.</param>
+public sealed record UiSeason(string Name, DateTime Start, DateTime End, int Week, IReadOnlyList<UiSeasonWeek> Weeks,
+    IReadOnlyList<UiBoostWindow> Hours, DateTime? TokenActivated, bool Notify);
 
 /// <param name="Key">Text key of the treasure (odds_*).</param>
 /// <param name="Odds">1 chance in this many chests, outside Treasure Hours.</param>
 /// <param name="HourBoost">Multiplier during Treasure Hours (null = not boosted).</param>
 /// <param name="Expected">Drops expected from the chests of the season (weekly treasures: at most one a week).</param>
-public sealed record UiOdds(string Key, int Odds, double? HourBoost, double Expected = 0);
+public sealed record UiOdds(string Key, int Odds, double? HourBoost, double Expected = 0)
+{
+    /// <summary>Chests of the hunt for this treasure, each weighted by the Treasure Hours boost when it was opened.</summary>
+    public double Weighted { get; init; }
+}
 
 /// <summary>A milestone track (see <see cref="FortniteChestTracker.Milestones"/>): current value, last step reached, next step.</summary>
 public sealed record UiMilestone(string Key, int Value, int? Reached, int? Next);

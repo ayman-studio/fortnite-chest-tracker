@@ -137,6 +137,12 @@ public sealed class Config
 
     /// <summary>Treasure aimed at, chosen on the home page and shown on the overlay (odds_* key, or "auto").</summary>
     public string Goal { get; set; } = HudModel.DefaultGoal;
+
+    /// <summary>When the player activated their Pirate Shop Access (14 days of free Item Shop from then); null = not activated.</summary>
+    public DateTime? TokenActivatedUtc { get; set; }
+
+    /// <summary>Notification next to the clock 10 minutes before each Treasure Hour.</summary>
+    public bool NotifyTreasureHours { get; set; } = true;
 }
 
 public sealed class TrackerData

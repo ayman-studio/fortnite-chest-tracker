@@ -24,7 +24,29 @@ public static class TreasureOdds
     ];
 
     /// <summary>Chance of at least one drop after <paramref name="chests"/> chests at 1 in <paramref name="odds"/>.</summary>
-    public static double Chance(int chests, int odds) => 1 - Math.Pow(1 - 1.0 / odds, Math.Max(0, chests));
+    public static double Chance(double chests, int odds) => 1 - Math.Pow(1 - 1.0 / odds, Math.Max(0, chests));
+
+    /// <summary>
+    /// Drops of one treasure expected from these matches of the hunt (see <see cref="Hunt"/>: Treasure Hours boosts
+    /// included): gizmos repeat; weekly treasures at most once per week of the season; the pirate token once.
+    /// </summary>
+    public static double ExpectedFor(Entry o, IReadOnlyCollection<MatchRecord> matches, DateTime sinceUtc)
+    {
+        if (o.Key == "odds_gizmo")
+        {
+            return Hunt.Weighted(matches, o.Key) / o.Odds;
+        }
+        if (o.Key == "odds_pirate")
+        {
+            return Chance(Hunt.Weighted(matches, o.Key), o.Odds);
+        }
+        return matches.GroupBy(m => Season.WeekAt(Hunt.StartOf(m)) is var w and >= 0 ? w : 1000 + (int)Math.Floor((Hunt.StartOf(m) - sinceUtc).TotalDays / 7))
+            .Sum(g => Chance(Hunt.Weighted(g, o.Key), o.Odds));
+    }
+
+    /// <summary>Weekly rewards (all but gizmos) expected from these matches of the hunt.</summary>
+    public static double ExpectedRewardsFor(IReadOnlyCollection<MatchRecord> matches, DateTime sinceUtc) =>
+        All.Where(o => o.Key != "odds_gizmo").Sum(o => ExpectedFor(o, matches, sinceUtc));
 
     /// <summary>
     /// Weekly rewards expected from these chests. Each weekly treasure drops at most once a week (and the pirate token

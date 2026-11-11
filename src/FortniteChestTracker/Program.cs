@@ -140,6 +140,8 @@ if (string.IsNullOrWhiteSpace(config.DemosFolder))
     config.DemosFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FortniteGame", "Saved", "Demos");
 }
 
+Season.LoadSaved(dataDir); // the calendar downloaded earlier, if newer than the embedded one
+
 if (previewPath != null)
 {
     // Development: draws the overlay off-screen and saves it as PNG (idle + match in progress), then quits.

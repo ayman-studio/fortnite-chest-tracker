@@ -196,6 +196,7 @@ public sealed class WebServer : IDisposable
                     // Pictures of the interface (favicon, chests, pirate token), embedded.
                     var file = path["/img/".Length..];
                     var bytes = file is "favicon.ico" or "relic-chest.webp" or "token.webp" or "chest-pirate.webp" or "chest-pirate-gold.webp" or "overlay-bg.webp"
+                        || (file.StartsWith("season-", StringComparison.Ordinal) && file.EndsWith(".webp", StringComparison.Ordinal) && !file.Contains('/') && !file.Contains(".."))
                         ? AssetBytes("img." + file) : null;
                     if (bytes == null)
                     {
@@ -231,6 +232,9 @@ public sealed class WebServer : IDisposable
                     await Binary(req, res, bytes, file.EndsWith(".ttf", StringComparison.Ordinal) ? "font/ttf" : "text/plain; charset=utf-8");
                     return;
                 }
+                case ("GET", "/season.json"):
+                    await Text(res, 200, "application/json; charset=utf-8", Season.Json);
+                    return;
                 case ("GET", "/notices"):
                 {
                     // Licences of the code and assets this tool is built with (THIRD-PARTY-NOTICES.txt), linked from the About card.

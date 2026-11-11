@@ -141,6 +141,10 @@ public sealed class App
                 CheckAutoClose();
             }
             AnnounceUpdate();
+            if (!_setupPending)
+            {
+                SeasonTick();
+            }
             Publish();
 
             var wait = _setupPending ? TimeSpan.FromMinutes(1) : _nextScan - DateTime.UtcNow;
@@ -589,6 +593,21 @@ public sealed class App
 
             case "open":
                 return Open(Str(args, "what"));
+
+            case "token/activate":
+                _config.TokenActivatedUtc = DateTime.UtcNow;
+                SaveConfig();
+                return CommandResult.Done;
+
+            case "token/reset":
+                _config.TokenActivatedUtc = null;
+                SaveConfig();
+                return CommandResult.Done;
+
+            case "season/notify":
+                _config.NotifyTreasureHours = Bool(args, "on") ?? !_config.NotifyTreasureHours;
+                SaveConfig();
+                return CommandResult.Done;
 
             case "estimate/save-player":
                 if (Str(args, "player")?.Trim() is { Length: > 0 } who)
@@ -1200,32 +1219,105 @@ public sealed class App
             UiStateBuilder.ByWeekday(view),
             HuntState(view),
             UiStateBuilder.ChestsVsPlacement(view),
-            Milestones.Of(view).Select(m => new UiMilestone(m.Key, m.Value, m.Reached, m.Next)).ToList());
+            Milestones.Of(view).Select(m => new UiMilestone(m.Key, m.Value, m.Reached, m.Next)).ToList())
+        {
+            Season = SeasonState(view),
+        };
+    }
+
+    private UiSeason SeasonState(TrackerData view)
+    {
+        var s = Season.Current;
+        var since = HudModel.HuntSince(_config);
+        var hunt = view.Matches.Where(m => Hunt.Counts(m, since)).ToList();
+        var weeks = new List<UiSeasonWeek>();
+        for (var i = 0; i < s.Weeks.Count; i++)
+        {
+            var (start, end) = Season.WeekBounds(i);
+            var inWeek = hunt.Where(m => Hunt.StartOf(m) >= start && Hunt.StartOf(m) < end).ToList();
+            var ids = inWeek.SelectMany(m => m.TreasureFinds).Select(f => f.PrizeId).Where(id => id != null).ToHashSet();
+            var prizes = s.Weeks[i].Prizes.Select(p => new UiSeasonPrize(p.Key, p.Name, p.Img, p.Odds,
+                p.Id != null && ids.Any(id => id!.EndsWith(":" + p.Id, StringComparison.Ordinal) || id == p.Id))).ToList();
+            weeks.Add(new UiSeasonWeek(start, end, s.Weeks[i].Title, s.Weeks[i].Art, prizes, inWeek.Sum(m => m.ChestsOpened),
+                inWeek.Sum(m => m.TreasureFinds.Count(f => f.FromGoldenChest))));
+        }
+        var hours = s.TreasureHours.Select(h => new UiBoostWindow(h.Start, h.End, h.Boosts, h.Confirmed)).ToList();
+        return new UiSeason(s.Name, s.Start, s.End, Season.WeekAt(DateTime.UtcNow), weeks, hours, _config.TokenActivatedUtc, _config.NotifyTreasureHours);
+    }
+
+    // ---- Season: calendar refreshed from the website, a notice before each Treasure Hour ------------------
+
+    private DateTime _nextSeasonFetch = DateTime.MinValue;
+    private DateTime _notifiedHour = DateTime.MinValue;
+    private int _seasonMinute = -1;
+
+    /// <summary>Called by the main loop (at least once a minute).</summary>
+    private void SeasonTick()
+    {
+        var now = DateTime.UtcNow;
+        if (now >= _nextSeasonFetch && _config.UpdateMode != "off" && Season.IsOn(now.AddDays(-1)))
+        {
+            _nextSeasonFetch = now.AddHours(6);
+            var folder = _store.Folder;
+            _ = Task.Run(async () =>
+            {
+                if (await Season.RefreshAsync(folder))
+                {
+                    Post(UpdateOverlay);
+                }
+            });
+        }
+        if (_config.NotifyTreasureHours && Season.NextAfter(now) is { } next && next.Start - now <= TimeSpan.FromMinutes(10) && next.Start != _notifiedHour)
+        {
+            _notifiedHour = next.Start;
+            var boost = next.BoostOf("odds_pirate");
+            NativeTray.Notify(L.T("Heure du trésor dans 10 min", "Treasure Hour in 10 min", "Hora del tesoro en 10 min"),
+                L.T($"Jeton pirate ×{L.N1(boost)} jusqu'à {next.End.ToLocalTime():HH:mm}. Bonne chasse !",
+                    $"Pirate token ×{L.N1(boost)} until {next.End.ToLocalTime():HH:mm}. Happy hunting!",
+                    $"Ficha pirata ×{L.N1(boost)} hasta las {next.End.ToLocalTime():HH:mm}. ¡Buena caza!"));
+        }
+        // the overlay shows the countdown to the next Treasure Hour: redrawn every minute
+        if (now.Minute != _seasonMinute)
+        {
+            _seasonMinute = now.Minute;
+            if (Season.IsOn(now))
+            {
+                UpdateOverlay();
+            }
+        }
     }
 
     private UiHunt HuntState(TrackerData view)
     {
         var since = HudModel.HuntSince(_config);
-        var matches = view.Matches.Where(m => (m.MatchStartUtc ?? m.AnalyzedAtUtc).ToUniversalTime() >= since).ToList();
+        var played = view.Matches.Where(m => Hunt.StartOf(m) >= since).ToList();
+        // Ranked gives no treasure-hunt rewards: its chests stay in the totals but not in the chances
+        var matches = played.Where(m => Hunt.Counts(m, since)).ToList();
+        var ranked = played.Where(m => !matches.Contains(m)).Sum(m => m.ChestsOpened);
         var finds = matches.SelectMany(m => m.TreasureFinds).ToList();
         // Golden chest prizes carry their prize id: those are the weekly rewards; the rest are gizmos.
         var rewards = finds.Count(f => f.FromGoldenChest);
         var gizmos = finds.Count - rewards;
         var chests = matches.Sum(m => m.ChestsOpened);
-        var gizmosExpected = TreasureOdds.All.Where(o => o.Key == "odds_gizmo").Sum(o => (double)chests / o.Odds);
-        var rewardsExpected = TreasureOdds.ExpectedRewards(matches.Select(m => ((m.MatchStartUtc ?? m.AnalyzedAtUtc).ToUniversalTime(), m.ChestsOpened)), since);
-        var timed = matches.Select(m => ((m.MatchStartUtc ?? m.AnalyzedAtUtc).ToUniversalTime(), m.ChestsOpened)).ToList();
-        var odds = TreasureOdds.All.Select(o => new UiOdds(o.Key, o.Odds, o.HourBoost, TreasureOdds.Expected(o, timed, since))).ToList();
+        var gizmoOdds = TreasureOdds.All.First(o => o.Key == "odds_gizmo");
+        var gizmosExpected = TreasureOdds.ExpectedFor(gizmoOdds, matches, since);
+        var rewardsExpected = TreasureOdds.ExpectedRewardsFor(matches, since);
+        var odds = TreasureOdds.All.Select(o => new UiOdds(o.Key, o.Odds, o.HourBoost, TreasureOdds.ExpectedFor(o, matches, since))
+        {
+            Weighted = Hunt.Weighted(matches, o.Key),
+        }).ToList();
+        var boosted = Hunt.DuringTreasureHours(matches);
         if (rewards == 0)
         {
             // Without a golden chest in the replays, a weekly reward cannot be told apart from a gizmo (both come as the
             // same generic treasure): one luck figure for all the treasures, against everything expected.
             var expected = gizmosExpected + rewardsExpected;
             return new UiHunt(since, chests, matches.Count, gizmos, rewards, odds, expected, 0,
-                TreasureOdds.LuckPercent(finds.Count, expected), null, Combined: true);
+                TreasureOdds.LuckPercent(finds.Count, expected), null, Combined: true) { RankedChests = ranked, BoostedChests = boosted };
         }
         return new UiHunt(since, chests, matches.Count, gizmos, rewards, odds,
-            gizmosExpected, rewardsExpected, TreasureOdds.LuckPercent(gizmos, gizmosExpected), TreasureOdds.LuckPercent(rewards, rewardsExpected));
+            gizmosExpected, rewardsExpected, TreasureOdds.LuckPercent(gizmos, gizmosExpected), TreasureOdds.LuckPercent(rewards, rewardsExpected))
+            { RankedChests = ranked, BoostedChests = boosted };
     }
 
     private List<UiNotice> Notices(bool demosExists, int profiles)

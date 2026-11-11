@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "name": "Treasure Hunters",
+  "start": "2026-11-01T14:00:00Z",
+  "end": "2026-12-05T14:00:00Z",
+  "ranked": false,
+  "weeks": [
+    { "start": "2026-11-01T14:00:00Z", "title": "A$AP Arrives", "art": "season-crew-1.webp", "prizes": [
+      { "key": "outfit", "name": "Solid Gold A$AP Rocky", "img": "season-w1-outfit.webp", "odds": "odds_gold" },
+      { "key": "pickaxe", "name": "Solid Gold A$AP Rocky's Gauntlets", "img": "season-w1-pickaxe.webp", "odds": "odds_pickaxe", "id": "dpid_item1" },
+      { "key": "vehicle", "name": "Gold Mercedes-AMG G 63", "img": "season-w1-car.webp", "odds": "odds_vehicle", "id": "dpid_item3" },
+      { "key": "jam", "name": "No Trespassing", "img": "season-w1-jam.webp", "odds": "odds_jam", "id": "dpid_item4" },
+      { "key": "loading", "name": "Plunder in Paradise", "img": "season-w1-loading.webp", "odds": "odds_loading", "id": "dpid_item2" }
+    ] },
+    { "start": "2026-11-08T14:00:00Z", "title": "Lil Uzi Arrives", "art": "season-crew-2.webp", "prizes": [
+      { "key": "outfit", "name": "Solid Gold Lil Uzi Vert", "img": "season-w2-outfit.webp", "odds": "odds_gold" },
+      { "key": "backbling", "name": "Diamond and Gold", "img": "season-w2-backbling.webp", "odds": "odds_pickaxe" },
+      { "key": "vehicle", "name": "Gold Cadillac CT5-V", "img": "season-w2-car.webp", "odds": "odds_vehicle" },
+      { "key": "jam", "name": "London", "img": "season-w2-jam.webp", "odds": "odds_jam" },
+      { "key": "loading", "name": "So Kawaii", "img": "season-w2-loading.webp", "odds": "odds_loading" }
+    ] },
+    { "start": "2026-11-15T14:00:00Z", "title": "Miku & Teto Arrive", "art": "season-crew-3.webp", "prizes": [] },
+    { "start": "2026-11-22T14:00:00Z", "title": "Oscar Arrives", "art": "season-crew-4.webp", "prizes": [] },
+    { "start": "2026-11-29T14:00:00Z", "title": "The Final Hunt", "art": "season-crew-5.webp", "prizes": [] }
+  ],
+  "treasureHours": [
+    { "start": "2026-11-07T19:00:00Z", "end": "2026-11-07T21:00:00Z", "boosts": { "odds_pirate": 1.5, "odds_gold": 7.5, "odds_vehicle": 10 }, "confirmed": true },
+    { "start": "2026-11-08T02:00:00Z", "end": "2026-11-08T04:00:00Z", "boosts": { "odds_pirate": 2, "odds_gold": 10, "odds_vehicle": 10 }, "confirmed": true },
+    { "start": "2026-11-14T19:00:00Z", "end": "2026-11-14T21:00:00Z", "boosts": { "odds_pirate": 1.5, "odds_gold": 7.5, "odds_vehicle": 10 } },
+    { "start": "2026-11-15T02:00:00Z", "end": "2026-11-15T04:00:00Z", "boosts": { "odds_pirate": 1.5, "odds_gold": 7.5, "odds_vehicle": 10 } },
+    { "start": "2026-11-21T19:00:00Z", "end": "2026-11-21T21:00:00Z", "boosts": { "odds_pirate": 1.5, "odds_gold": 7.5, "odds_vehicle": 10 } },
+    { "start": "2026-11-22T02:00:00Z", "end": "2026-11-22T04:00:00Z", "boosts": { "odds_pirate": 1.5, "odds_gold": 7.5, "odds_vehicle": 10 } },
+    { "start": "2026-11-28T19:00:00Z", "end": "2026-11-28T21:00:00Z", "boosts": { "odds_pirate": 1.5, "odds_gold": 7.5, "odds_vehicle": 10 } },
+    { "start": "2026-11-29T02:00:00Z", "end": "2026-11-29T04:00:00Z", "boosts": { "odds_pirate": 1.5, "odds_gold": 7.5, "odds_vehicle": 10 } }
+  ]
+}
