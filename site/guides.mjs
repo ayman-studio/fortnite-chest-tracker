@@ -58,45 +58,45 @@ const S_TXT = {
   en: { title: 'Fortnite Treasure Hunters: Treasure Hours, weekly prizes and odds · Chest Tracker',
     desc: 'Every Treasure Hour of the Treasure Hunters season in your local time, with its boosts, a live countdown, the prizes of each week and how the pirate token drops.',
     h1: 'Treasure Hunters: Treasure Hours and weekly prizes', kicker: 'Season calendar',
-    lead: 'When the next Treasure Hour starts in your time zone, what it boosts, and what each week of the hunt gives away.',
+    lead: 'Treasure Hours in your local time, their boosts, and the prizes of each week.',
     next: 'Next Treasure Hour', now: 'Treasure Hour on now', ends: 'ends in', starts: 'starts in', seasonEnd: 'End of the season in', over: 'The season is over.',
     hoursTitle: 'Every Treasure Hour', when: 'When (your time)', boosts: 'Boosts', status: '', expected: 'usual time, not confirmed yet', past: 'over', live: 'NOW',
     pirate: 'Pirate token', gold: 'Gold outfit', vehicle: 'Vehicle',
     weeksTitle: 'Prizes week by week', week: 'Week', unknown: 'Prizes not announced yet: this page updates as soon as they are.',
     type: { outfit: 'Outfit', pickaxe: 'Pickaxe', backbling: 'Back bling', vehicle: 'Vehicle', jam: 'Jam track', loading: 'Loading screen' }, oneIn: '1 in',
     rulesTitle: 'Good to know',
-    rules: ['During a Treasure Hour, each chest you open or break gives you more chances for the boosted treasures: the pirate token, the gold outfit and the vehicle of the week.',
+    rules: ['During a Treasure Hour, every chest you open or break counts more for the pirate token, the gold outfit and the vehicle.',
       'A pirate token found by anyone in your party is shared with the whole party.', 'Ranked matches give no treasure-hunt prizes.',
-      'The weekly prizes change every Sunday: what you did not get one week is gone.'],
-    app: 'Chest Tracker counts every chest you open from your replays and works out your real chance, Treasure Hour boosts included. It can also notify you 10 minutes before each Treasure Hour.' },
+      'Weekly prizes change every Sunday.'],
+    app: 'Chest Tracker counts your chests and your real chance, boosts included, and warns you 10 minutes before each Treasure Hour.' },
   fr: { title: 'Fortnite Treasure Hunters : Heures du trésor, prix de la semaine et chances · Chest Tracker',
     desc: "Toutes les Heures du trésor de la saison Treasure Hunters à ton heure locale, avec leurs bonus, un compte à rebours, les prix de chaque semaine et comment tombe le jeton pirate.",
     h1: 'Treasure Hunters : Heures du trésor et prix de la semaine', kicker: 'Calendrier de la saison',
-    lead: "Quand commence la prochaine Heure du trésor chez toi, ce qu'elle booste, et ce que chaque semaine de la chasse fait gagner.",
+    lead: "Les Heures du trésor à ton heure locale, leurs bonus et les prix de chaque semaine.",
     next: 'Prochaine Heure du trésor', now: 'Heure du trésor en cours', ends: 'se termine dans', starts: 'commence dans', seasonEnd: 'Fin de la saison dans', over: 'La saison est terminée.',
     hoursTitle: 'Toutes les Heures du trésor', when: 'Quand (ton heure)', boosts: 'Bonus', status: '', expected: 'horaire habituel, pas encore confirmé', past: 'passée', live: 'EN COURS',
     pirate: 'Jeton pirate', gold: 'Tenue dorée', vehicle: 'Véhicule',
     weeksTitle: 'Les prix semaine par semaine', week: 'Semaine', unknown: "Prix pas encore annoncés : la page se met à jour dès qu'ils le sont.",
     type: { outfit: 'Tenue', pickaxe: 'Pioche', backbling: 'Sac à dos', vehicle: 'Véhicule', jam: 'Piste musicale', loading: 'Écran de chargement' }, oneIn: '1 sur',
     rulesTitle: 'Bon à savoir',
-    rules: ["Pendant une Heure du trésor, chaque coffre ouvert ou cassé te donne plus de chances pour les trésors boostés : le jeton pirate, la tenue dorée et le véhicule de la semaine.",
+    rules: ["Pendant une Heure du trésor, chaque coffre ouvert ou cassé compte plus pour le jeton pirate, la tenue dorée et le véhicule.",
       "Un jeton pirate trouvé par un membre de ton escouade est partagé avec toute l'escouade.", "Les parties classées ne donnent aucun prix de la chasse au trésor.",
-      "Les prix de la semaine changent chaque dimanche : ce que tu n'as pas eu une semaine est perdu."],
-    app: "Chest Tracker compte chaque coffre que tu ouvres grâce à tes replays et calcule ta vraie chance, bonus des Heures du trésor compris. Il peut aussi te prévenir 10 minutes avant chaque Heure du trésor." },
+      "Les prix de la semaine changent chaque dimanche."],
+    app: "Chest Tracker compte tes coffres et ta vraie chance, bonus compris, et te prévient 10 minutes avant chaque Heure du trésor." },
   es: { title: 'Fortnite Treasure Hunters: Horas del tesoro, premios semanales y probabilidades · Chest Tracker',
     desc: 'Todas las Horas del tesoro de la temporada Treasure Hunters en tu hora local, con sus bonificaciones, una cuenta atrás, los premios de cada semana y cómo sale la ficha pirata.',
     h1: 'Treasure Hunters: Horas del tesoro y premios semanales', kicker: 'Calendario de la temporada',
-    lead: 'Cuándo empieza la próxima Hora del tesoro en tu zona horaria, qué bonifica y qué da cada semana de la búsqueda.',
+    lead: 'Las Horas del tesoro en tu hora local, sus bonificaciones y los premios de cada semana.',
     next: 'Próxima Hora del tesoro', now: 'Hora del tesoro en curso', ends: 'termina en', starts: 'empieza en', seasonEnd: 'Fin de la temporada en', over: 'La temporada ha terminado.',
     hoursTitle: 'Todas las Horas del tesoro', when: 'Cuándo (tu hora)', boosts: 'Bonificaciones', status: '', expected: 'horario habitual, aún sin confirmar', past: 'terminada', live: 'EN CURSO',
     pirate: 'Ficha pirata', gold: 'Atuendo dorado', vehicle: 'Vehículo',
     weeksTitle: 'Los premios semana a semana', week: 'Semana', unknown: 'Premios aún sin anunciar: la página se actualiza en cuanto se anuncien.',
     type: { outfit: 'Atuendo', pickaxe: 'Pico', backbling: 'Mochila', vehicle: 'Vehículo', jam: 'Pista musical', loading: 'Pantalla de carga' }, oneIn: '1 de',
     rulesTitle: 'Conviene saber',
-    rules: ['Durante una Hora del tesoro, cada cofre que abres o rompes te da más posibilidades para los tesoros bonificados: la ficha pirata, el atuendo dorado y el vehículo de la semana.',
+    rules: ['Durante una Hora del tesoro, cada cofre que abres o rompes cuenta más para la ficha pirata, el atuendo dorado y el vehículo.',
       'Una ficha pirata encontrada por alguien de tu escuadrón se comparte con todo el escuadrón.', 'Las partidas clasificatorias no dan premios de la búsqueda del tesoro.',
-      'Los premios semanales cambian cada domingo: lo que no conseguiste una semana se pierde.'],
-    app: 'Chest Tracker cuenta cada cofre que abres gracias a tus repeticiones y calcula tu probabilidad real, con las bonificaciones de las Horas del tesoro. También puede avisarte 10 minutos antes de cada Hora del tesoro.' },
+      'Los premios semanales cambian cada domingo.'],
+    app: 'Chest Tracker cuenta tus cofres y tu probabilidad real, con las bonificaciones, y te avisa 10 minutos antes de cada Hora del tesoro.' },
 };
 const ODDS_BY_KEY = { odds_pirate: 137500, odds_gold: 1562500, odds_vehicle: 7813, odds_pickaxe: 568, odds_jam: 391, odds_loading: 272 };
 const utcSlot = (a, b) => `${new Date(a).toISOString().slice(0, 16).replace('T', ' ')}–${new Date(b).toISOString().slice(11, 16)} UTC`;
@@ -145,7 +145,7 @@ ${script}`,
 const HELP_TXT = {
   en: { title: 'Fortnite Chest Tracker not counting? Fixes for every problem', h1: 'Something does not work?', kicker: 'Help',
     desc: 'Chests not counted, overlay not showing, Windows or antivirus warning, page not opening, history lost after changing PC: the fixes, step by step.',
-    lead: 'The most common problems and how to fix them in a minute.',
+    lead: 'The usual problems and their fix.',
     items: [
       ['No chest is counted', ['Check that <b>Record Replays</b> is on in Fortnite (Settings → Game → Replays): only matches played after that are saved.', 'A match is counted a few seconds <b>after it ends</b>: Fortnite locks the replay until then.', 'Only <b>Battle Royale</b> matches are counted (not Creative, LEGO or Festival).', 'In the app, the Replays card of Settings must say <b>Folder found</b>.']],
       ['The overlay does not show in game', ['Set Fortnite to <b>Windowed Fullscreen</b> (Settings → Video → Window Mode): Windows cannot draw anything over exclusive fullscreen.', 'Press <b>Ctrl+Shift+O</b> to show or hide it, and check that it is on in the app (Settings → Overlay).']],
@@ -157,7 +157,7 @@ const HELP_TXT = {
     ] },
   fr: { title: 'Fortnite Chest Tracker ne compte rien ? Les solutions à chaque problème', h1: 'Quelque chose ne marche pas ?', kicker: 'Aide',
     desc: "Coffres pas comptés, overlay invisible, avertissement Windows ou antivirus, page qui ne s'ouvre pas, historique perdu en changeant de PC : les solutions, étape par étape.",
-    lead: 'Les problèmes les plus courants et comment les régler en une minute.',
+    lead: 'Les problèmes courants et leur solution.',
     items: [
       ["Aucun coffre n'est compté", ["Vérifie que <b>Enregistrer les replays</b> est activé dans Fortnite (Paramètres → Jeu → Replays) : seules les parties jouées après sont enregistrées.", "Une partie est comptée quelques secondes <b>après sa fin</b> : Fortnite verrouille le replay jusque-là.", "Seules les parties <b>Battle Royale</b> sont comptées (pas Créatif, LEGO ou Festival).", "Dans l'appli, la carte Replays des Réglages doit afficher <b>Dossier trouvé</b>."]],
       ["L'overlay ne s'affiche pas en jeu", ["Mets Fortnite en <b>Plein écran fenêtré</b> (Paramètres → Vidéo → Mode de fenêtre) : Windows ne peut rien dessiner par-dessus le plein écran exclusif.", "Appuie sur <b>Ctrl+Maj+O</b> pour l'afficher ou le masquer, et vérifie qu'il est activé dans l'appli (Réglages → Overlay)."]],
@@ -169,7 +169,7 @@ const HELP_TXT = {
     ] },
   es: { title: '¿Fortnite Chest Tracker no cuenta? Soluciones para cada problema', h1: '¿Algo no funciona?', kicker: 'Ayuda',
     desc: 'Cofres que no se cuentan, overlay invisible, aviso de Windows o del antivirus, página que no se abre, historial perdido al cambiar de PC: las soluciones, paso a paso.',
-    lead: 'Los problemas más comunes y cómo arreglarlos en un minuto.',
+    lead: 'Los problemas habituales y su solución.',
     items: [
       ['No se cuenta ningún cofre', ['Comprueba que <b>Grabar repeticiones</b> está activado en Fortnite (Ajustes → Juego → Repeticiones): solo se guardan las partidas jugadas después.', 'Una partida se cuenta unos segundos <b>después de terminar</b>: Fortnite bloquea la repetición hasta entonces.', 'Solo se cuentan las partidas <b>Battle Royale</b> (no Creativo, LEGO ni Festival).', 'En la app, la tarjeta Repeticiones de Ajustes debe indicar <b>Carpeta encontrada</b>.']],
       ['El overlay no aparece en el juego', ['Pon Fortnite en <b>Pantalla completa en ventana</b> (Ajustes → Vídeo → Modo de ventana): Windows no puede dibujar nada sobre la pantalla completa exclusiva.', 'Pulsa <b>Ctrl+Mayús+O</b> para mostrarlo u ocultarlo, y comprueba que está activado en la app (Ajustes → Overlay).']],
@@ -218,7 +218,7 @@ function changelogPage(L) {
 const IN_TXT = {
   en: { title: 'How to install Fortnite Chest Tracker (Windows), step by step', h1: 'Install it in 2 minutes', kicker: 'Install guide',
     desc: 'Download, get past the "Windows protected your PC" screen, run the short setup, turn on Fortnite replays and see the overlay in game.',
-    lead: 'Five short steps, with what you will see on screen.',
+    lead: 'Five steps.',
     s1: 'Download the app', s1p: 'One file, FortniteChestTracker.exe (about 38 MB). Nothing else to install.',
     s2: 'Get past the blue Windows screen', s2p: 'Windows shows it for any new app that is not signed (a signature costs money). Click <b>More info</b>, then <b>Run anyway</b>.',
     ss_t: 'Windows protected your PC', ss_p: 'Microsoft Defender SmartScreen prevented an unrecognized app from starting.', ss_more: 'More info', ss_run: 'Run anyway', ss_dont: "Don't run",
@@ -227,7 +227,7 @@ const IN_TXT = {
     s5: 'Play', s5p: 'Set Fortnite to <b>Windowed Fullscreen</b> to see the overlay over the game. Each match is counted a few seconds after it ends.' },
   fr: { title: 'Installer Fortnite Chest Tracker (Windows), étape par étape', h1: 'Installe-le en 2 minutes', kicker: "Guide d'installation",
     desc: "Télécharger, passer l'écran « Windows a protégé votre ordinateur », la courte installation, activer les replays Fortnite et voir l'overlay en jeu.",
-    lead: "Cinq petites étapes, avec ce que tu vas voir à l'écran.",
+    lead: 'Cinq étapes.',
     s1: "Télécharge l'appli", s1p: 'Un seul fichier, FortniteChestTracker.exe (environ 38 Mo). Rien d\'autre à installer.',
     s2: "Passe l'écran bleu de Windows", s2p: "Windows l'affiche pour toute nouvelle appli non signée (une signature est payante). Clique sur <b>Informations complémentaires</b>, puis <b>Exécuter quand même</b>.",
     ss_t: 'Windows a protégé votre ordinateur', ss_p: "Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue.", ss_more: 'Informations complémentaires', ss_run: 'Exécuter quand même', ss_dont: 'Ne pas exécuter',
@@ -236,7 +236,7 @@ const IN_TXT = {
     s5: 'Joue', s5p: "Mets Fortnite en <b>Plein écran fenêtré</b> pour voir l'overlay par-dessus le jeu. Chaque partie est comptée quelques secondes après la fin." },
   es: { title: 'Cómo instalar Fortnite Chest Tracker (Windows), paso a paso', h1: 'Instálalo en 2 minutos', kicker: 'Guía de instalación',
     desc: 'Descargar, pasar la pantalla «Windows protegió su PC», la breve instalación, activar las repeticiones de Fortnite y ver el overlay en el juego.',
-    lead: 'Cinco pasos cortos, con lo que verás en pantalla.',
+    lead: 'Cinco pasos.',
     s1: 'Descarga la app', s1p: 'Un solo archivo, FortniteChestTracker.exe (unos 38 MB). Nada más que instalar.',
     s2: 'Pasa la pantalla azul de Windows', s2p: 'Windows la muestra con cualquier app nueva sin firmar (una firma cuesta dinero). Haz clic en <b>Más información</b> y luego en <b>Ejecutar de todas formas</b>.',
     ss_t: 'Windows protegió su PC', ss_p: 'Microsoft Defender SmartScreen impidió el inicio de una aplicación no reconocida.', ss_more: 'Más información', ss_run: 'Ejecutar de todas formas', ss_dont: 'No ejecutar',
@@ -293,49 +293,49 @@ const GUIDES = {
           title: `Fortnite pirate token odds: 1 chest in ${nf(L, pirate.odds)} · Chest Tracker`,
           desc: `Epic's real drop rates for every Fortnite chest treasure (pirate token, gold outfit, vehicle, pickaxe, jam track) and your chance after 500, 2,000 or 10,000 chests.`,
           h1: 'Fortnite pirate token odds', kicker: 'Epic\'s real rates',
-          lead: 'Epic announced how often each treasure drops from a chest. Here is what those rates mean for you, chest after chest.',
+          lead: "Epic's drop rates for each chest treasure, and what they mean for you.",
           body: `<h2>The rates, per chest opened</h2>
-<p>Per chest opened in a normal match, outside Treasure Hours. Every chest is a new draw: the table shows your chance of getting each treasure at least once.</p>
+<p>Per chest opened in a normal match, outside Treasure Hours: your chance of getting each treasure at least once.</p>
 ${table}
 <h2>How your chance adds up</h2>
 <p>The chance of getting a treasure at least once after <i>N</i> chests is <b>1 − (1 − 1/rate)<sup>N</sup></b>. For the pirate token (1 chest in ${nf(L, pirate.odds)}), that is about <b>${p500}</b> after 500 chests, <b>${p2k}</b> after 2,000 and <b>${p10k}</b> after 10,000.</p>
-<p>To reach a 50% chance, you need about <b>${h} chests</b>: around ${hm} matches at 20 chests per match. Bad luck does not build up: each new chest has exactly the same odds as the first one.</p>
+<p>To reach a 50% chance, you need about <b>${h} chests</b>: around ${hm} matches at 20 chests per match. Each chest has the same odds as the first one.</p>
 <h2>Treasure Hours</h2>
 <p>During Treasure Hours, Epic raises some rates: ${boosts}. The pirate token then drops 1 chest in ${th}.</p>
 <h2>How many chests have you opened?</h2>
-<p>Fortnite does not show it anywhere. Chest Tracker reads the replays Fortnite saves on your PC, counts every chest you open and works out your real chance for each treasure, match after match.</p>`,
+<p>Fortnite does not show it. Chest Tracker counts them from your replays and works out your real chance.</p>`,
         },
         fr: {
           title: `Chances du jeton pirate Fortnite : 1 coffre sur ${nf(L, pirate.odds)} · Chest Tracker`,
           desc: `Les vrais taux d'Epic pour chaque trésor des coffres Fortnite (jeton pirate, tenue dorée, véhicule, pioche, piste musicale) et tes chances après 500, 2 000 ou 10 000 coffres.`,
           h1: 'Chances du jeton pirate dans Fortnite', kicker: "Les vrais taux d'Epic",
-          lead: "Epic a annoncé à quelle fréquence chaque trésor tombe d'un coffre. Voici ce que ces taux veulent dire pour toi, coffre après coffre.",
+          lead: "Les taux d'Epic pour chaque trésor des coffres, et ce qu'ils veulent dire pour toi.",
           body: `<h2>Les taux, par coffre ouvert</h2>
-<p>Par coffre ouvert en partie normale, hors Heures du trésor. Chaque coffre est un nouveau tirage : le tableau donne ta chance d'avoir chaque trésor au moins une fois.</p>
+<p>Par coffre ouvert en partie normale, hors Heures du trésor : ta chance d'avoir chaque trésor au moins une fois.</p>
 ${table}
 <h2>Comment ta chance grimpe</h2>
 <p>La chance d'avoir un trésor au moins une fois après <i>N</i> coffres vaut <b>1 − (1 − 1/taux)<sup>N</sup></b>. Pour le jeton pirate (1 coffre sur ${nf(L, pirate.odds)}), ça donne environ <b>${p500}</b> après 500 coffres, <b>${p2k}</b> après 2 000 et <b>${p10k}</b> après 10 000.</p>
-<p>Pour atteindre 50 % de chance, il faut environ <b>${h} coffres</b> : à peu près ${hm} parties à 20 coffres par partie. La malchance ne s'accumule pas : chaque nouveau coffre a exactement les mêmes chances que le premier.</p>
+<p>Pour atteindre 50 % de chance, il faut environ <b>${h} coffres</b> : à peu près ${hm} parties à 20 coffres par partie. Chaque coffre a les mêmes chances que le premier.</p>
 <h2>Heures du trésor</h2>
 <p>Pendant les Heures du trésor, Epic augmente certains taux : ${boosts}. Le jeton pirate tombe alors 1 coffre sur ${th}.</p>
 <h2>Combien de coffres as-tu ouverts ?</h2>
-<p>Fortnite ne l'affiche nulle part. Chest Tracker lit les replays que Fortnite enregistre sur ton PC, compte chaque coffre que tu ouvres et calcule ta vraie chance pour chaque trésor, partie après partie.</p>`,
+<p>Fortnite ne l'affiche pas. Chest Tracker les compte grâce à tes replays et calcule ta vraie chance.</p>`,
         },
         es: {
           title: `Probabilidad de la ficha pirata en Fortnite: 1 cofre de cada ${nf(L, pirate.odds)} · Chest Tracker`,
           desc: `Las tasas reales de Epic para cada tesoro de los cofres de Fortnite (ficha pirata, atuendo dorado, vehículo, pico, pista musical) y tu probabilidad tras 500, 2.000 o 10.000 cofres.`,
           h1: 'Probabilidad de la ficha pirata en Fortnite', kicker: 'Las tasas reales de Epic',
-          lead: 'Epic anunció cada cuánto sale cada tesoro de un cofre. Esto es lo que significan esas tasas para ti, cofre tras cofre.',
+          lead: 'Las tasas de Epic para cada tesoro de los cofres, y lo que significan para ti.',
           body: `<h2>Las tasas, por cofre abierto</h2>
-<p>Por cofre abierto en una partida normal, fuera de las Horas del tesoro. Cada cofre es un nuevo sorteo: la tabla muestra tu probabilidad de conseguir cada tesoro al menos una vez.</p>
+<p>Por cofre abierto en una partida normal, fuera de las Horas del tesoro: tu probabilidad de conseguir cada tesoro al menos una vez.</p>
 ${table}
 <h2>Cómo sube tu probabilidad</h2>
 <p>La probabilidad de conseguir un tesoro al menos una vez tras <i>N</i> cofres es <b>1 − (1 − 1/tasa)<sup>N</sup></b>. Para la ficha pirata (1 cofre de cada ${nf(L, pirate.odds)}), eso da cerca del <b>${p500}</b> tras 500 cofres, el <b>${p2k}</b> tras 2.000 y el <b>${p10k}</b> tras 10.000.</p>
-<p>Para llegar a un 50 % de probabilidad hacen falta unos <b>${h} cofres</b>: unas ${hm} partidas a 20 cofres por partida. La mala suerte no se acumula: cada cofre nuevo tiene exactamente la misma probabilidad que el primero.</p>
+<p>Para llegar a un 50 % de probabilidad hacen falta unos <b>${h} cofres</b>: unas ${hm} partidas a 20 cofres por partida. Cada cofre tiene la misma probabilidad que el primero.</p>
 <h2>Horas del tesoro</h2>
 <p>Durante las Horas del tesoro, Epic sube algunas tasas: ${boosts}. La ficha pirata sale entonces 1 cofre de cada ${th}.</p>
 <h2>¿Cuántos cofres has abierto?</h2>
-<p>Fortnite no lo muestra en ningún sitio. Chest Tracker lee las repeticiones que Fortnite guarda en tu PC, cuenta cada cofre que abres y calcula tu probabilidad real para cada tesoro, partida tras partida.</p>`,
+<p>Fortnite no lo muestra. Chest Tracker los cuenta con tus repeticiones y calcula tu probabilidad real.</p>`,
         },
       }[L];
     },
@@ -349,7 +349,7 @@ ${table}
           title: 'Turn on Fortnite replays & find the replay folder · Chest Tracker',
           desc: 'Turn on Record Replays in Fortnite, find where replays are saved on Windows (%LOCALAPPDATA%\\FortniteGame\\Saved\\Demos) and see why a replay can be missing.',
           h1: 'Fortnite replays: turn them on and find them', kicker: 'Guide',
-          lead: 'Fortnite can save a replay of every match on your PC. The option is not always on, and it is what Chest Tracker reads to count your chests.',
+          lead: 'Fortnite can save a replay of every match. Chest Tracker needs them to count your chests.',
           body: `<h2>Turn on replays</h2>
 <ol class="g-steps">
 <li>In Fortnite, open <b>Settings</b>.</li>
@@ -357,11 +357,11 @@ ${table}
 <li>Scroll down to the <b>Replays</b> section.</li>
 <li>Set <b>Record Replays</b> to <b>On</b>.</li>
 </ol>
-<p>Every match you play from then on is saved. Matches played before are not.</p>
+<p>Only matches played after that are saved.</p>
 <h2>Where are Fortnite replays saved?</h2>
 <p>On Windows, in this folder:</p>
 <p>${folder}</p>
-<p>Paste it in the File Explorer address bar to open it. Each match is a <code>.replay</code> file. Fortnite deletes its oldest replays after a while to make room: keep a copy of the ones you care about (Chest Tracker can archive them for you).</p>
+<p>Paste it in the File Explorer address bar. Fortnite deletes its oldest replays: Chest Tracker can archive them.</p>
 <h2>A replay is missing?</h2>
 <ul>
 <li><b>Record Replays was off</b> during that match: only matches played after you turn it on are saved.</li>
@@ -369,13 +369,13 @@ ${table}
 <li><b>Fortnite deleted it</b> to make room for newer ones.</li>
 </ul>
 <h2>What Chest Tracker does with them</h2>
-<p>Once a match ends, Chest Tracker reads its replay, counts the chests you opened and adds them to your total. It only reads the files: it never touches the game.</p>`,
+<p>After each match, Chest Tracker reads the replay and adds your chests. It never touches the game.</p>`,
         },
         fr: {
           title: 'Activer les replays Fortnite et trouver leur dossier · Chest Tracker',
           desc: 'Active « Enregistrer les replays » dans Fortnite, trouve où les replays sont enregistrés sur Windows (%LOCALAPPDATA%\\FortniteGame\\Saved\\Demos) et pourquoi un replay peut manquer.',
           h1: 'Replays Fortnite : les activer et les retrouver', kicker: 'Guide',
-          lead: "Fortnite peut enregistrer un replay de chaque partie sur ton PC. L'option n'est pas toujours activée, et c'est ce que Chest Tracker lit pour compter tes coffres.",
+          lead: 'Fortnite peut enregistrer un replay de chaque partie. Chest Tracker en a besoin pour compter tes coffres.',
           body: `<h2>Activer les replays</h2>
 <ol class="g-steps">
 <li>Dans Fortnite, ouvre les <b>Paramètres</b>.</li>
@@ -383,11 +383,11 @@ ${table}
 <li>Descends jusqu'à la section <b>Replays</b>.</li>
 <li>Mets <b>Enregistrer les replays</b> sur <b>Activé</b>.</li>
 </ol>
-<p>Chaque partie jouée à partir de là est enregistrée. Celles d'avant ne le sont pas.</p>
+<p>Seules les parties jouées ensuite sont enregistrées.</p>
 <h2>Où sont enregistrés les replays Fortnite ?</h2>
 <p>Sur Windows, dans ce dossier :</p>
 <p>${folder}</p>
-<p>Colle-le dans la barre d'adresse de l'Explorateur de fichiers pour l'ouvrir. Chaque partie est un fichier <code>.replay</code>. Fortnite efface ses replays les plus anciens au bout d'un moment pour faire de la place : garde une copie de ceux qui comptent pour toi (Chest Tracker peut les archiver pour toi).</p>
+<p>Colle-le dans la barre d'adresse de l'Explorateur. Fortnite efface ses vieux replays : Chest Tracker peut les archiver.</p>
 <h2>Il manque un replay ?</h2>
 <ul>
 <li><b>« Enregistrer les replays » était désactivé</b> pendant cette partie : seules les parties jouées après l'activation sont enregistrées.</li>
@@ -395,13 +395,13 @@ ${table}
 <li><b>Fortnite l'a effacé</b> pour faire de la place aux plus récents.</li>
 </ul>
 <h2>Ce que Chest Tracker en fait</h2>
-<p>À la fin d'une partie, Chest Tracker lit son replay, compte les coffres que tu as ouverts et les ajoute à ton total. Il lit seulement les fichiers : il ne touche jamais au jeu.</p>`,
+<p>Après chaque partie, Chest Tracker lit le replay et ajoute tes coffres. Il ne touche jamais au jeu.</p>`,
         },
         es: {
           title: 'Activar las repeticiones de Fortnite y su carpeta · Chest Tracker',
           desc: 'Activa «Grabar repeticiones» en Fortnite, encuentra dónde se guardan las repeticiones en Windows (%LOCALAPPDATA%\\FortniteGame\\Saved\\Demos) y por qué puede faltar una.',
           h1: 'Repeticiones de Fortnite: actívalas y encuéntralas', kicker: 'Guía',
-          lead: 'Fortnite puede guardar una repetición de cada partida en tu PC. La opción no siempre está activada, y es lo que lee Chest Tracker para contar tus cofres.',
+          lead: 'Fortnite puede guardar una repetición de cada partida. Chest Tracker las necesita para contar tus cofres.',
           body: `<h2>Activar las repeticiones</h2>
 <ol class="g-steps">
 <li>En Fortnite, abre los <b>Ajustes</b>.</li>
@@ -409,11 +409,11 @@ ${table}
 <li>Baja hasta la sección <b>Repeticiones</b>.</li>
 <li>Pon <b>Grabar repeticiones</b> en <b>Sí</b>.</li>
 </ol>
-<p>Cada partida que juegues a partir de ahí se guarda. Las anteriores no.</p>
+<p>Solo se guardan las partidas jugadas después.</p>
 <h2>¿Dónde se guardan las repeticiones de Fortnite?</h2>
 <p>En Windows, en esta carpeta:</p>
 <p>${folder}</p>
-<p>Pégala en la barra de direcciones del Explorador de archivos para abrirla. Cada partida es un archivo <code>.replay</code>. Fortnite borra sus repeticiones más antiguas pasado un tiempo para hacer sitio: guarda una copia de las que te importan (Chest Tracker puede archivarlas por ti).</p>
+<p>Pégala en la barra de direcciones del Explorador. Fortnite borra las repeticiones antiguas: Chest Tracker puede archivarlas.</p>
 <h2>¿Falta una repetición?</h2>
 <ul>
 <li><b>«Grabar repeticiones» estaba desactivado</b> en esa partida: solo se guardan las partidas jugadas después de activarlo.</li>
@@ -421,7 +421,7 @@ ${table}
 <li><b>Fortnite la borró</b> para hacer sitio a las más recientes.</li>
 </ul>
 <h2>Lo que hace Chest Tracker con ellas</h2>
-<p>Al acabar una partida, Chest Tracker lee su repetición, cuenta los cofres que abriste y los suma a tu total. Solo lee los archivos: nunca toca el juego.</p>`,
+<p>Tras cada partida, Chest Tracker lee la repetición y suma tus cofres. Nunca toca el juego.</p>`,
         },
       }[L];
     },
