@@ -24,15 +24,8 @@ jobs:
         with:
           name: FortniteChestTracker
           path: dist/FortniteChestTracker.exe
-      # Versions 1.0.x only download an asset named ChestCounter.exe: the same exe under that name lets them update
-      # (it renames itself on first start).
-      - name: Copy for 1.0.x updaters (tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: Copy-Item dist/FortniteChestTracker.exe dist/ChestCounter.exe
       - name: Attach to the release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/FortniteChestTracker.exe
-            dist/ChestCounter.exe
+          files: dist/FortniteChestTracker.exe
