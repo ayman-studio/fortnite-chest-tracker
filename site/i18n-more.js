@@ -1,7 +1,7 @@
 // German and Brazilian Portuguese texts of the home page (same keys as i18n.js). The guides stay in EN/FR/ES: the
 // links of these two pages lead to the English ones. Loaded after i18n.js by prerender.mjs.
 (function (w) {
-  var LEDN = '<a href="https://github.com/LED-N/Fortnite-ChestCounter" rel="noopener">Fortnite-ChestCounter</a>';
+  var LEDN = 'Fortnite-ChestCounter';
   w.I18N.de = {
     meta_title: 'Fortnite Chest Tracker · Kostenloser Truhenzähler für Windows',
     odds_more: 'Komplette Chancentabelle und Treasure Hours', how_more: 'Wiederholungen werden nicht gespeichert? Die Anleitung',
