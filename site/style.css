@@ -702,3 +702,10 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 
 /* Over the animated island of the hero: no backdrop blur (recomputed at every frame of the island), a denser fill */
 .hero .btn-ghost, .hero .dl-info, .hero .proof span { backdrop-filter: none; background: rgba(6, 16, 58, .86); }
+
+/* HUD demo: the last match line (full) and its small line (compact), like the app */
+.h-stats.h-last { margin-top: 12px; }
+.h-stats.h-last div:nth-child(3) b { color: var(--text); }
+.h-info { display: flex; justify-content: space-between; gap: 14px; margin-top: 8px; font: 700 11px/1.2 var(--font); color: #e8eeff; text-shadow: var(--ring-s); white-space: nowrap; }
+.h-info span:last-child { color: var(--text-2); }
+.h-stats.h-last b { white-space: nowrap; font-size: 20px; }

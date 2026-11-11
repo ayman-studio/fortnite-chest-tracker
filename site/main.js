@@ -192,7 +192,9 @@
 
   // ---------------------------------------------------------------- the HUD (hero + demo)
   // Fortnite's replay can only be read once the match is over: "?" while playing, then the chests land all at once.
-  const demo = { playing: false, match: 23, plus: 23, total: 2371, session: 55, treasures: 17, hunt: 407, compact: false };
+  const hhmm = () => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date());
+  // last counted match (still shown while the next one is played), its length and the time of the last update
+  const demo = { playing: false, match: 23, plus: 23, total: 2371, session: 55, treasures: 17, hunt: 407, compact: false, last: 23, dur: '18:42', upd: hhmm() };
   const hero = { playing: false, match: 21, plus: 21, hunt: 2359 };
   const matchChests = () => 12 + Math.floor(Math.random() * 22);
   function hudHtml(s, compact) {
@@ -203,12 +205,14 @@
     const tag = s.playing ? `<span class="h-tag wait"><span>${t('h_playing')}</span></span>` : `<span class="h-tag"><span>${t('h_last')}</span></span>`;
     const head = `<div class="h-hero"><img class="h-chest" src="img/chest-pirate.webp" alt=""><b class="h-num${s.playing ? ' unknown' : ''}">${s.playing ? '?' : nf(s.match)}</b>
       <div class="h-side">${tag}${compact ? `<span class="h-pctline"><img src="img/token.webp" alt="">${p}</span>` : `<span class="h-word">${t('h_chests')}</span>`}</div><span class="h-plus" aria-hidden="true">+${nf(s.plus)}</span></div>`;
-    if (compact) return `${head}<div class="h-bar" aria-hidden="true">${bar}</div>`;
+    const info = s.last != null ? `<div class="h-info"><span>${t('h_lastc', nf(s.last))} · ${s.dur}</span><span>${t('h_updc', s.upd)}</span></div>` : '';
+    if (compact) return `${head}<div class="h-bar" aria-hidden="true">${bar}</div>${info}`;
     return `${head}
       <div class="h-goal"><img src="img/token.webp" alt=""><span class="h-name">${t('t_pirate').toUpperCase()}</span><span class="h-pct">${p}</span></div>
       <div class="h-bar" aria-hidden="true">${bar}</div>
       <div class="h-cap"><span>${nf(s.hunt)} / ${nf(PIRATE)} ${t('h_chests_word')}</span><span>${t('h_of', nf(PIRATE))}</span></div>
-      <div class="h-stats"><div><b>${nf(s.total)}</b><small>${t('h_total')}</small></div><div><b>${nf(s.session)}</b><small>${t('h_session')}</small></div><div><b>★ ${nf(s.treasures)}</b><small>${t('h_treasures')}</small></div></div>`;
+      <div class="h-stats"><div><b>${nf(s.total)}</b><small>${t('h_total')}</small></div><div><b>${nf(s.session)}</b><small>${t('h_session')}</small></div><div><b>★ ${nf(s.treasures)}</b><small>${t('h_treasures')}</small></div></div>
+      ${s.last != null ? `<div class="h-stats h-last"><div><b>${nf(s.last)} ${t('h_chests')}</b><small>${t('h_last')}</small></div><div><b>${s.dur}</b><small>${t('h_dur')}</small></div><div><b>${s.upd}</b><small>${t('h_upd')}</small></div></div>` : ''}`;
   }
   function renderDemo() {
     const d = $('#demo-hud');
@@ -224,7 +228,9 @@
   // "End of match": the replay becomes readable, its chests are added at once
   $('#demo-open').addEventListener('click', () => {
     const n = matchChests();
-    Object.assign(demo, { playing: false, match: n, plus: n, total: demo.total + n, session: demo.session + n, hunt: demo.hunt + n });
+    const sec = 900 + Math.floor(Math.random() * 600);
+    Object.assign(demo, { playing: false, match: n, plus: n, total: demo.total + n, session: demo.session + n, hunt: demo.hunt + n,
+      last: n, dur: `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`, upd: hhmm() });
     renderDemo();
     pop($('#demo-hud'));
   });

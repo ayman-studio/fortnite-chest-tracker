@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.2.0 (2026-11-11)
+
+**Treasure hunt**
+- Season card in Treasures: next Treasure Hour with a countdown, this week's prizes (checked off when you get them),
+  14-day timer for the pirate token, end of the season.
+- Your chances now count Treasure Hour boosts, leave Ranked out (no treasures there) and work week by week.
+- Squad chance: your teammates' chests count too, only those opened near you (the replay sees no further).
+- Notifications: 10 minutes before each Treasure Hour, and when a match gives you a treasure.
+- The calendar updates itself from the website: no new version needed for new Treasure Hours or prizes.
+
+**Overlay**
+- Last match line: its chests, its length and the time of the last update, still shown during the next match.
+- Treasure Hour banner while one is on, or when one starts within 12 hours.
+- Choose the blocks shown, hide it during matches, move it to a corner in one click.
+
+**App**
+- The 3D island stays smooth (60 fps), even with Fortnite open; it can also be turned off.
+- Export and import your history (backup, another PC).
+- Shorter texts everywhere.
+- On first start, the replays still on disk are read again for the squad chance (about 2 minutes).
+
 ## 1.1.1 (2026-11-10)
 
 - The 3D island no longer stutters for a few seconds when the app opens.
