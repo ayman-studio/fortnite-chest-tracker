@@ -10,5 +10,7 @@
     "html_handling": "auto-trailing-slash",
     // unknown paths get 404.html with a real 404 status
     "not_found_handling": "404-page"
-  }
+  },
+  // Workers Logs are useless for a static-assets-only Worker (no code runs); visitor stats come from Web Analytics
+  "observability": { "enabled": false }
 }
