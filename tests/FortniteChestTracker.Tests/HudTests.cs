@@ -37,6 +37,26 @@ public class HudTests
     }
 
     [Fact]
+    public void View_keeps_the_last_match_and_the_time_of_the_last_update()
+    {
+        var config = new Config();
+        Assert.Null(HudModel.Build(new TrackerData(), config, null, false).LastChests);
+
+        var counted = new DateTime(2026, 11, 4, 18, 5, 0, DateTimeKind.Utc);
+        var data = new TrackerData();
+        data.Matches.Add(new MatchRecord { ChestsOpened = 4, MatchStartUtc = counted.AddHours(-3), AnalyzedAtUtc = counted.AddHours(-2), DurationSeconds = 100 });
+        data.Matches.Add(new MatchRecord { ChestsOpened = 23, MatchStartUtc = counted.AddMinutes(-20), AnalyzedAtUtc = counted, DurationSeconds = 1122 });
+
+        var view = HudModel.Build(data, config, null, true);
+        Assert.Equal(23, view.LastChests);
+        Assert.Equal("18:42", view.LastDuration);
+        Assert.Equal(counted.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture), view.UpdatedAt);
+
+        data.Matches[1].DurationSeconds = null;
+        Assert.Null(HudModel.Build(data, config, null, true).LastDuration);
+    }
+
+    [Fact]
     public void View_counts_the_match_in_progress_and_the_hunt_since_its_start()
     {
         var config = new Config { TokenSinceUtc = new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc), Goal = "odds_pirate" };
@@ -54,6 +74,7 @@ public class HudTests
         var waiting = HudModel.Build(data, config, null, true);
         Assert.Equal(HudMode.InProgress, waiting.Mode);
         Assert.Null(waiting.Chests);
+        Assert.Equal(7, waiting.LastChests); // the last match stays readable during the next one
 
         var live = HudModel.Build(data, config, new MatchRecord { ChestsOpened = 5 }, true, estimated: 100);
         Assert.Equal(HudMode.Live, live.Mode);

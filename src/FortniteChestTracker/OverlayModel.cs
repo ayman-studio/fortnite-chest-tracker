@@ -1,3 +1,4 @@
+using System.Globalization;
 using FortniteChestTracker.Web;
 
 namespace FortniteChestTracker;
@@ -51,10 +52,19 @@ public sealed record HudView(HudMode Mode, int? Chests, string Total, int Sessio
     /// <summary>Matches counted so far (one more = a match was just counted: the HUD plays "+N").</summary>
     public int Matches { get; init; }
 
+    /// <summary>Chests of the last counted match: still shown while another match is played (null = no match yet).</summary>
+    public int? LastChests { get; init; }
+
+    /// <summary>Length of the last counted match, "18:42" (null = unknown).</summary>
+    public string? LastDuration { get; init; }
+
+    /// <summary>Local time ("20:15") the count was last updated, that is when a match was last counted.</summary>
+    public string? UpdatedAt { get; init; }
+
     public static HudView Empty { get; } = new(HudMode.Idle, null, "0", 0, 0, null);
 
     /// <summary>Short fingerprint of what is drawn (cache key of the picture served to the page).</summary>
-    public string Key => string.Join("|", Mode, Chests, Total, Session, Treasures, Goal?.Key, Goal?.Chests, Site, Compact, L.Code);
+    public string Key => string.Join("|", Mode, Chests, Total, Session, Treasures, Goal?.Key, Goal?.Chests, Site, Compact, LastChests, LastDuration, UpdatedAt, L.Code);
 }
 
 /// <summary>Builds the overlay view from the saved matches and the match in progress.</summary>
@@ -83,16 +93,22 @@ public static class HudModel
         var since = HuntSince(config);
         var huntChests = d.Matches.Where(m => (m.MatchStartUtc ?? m.AnalyzedAtUtc).ToUniversalTime() >= since).Sum(m => m.ChestsOpened) + liveChests;
 
+        var last = d.Matches.OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc).FirstOrDefault();
         var (mode, chests) = live != null ? (HudMode.Live, (int?)live.ChestsOpened)
             : inProgress ? (HudMode.InProgress, (int?)null)
-            : (HudMode.Idle, d.Matches.OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc).FirstOrDefault()?.ChestsOpened);
+            : (HudMode.Idle, last?.ChestsOpened);
 
         return new HudView(mode, chests, estimated > 0 ? "≈" + L.N(total) : L.N(total), session, treasures, Goal(config.Goal, huntChests))
         {
             Compact = config.OverlayStyle == OverlayAppearance.Compact,
             Matches = d.Matches.Count,
+            LastChests = last?.ChestsOpened,
+            LastDuration = last?.DurationSeconds is { } s ? $"{s / 60}:{s % 60:00}" : null,
+            UpdatedAt = last == null ? null : d.Matches.Max(m => AsUtc(m.AnalyzedAtUtc)).ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture),
         };
     }
+
+    private static DateTime AsUtc(DateTime t) => t.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(t, DateTimeKind.Utc) : t.ToUniversalTime();
 
     /// <summary>The chosen treasure, or with "auto" the first weekly treasure (most common first) not reached on average yet.</summary>
     public static HudGoal Goal(string? key, int chests)

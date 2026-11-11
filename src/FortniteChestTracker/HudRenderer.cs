@@ -155,7 +155,19 @@ internal sealed class HudRenderer : IDisposable
             (L.N(v.Session), L.T("SESSION", "SESSION", "SESIÓN"), White),
             ("★ " + L.N(v.Treasures), L.T("TRÉSORS", "TREASURES", "TESOROS"), Lavender),
         };
-        var statsW = stats.Sum(s => Math.Max(Advance(fStat, s.Value), Advance(fSmall, s.Label))) + 2 * S(34);
+        // The last counted match stays readable while another one is played, with the time of the last update
+        var lastRow = v.LastChests is { } lastChests ? new (string Value, string Label, Col Color)[]
+        {
+            ($"{L.N(lastChests)} {word}", L.T("DERNIÈRE PARTIE", "LAST MATCH", "ÚLTIMA PARTIDA"), White),
+            (v.LastDuration ?? "—", L.T("DURÉE", "DURATION", "DURACIÓN"), White),
+            (v.UpdatedAt ?? "—", L.T("MISE À JOUR", "UPDATED", "ACTUALIZADO"), White),
+        } : null;
+        int RowWidth((string Value, string Label, Col Color)[] row) => row.Sum(s => Math.Max(Advance(fStat, s.Value), Advance(fSmall, s.Label))) + 2 * S(34);
+        var statsW = Math.Max(RowWidth(stats), lastRow != null ? RowWidth(lastRow) : 0);
+        if (lastRow != null) // equal columns: the first one ("1 234 COFFRES") must fit before its separator
+        {
+            statsW = Math.Max(statsW, 3 * (Math.Max(Advance(fStat, lastRow[0].Value), Advance(fSmall, lastRow[0].Label)) + S(10)));
+        }
 
         var contentW = Math.Max(Math.Max(heroW, statsW), S(300));
         var w = Math.Max(minWidth, contentW + 2 * margin);
@@ -168,7 +180,7 @@ internal sealed class HudRenderer : IDisposable
         var statsH = S(16) + fStat.Cap + S(7) + fSmall.Cap;
         var site = string.IsNullOrWhiteSpace(v.Site) ? null : v.Site.Trim();
         var siteH = site != null ? S(14) + fSite.Cap : 0;
-        var h = margin + heroH + goalH + statsH + siteH + margin + S(4);
+        var h = margin + heroH + goalH + statsH + (lastRow != null ? statsH : 0) + siteH + margin + S(4);
 
         var f = NewFrame(w, h);
         var cv = new Canvas(f);
@@ -243,26 +255,34 @@ internal sealed class HudRenderer : IDisposable
             y += fSmall.Cap;
         }
 
-        // ---- Stats: total · session · treasures, three columns split by slanted lime strokes
-        y += S(16);
+        // ---- Stats: total · session · treasures, then the last match; three columns split by slanted lime strokes
         var colW = contentW / 3f;
-        for (var i = 0; i < stats.Length; i++)
+        void StatRow((string Value, string Label, Col Color)[] row)
         {
-            var (value, label, color) = stats[i];
-            var cx = x0 + colW * i;
-            var align = i == 0 ? 0 : i == 1 ? 1 : 2;
-            int Left(int width) => align switch { 0 => (int)cx, 1 => (int)(cx + (colW - width) / 2), _ => (int)(cx + colW - width) };
-            Text(cv, fStat, value, Left(Advance(fStat, value)), y, color, color == White ? Ice : color, S(3), S(2));
-            Text(cv, fSmall, label, Left(Advance(fSmall, label)), y + fStat.Cap + S(7), Muted, Muted, S(2), 0);
-            if (i > 0)
+            y += S(16);
+            for (var i = 0; i < row.Length; i++)
             {
-                var hgt = fStat.Cap + S(7) + fSmall.Cap;
-                var sx = (int)cx;
-                var stroke = Cached($"stroke{hgt}", () => Gfx.Poly(S(6), hgt, new (float, float)[] { (S(4), 0f), (S(6), 0f), (S(2), (float)hgt), (0f, (float)hgt) }));
-                cv.Fill(stroke, sx - S(3), y, Lime, 0.55f);
+                var (value, label, color) = row[i];
+                var cx = x0 + colW * i;
+                var align = i == 0 ? 0 : i == 1 ? 1 : 2;
+                int Left(int width) => align switch { 0 => (int)cx, 1 => (int)(cx + (colW - width) / 2), _ => (int)(cx + colW - width) };
+                Text(cv, fStat, value, Left(Advance(fStat, value)), y, color, color == White ? Ice : color, S(3), S(2));
+                Text(cv, fSmall, label, Left(Advance(fSmall, label)), y + fStat.Cap + S(7), Muted, Muted, S(2), 0);
+                if (i > 0)
+                {
+                    var hgt = fStat.Cap + S(7) + fSmall.Cap;
+                    var sx = (int)cx;
+                    var stroke = Cached($"stroke{hgt}", () => Gfx.Poly(S(6), hgt, new (float, float)[] { (S(4), 0f), (S(6), 0f), (S(2), (float)hgt), (0f, (float)hgt) }));
+                    cv.Fill(stroke, sx - S(3), y, Lime, 0.55f);
+                }
             }
+            y += fStat.Cap + S(7) + fSmall.Cap;
         }
-        y += fStat.Cap + S(7) + fSmall.Cap;
+        StatRow(stats);
+        if (lastRow != null)
+        {
+            StatRow(lastRow);
+        }
 
         // ---- Website
         if (site != null)
@@ -309,16 +329,27 @@ internal sealed class HudRenderer : IDisposable
         var goalW = pct != null ? gi + S(6) + Advance(fPct, pct) : 0;
         var site = string.IsNullOrWhiteSpace(v.Site) ? null : v.Site.Trim();
 
+        // Small line: the last counted match (still readable during the next one) and the time of the last update
+        var fInfo = Font("Segoe UI", S(10), 700);
+        var lastLine = v.LastChests is { } lastChests
+            ? L.T($"Dernière : {L.N(lastChests)} coffres", $"Last: {L.N(lastChests)} chests", $"Última: {L.N(lastChests)} cofres") + (v.LastDuration != null ? " · " + v.LastDuration : "")
+            : null;
+        var updated = v.UpdatedAt != null ? L.T("MàJ ", "Updated ", "Act. ") + v.UpdatedAt : null;
+
         // + room on the right for the padlock of the edit mode (the width stays the same locked or not)
         var contentW = Math.Max(icon + S(8) + numW + S(12) + Math.Max(tagW + S(6), goalW) + S(20), S(210));
         if (site != null)
         {
             contentW = Math.Max(contentW, Advance(fSite, site));
         }
+        if (lastLine != null)
+        {
+            contentW = Math.Max(contentW, Advance(fInfo, lastLine) + (updated != null ? S(14) + Advance(fInfo, updated) : 0));
+        }
         var w = Math.Max(minWidth, contentW + 2 * margin);
         contentW = w - 2 * margin;
         var barH = S(7);
-        var h = margin + icon + (v.Goal != null ? S(9) + barH : 0) + (site != null ? S(9) + fSite.Cap : 0) + margin + S(2);
+        var h = margin + icon + (v.Goal != null ? S(9) + barH : 0) + (lastLine != null ? S(9) + fInfo.Cap : 0) + (site != null ? S(9) + fSite.Cap : 0) + margin + S(2);
 
         var f = NewFrame(w, h);
         var cv = new Canvas(f);
@@ -377,6 +408,16 @@ internal sealed class HudRenderer : IDisposable
             y += S(9);
             Bar(cv, x0, y, contentW, barH, g2.Progress, S, segments: 16);
             y += barH;
+        }
+        if (lastLine != null)
+        {
+            y += S(9);
+            Text(cv, fInfo, lastLine, x0, y, White, Ice, S(2), 0);
+            if (updated != null)
+            {
+                Text(cv, fInfo, updated, x0 + contentW - Advance(fInfo, updated), y, Muted, Muted, S(2), 0);
+            }
+            y += fInfo.Cap;
         }
         if (site != null)
         {
