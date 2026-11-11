@@ -88,6 +88,7 @@ public class RealReplayTests
                     Matches = data.Matches.OrderBy(m => m.MatchStartUtc ?? m.AnalyzedAtUtc).Select(m => new
                     {
                         m.SessionId,
+                        Squad = m.SquadChests?.Count,
                         m.ReplayFile,
                         m.MatchStartUtc,
                         m.Playlist,

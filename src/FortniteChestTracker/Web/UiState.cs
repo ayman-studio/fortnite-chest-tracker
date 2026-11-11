@@ -49,6 +49,9 @@ public sealed record UiHunt(DateTime Since, int Chests, int Matches, int Gizmos,
 
     /// <summary>Chests opened during Treasure Hours (they count more for the boosted treasures).</summary>
     public int BoostedChests { get; init; }
+
+    /// <summary>Chests of teammates seen in the replays (opened near the player): they count for the squad chance.</summary>
+    public int SquadChests { get; init; }
 }
 
 /// <summary>One prize of a week of the hunt; Found = the player got it (its prize id came out of one of their chests).</summary>
@@ -74,6 +77,9 @@ public sealed record UiOdds(string Key, int Odds, double? HourBoost, double Expe
 {
     /// <summary>Chests of the hunt for this treasure, each weighted by the Treasure Hours boost when it was opened.</summary>
     public double Weighted { get; init; }
+
+    /// <summary>Same plus the teammates' chests seen in the replays: treasures are shared with the team.</summary>
+    public double SquadWeighted { get; init; }
 }
 
 /// <summary>A milestone track (see <see cref="FortniteChestTracker.Milestones"/>): current value, last step reached, next step.</summary>

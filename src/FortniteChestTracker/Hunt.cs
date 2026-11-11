@@ -39,6 +39,13 @@ public static class Hunt
     /// <summary>Weighted chests of these matches for one treasure.</summary>
     public static double Weighted(IEnumerable<MatchRecord> matches, string key) => matches.Sum(m => Weighted(m, key));
 
+    /// <summary>Chests of the teammates seen in the replays (only those opened near the player), weighted the same way.</summary>
+    public static double SquadWeighted(IEnumerable<MatchRecord> matches, string key) => matches.Sum(m =>
+    {
+        var start = StartOf(m);
+        return m.SquadChests?.Sum(t => Season.Boost(key, start.AddSeconds(t))) ?? 0;
+    });
+
     /// <summary>Chests opened during Treasure Hours in these matches.</summary>
     public static int DuringTreasureHours(IEnumerable<MatchRecord> matches) => matches.Sum(m =>
     {

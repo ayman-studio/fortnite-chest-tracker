@@ -1388,19 +1388,21 @@ public sealed class App
         var odds = TreasureOdds.All.Select(o => new UiOdds(o.Key, o.Odds, o.HourBoost, TreasureOdds.ExpectedFor(o, matches, since))
         {
             Weighted = Hunt.Weighted(matches, o.Key),
+            SquadWeighted = Hunt.Weighted(matches, o.Key) + Hunt.SquadWeighted(matches, o.Key),
         }).ToList();
         var boosted = Hunt.DuringTreasureHours(matches);
+        var squad = matches.Sum(m => m.SquadChests?.Count ?? 0);
         if (rewards == 0)
         {
             // Without a golden chest in the replays, a weekly reward cannot be told apart from a gizmo (both come as the
             // same generic treasure): one luck figure for all the treasures, against everything expected.
             var expected = gizmosExpected + rewardsExpected;
             return new UiHunt(since, chests, matches.Count, gizmos, rewards, odds, expected, 0,
-                TreasureOdds.LuckPercent(finds.Count, expected), null, Combined: true) { RankedChests = ranked, BoostedChests = boosted };
+                TreasureOdds.LuckPercent(finds.Count, expected), null, Combined: true) { RankedChests = ranked, BoostedChests = boosted, SquadChests = squad };
         }
         return new UiHunt(since, chests, matches.Count, gizmos, rewards, odds,
             gizmosExpected, rewardsExpected, TreasureOdds.LuckPercent(gizmos, gizmosExpected), TreasureOdds.LuckPercent(rewards, rewardsExpected))
-            { RankedChests = ranked, BoostedChests = boosted };
+            { RankedChests = ranked, BoostedChests = boosted, SquadChests = squad };
     }
 
     private List<UiNotice> Notices(bool demosExists, int profiles)

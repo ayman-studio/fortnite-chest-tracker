@@ -746,3 +746,8 @@ label.btn { cursor: url("/cursors/hand.png") 8 2, pointer; }
 .part-chip span { display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--text-3); font-size: 12.5px; font-weight: 700; transition: background .15s, color .15s; }
 .part-chip input:checked + span { background: var(--lime); border-color: transparent; color: var(--lime-ink); }
 .part-chip input:focus-visible + span { outline: 2px solid var(--lime); outline-offset: 2px; }
+/* Squad chance under the goal */
+.hud-squad { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 4px; font-size: 13px; color: var(--text-2); }
+.hud-squad svg { width: 15px; height: 15px; color: var(--lime); }
+.hud-squad b { color: var(--text); }
+.hud-squad .faint { font-size: 12px; }

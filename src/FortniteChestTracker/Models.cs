@@ -73,6 +73,9 @@ public sealed class MatchRecord
     public bool IsBattleRoyale { get; set; } = true;
     public List<ChestRecord> Chests { get; set; } = new();
     public List<TreasureFind> TreasureFinds { get; set; } = new();
+
+    /// <summary>Times (replay seconds) of the chests opened by teammates near the player; null = solo or unknown.</summary>
+    public List<float>? SquadChests { get; set; }
 }
 
 public sealed class Config

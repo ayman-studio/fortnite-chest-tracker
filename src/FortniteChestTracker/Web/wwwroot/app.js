@@ -66,6 +66,8 @@ const nfx = (n) => (n >= 0.1 || n === 0 ? nf1(n) : fixSpace(numFormat({ maximumS
 const dropChance = (n, odds) => 1 - Math.pow(1 - 1 / odds, n);
 // Chance for one treasure of the hunt: its chests weighted by the Treasure Hours boosts (Ranked left out, by the app)
 const chanceOf = (h, o) => dropChance(o.weighted ?? h.chests, o.odds);
+// With the teammates' chests seen in the replays (treasures are shared with the team)
+const squadOf = (o) => dropChance(o.squadWeighted ?? 0, o.odds);
 // Percentages that stay readable when tiny: 18 %, 2.4 %, 0.29 %, 0.025 %.
 const pctx = (p) => {
   const o = p >= 0.1 ? { maximumFractionDigits: 0 } : p >= 0.01 ? { maximumFractionDigits: 1 } : { maximumSignificantDigits: 2 };
@@ -146,6 +148,7 @@ const ICONS = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
   check: '<path d="m5 12 5 5 9-10"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
   download: '<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',
   upload: '<path d="M12 20V9m-5 5 5-5 5 5M5 4h14"/>',
   key: '<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/>',
@@ -476,6 +479,7 @@ function home() {
   const heading = ui.goal === 'auto' ? t('huntNext', t(target.key)) : t('goalTitle', t(target.key));
   const token = `<section class="hud hud-token"><div class="hud-label">${target.key === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : icon('star')}${esc(heading)}</div>
     <div class="row" style="align-items:baseline;gap:12px"><div class="hud-big num accent">${esc(pctx(chanceOf(h, target)))}</div><div class="hud-note">${esc(t('huntChance'))}</div></div>
+    ${h.squadChests ? `<div class="hud-squad">${icon('users')}<span>${esc(t('squadChance'))} <b>${esc(pctx(squadOf(target)))}</b></span><span class="faint">${esc(t('squadNear'))}</span></div>` : ''}
     <div class="dig"><i style="width:${Math.max(1.5, Math.min(1, h.chests / target.odds) * 100).toFixed(1)}%"></i></div>
     <div class="hud-foot">${esc(t('tokenDug', nf(h.chests), nf(target.odds), since))}${seasonChip()}</div>
     <div class="goals" role="group" aria-label="${esc(t('goalPick'))}">${chips}</div></section>`;
@@ -701,14 +705,14 @@ function oddsCard() {
   const since = date(h.since, { day: 'numeric', month: 'long' });
   const rows = h.odds.map((o) => `<tr><td>${esc(t(o.key))}</td><td class="r num">${nf(o.odds)}</td>
     <td class="r">${o.hourBoost ? `<span class="badge b-gold">×${esc(nf1(o.hourBoost).replace(/[.,]0$/, ''))}</span>` : '<span class="faint">—</span>'}</td>
-    <td class="r strong">${esc(pctx(chanceOf(h, o)))}</td><td class="r num">${esc(nfx(o.expected ?? h.chests / o.odds))}</td></tr>`).join('');
+    <td class="r strong">${esc(pctx(chanceOf(h, o)))}</td>${h.squadChests ? `<td class="r">${esc(pctx(squadOf(o)))}</td>` : ''}<td class="r num">${esc(nfx(o.expected ?? h.chests / o.odds))}</td></tr>`).join('');
   const luck = `<div class="luck-col"><div class="luck-h">${esc(t('luckTitle'))}</div>
     ${h.combined ? luckMeter('star', t(single(h.gizmos) ? 'foundTreasuresOne' : 'foundTreasuresMany', nf(h.gizmos), nf1(h.gizmosExpected)), h.gizmoLuck) + `<p class="faint small" style="margin:0">${esc(t('luckCombinedHint'))}</p>`
       : luckMeter('star', t(single(h.gizmos) ? 'foundGizmosOne' : 'foundGizmosMany', nf(h.gizmos), nf1(h.gizmosExpected)), h.gizmoLuck)
         + luckMeter('treasures', t(single(h.rewards) ? 'foundRewardsOne' : 'foundRewardsMany', nf(h.rewards), nf1(h.rewardsExpected)), h.rewardLuck)}</div>`;
-  const note = [t('oddsNote', nf(h.chests), since), h.rankedChests ? t('oddsRanked', nf(h.rankedChests)) : '', h.boostedChests ? t('oddsBoosted', nf(h.boostedChests)) : ''].filter(Boolean).join(' ');
-  return card('s12 odds-card', t('oddsTitle'), `<div class="odds-grid"><table class="tbl static compact" title="${esc(note)}"><colgroup><col><col style="width:16%"><col style="width:16%"><col style="width:16%"><col style="width:12%"></colgroup>
-    <thead><tr><th>${esc(t('treasure'))}</th><th class="r">${esc(t('oddsPer'))}</th><th class="r">${esc(t('oddsHours'))}</th><th class="r">${esc(t('oddsChance'))}</th><th class="r">${esc(t('oddsExpected'))}</th></tr></thead>
+  const note = [t('oddsNote', nf(h.chests), since), h.rankedChests ? t('oddsRanked', nf(h.rankedChests)) : '', h.boostedChests ? t('oddsBoosted', nf(h.boostedChests)) : '', h.squadChests ? t('oddsSquadNote', nf(h.squadChests)) : ''].filter(Boolean).join(' ');
+  return card('s12 odds-card', t('oddsTitle'), `<div class="odds-grid"><table class="tbl static compact" title="${esc(note)}"><colgroup><col><col style="width:16%"><col style="width:16%"><col style="width:16%">${h.squadChests ? '<col style="width:13%">' : ''}<col style="width:12%"></colgroup>
+    <thead><tr><th>${esc(t('treasure'))}</th><th class="r">${esc(t('oddsPer'))}</th><th class="r">${esc(t('oddsHours'))}</th><th class="r">${esc(t('oddsChance'))}</th>${h.squadChests ? `<th class="r" title="${esc(t('squadNear'))}">${esc(t('oddsSquad'))}</th>` : ''}<th class="r">${esc(t('oddsExpected'))}</th></tr></thead>
     <tbody>${rows}</tbody></table>${luck}</div>
     <div class="faint small odds-note">${esc(note)}</div>`, { hint: t('oddsHint') });
 }

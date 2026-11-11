@@ -116,7 +116,7 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
     private readonly List<GrantEvent> _grants = new();
 
     /// <summary>Bump when the analysis changes so that existing replays are re-analyzed.</summary>
-    public const int CurrentVersion = 14;
+    public const int CurrentVersion = 15; // 15: chests of the teammates seen in the replay (squad chance)
 
     private static readonly bool ProbeDebug = Environment.GetEnvironmentVariable("FCT_DEBUG") == "4";
 
@@ -614,6 +614,18 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
         var isRecorderTarget = recorderPs != null && targetPlayerStates.Contains(recorderPs.Value);
         var targetPawns = _pawnToPlayerState.Where(kv => targetPlayerStates.Contains(kv.Value)).Select(kv => kv.Key).ToHashSet();
 
+        // Teammates (same team): treasures are shared with the whole team, so their chests count for the squad chance.
+        // The replay only holds what happened near the recording player: a teammate's chest far away is not in it.
+        var mateIds = target?.TeamIndex is int team
+            ? players.Where(p => p.TeamIndex == team && p.Id is int id && id != target.Id).Select(p => p.Id!.Value).ToHashSet()
+            : new HashSet<int>();
+        var matePawns = _pawnToPlayerState.Where(kv => _playerStateToPlayerId.TryGetValue(kv.Value, out var pid) && mateIds.Contains(pid))
+            .Select(kv => kv.Key).ToHashSet();
+        var squadChests = mateIds.Count == 0 ? null : _searches
+            .Where(s => s.SearcherPawn is uint p && matePawns.Contains(p) && (!s.Stale || StableKey(s.ActorKey)) && ChestKinds.IsChest(ChestKinds.Classify(s.Label)))
+            .Select(s => MathF.Round(s.Time, 1))
+            .ToList();
+
         // --- Everything the target searched / interacted with ------------------------------------
         // A stale search of a stable container is real (old searches seen again were dropped, and the target was right
         // there: dormant ammo box, chest broken...). A stale search of a container without identity is not counted.
@@ -837,6 +849,7 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
             IsBattleRoyale = !string.IsNullOrEmpty(replay.GameData?.CurrentPlaylist) || chests.Count > 0,
             Chests = chests,
             TreasureFinds = finds,
+            SquadChests = squadChests,
         };
     }
 }
