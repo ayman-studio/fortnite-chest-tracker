@@ -302,31 +302,6 @@
     legal.addEventListener('click', (e) => { if (e.target === legal) legal.close(); });
   }
 
-  // ---------------------------------------------------------------- Treasure Hour strip (season.json, also read by the app)
-  const strip = $('#th-strip');
-  if (strip) {
-    const D = { fr: 'j', en: 'd', es: 'd', de: 'T', pt: 'd' }[lang] || 'd';
-    const left = (ms) => {
-      const m = Math.max(0, Math.floor(ms / 6e4)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
-      return d > 0 ? `${d} ${D} ${h} h` : h > 0 ? `${h} h ${String(mi).padStart(2, '0')}` : `${mi} min ${String(Math.max(0, Math.floor(ms / 1e3) % 60)).padStart(2, '0')} s`;
-    };
-    fetch('season.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).then((s) => {
-      if (!s) return;
-      const tick = () => {
-        const now = Date.now();
-        if (now >= Date.parse(s.end)) { strip.hidden = true; return; }
-        const cur = s.treasureHours.find((h) => now >= Date.parse(h.start) && now < Date.parse(h.end));
-        const next = s.treasureHours.find((h) => Date.parse(h.start) > now);
-        strip.classList.toggle('on', !!cur);
-        if (cur) $('#th-text').innerHTML = t('th_now', nf(cur.boosts.odds_pirate || 1), `<b>${left(Date.parse(cur.end) - now)}</b>`);
-        else if (next) $('#th-text').innerHTML = t('th_next', `<b>${left(Date.parse(next.start) - now)}</b>`);
-        strip.hidden = !cur && !next;
-      };
-      tick();
-      setInterval(tick, 1000);
-    }).catch(() => { /* no strip */ });
-  }
-
   // ---------------------------------------------------------------- odds calculator
   const n = $('#calc-n');
   const r = $('#calc-r');

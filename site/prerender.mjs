@@ -124,7 +124,7 @@ function seo(L, T, version) {
 }
 
 // Only the texts main.js still writes at run time are inlined (the rest is already in the page)
-const RUNTIME = /^(h_|t_|g_|gc_|th_now$|th_next$|guess_|card_|calc_half$|size_mb$|released$|sha_|proof_|share_text$|link_copied$|copy_fail$)/;
+const RUNTIME = /^(h_|t_|g_|gc_|guess_|card_|calc_half$|size_mb$|released$|sha_|proof_|share_text$|link_copied$|copy_fail$)/;
 const runtimeTexts = (T) => Object.fromEntries(Object.entries(T).filter(([k]) => RUNTIME.test(k)));
 
 const version = await latestVersion();

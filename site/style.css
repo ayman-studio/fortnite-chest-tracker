@@ -645,15 +645,6 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .g-prize span { color: var(--text-3); font-size: 12px; }
 .g-unknown { margin: 0; color: var(--text-3) !important; font-size: 14.5px !important; }
 
-/* ---- Home: Treasure Hour strip above the title (filled by main.js from season.json) */
-.th-strip { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 7px 8px 7px 14px; border-radius: 999px; pointer-events: auto;
-  background: rgba(6, 16, 58, .72); border: 1px solid var(--line-2); color: var(--text); font: 700 14px/1.2 var(--font); text-decoration: none !important; backdrop-filter: blur(8px); }
-.th-strip[hidden] { display: none; }
-.th-strip svg { width: 16px; height: 16px; fill: var(--lime); }
-.th-strip b { color: var(--lime); font-variant-numeric: tabular-nums; }
-.th-strip .go { padding: 4px 10px; border-radius: 999px; background: var(--lime); color: var(--lime-ink); font-size: 12.5px; }
-.th-strip.on { border-color: rgba(198, 255, 61, .7); box-shadow: 0 0 0 1px rgba(198, 255, 61, .3), 0 10px 30px rgba(198, 255, 61, .18); }
-@media (max-width: 620px) { .th-strip { font-size: 12.5px; } .th-strip .go { display: none; } }
 
 /* ---- Safe and legit: promises + comparison */
 .safe-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 34px; }
@@ -710,4 +701,4 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 @media (max-width: 760px) { .ss-mock { grid-template-columns: 1fr; } .ss-arrow { justify-self: center; transform: rotate(90deg); } .g-step { grid-template-columns: 1fr; } }
 
 /* Over the animated island of the hero: no backdrop blur (recomputed at every frame of the island), a denser fill */
-.hero .btn-ghost, .hero .dl-info, .hero .proof span, .th-strip { backdrop-filter: none; background: rgba(6, 16, 58, .86); }
+.hero .btn-ghost, .hero .dl-info, .hero .proof span { backdrop-filter: none; background: rgba(6, 16, 58, .86); }
