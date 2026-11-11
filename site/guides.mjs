@@ -214,11 +214,60 @@ function changelogPage(L) {
   return { title: T.title, desc: T.desc, h1: T.h1, kicker: T.kicker, lead: T.lead, body: changelogHtml() };
 }
 
+// ---------------------------------------------------------------- install guide, with pictures
+const IN_TXT = {
+  en: { title: 'How to install Fortnite Chest Tracker (Windows), step by step', h1: 'Install it in 2 minutes', kicker: 'Install guide',
+    desc: 'Download, get past the "Windows protected your PC" screen, run the short setup, turn on Fortnite replays and see the overlay in game.',
+    lead: 'Five short steps, with what you will see on screen.',
+    s1: 'Download the app', s1p: 'One file, FortniteChestTracker.exe (about 38 MB). Nothing else to install.',
+    s2: 'Get past the blue Windows screen', s2p: 'Windows shows it for any new app that is not signed (a signature costs money). Click <b>More info</b>, then <b>Run anyway</b>.',
+    ss_t: 'Windows protected your PC', ss_p: 'Microsoft Defender SmartScreen prevented an unrecognized app from starting.', ss_more: 'More info', ss_run: 'Run anyway', ss_dont: "Don't run",
+    s3: 'Pick your language', s3p: 'A short setup opens in your browser: the language, your replay folder (found by itself), and whether to open with Fortnite.',
+    s4: 'Turn on replays in Fortnite', s4p: 'Settings → Game → Replays → <b>Record Replays: On</b>. Without it there is nothing to count.',
+    s5: 'Play', s5p: 'Set Fortnite to <b>Windowed Fullscreen</b> to see the overlay over the game. Each match is counted a few seconds after it ends.' },
+  fr: { title: 'Installer Fortnite Chest Tracker (Windows), étape par étape', h1: 'Installe-le en 2 minutes', kicker: "Guide d'installation",
+    desc: "Télécharger, passer l'écran « Windows a protégé votre ordinateur », la courte installation, activer les replays Fortnite et voir l'overlay en jeu.",
+    lead: "Cinq petites étapes, avec ce que tu vas voir à l'écran.",
+    s1: "Télécharge l'appli", s1p: 'Un seul fichier, FortniteChestTracker.exe (environ 38 Mo). Rien d\'autre à installer.',
+    s2: "Passe l'écran bleu de Windows", s2p: "Windows l'affiche pour toute nouvelle appli non signée (une signature est payante). Clique sur <b>Informations complémentaires</b>, puis <b>Exécuter quand même</b>.",
+    ss_t: 'Windows a protégé votre ordinateur', ss_p: "Microsoft Defender SmartScreen a empêché le démarrage d'une application non reconnue.", ss_more: 'Informations complémentaires', ss_run: 'Exécuter quand même', ss_dont: 'Ne pas exécuter',
+    s3: 'Choisis ta langue', s3p: "Une courte installation s'ouvre dans ton navigateur : la langue, ton dossier de replays (trouvé tout seul), et l'ouverture avec Fortnite.",
+    s4: 'Active les replays dans Fortnite', s4p: 'Paramètres → Jeu → Replays → <b>Enregistrer les replays : Activé</b>. Sans ça, il n\'y a rien à compter.',
+    s5: 'Joue', s5p: "Mets Fortnite en <b>Plein écran fenêtré</b> pour voir l'overlay par-dessus le jeu. Chaque partie est comptée quelques secondes après la fin." },
+  es: { title: 'Cómo instalar Fortnite Chest Tracker (Windows), paso a paso', h1: 'Instálalo en 2 minutos', kicker: 'Guía de instalación',
+    desc: 'Descargar, pasar la pantalla «Windows protegió su PC», la breve instalación, activar las repeticiones de Fortnite y ver el overlay en el juego.',
+    lead: 'Cinco pasos cortos, con lo que verás en pantalla.',
+    s1: 'Descarga la app', s1p: 'Un solo archivo, FortniteChestTracker.exe (unos 38 MB). Nada más que instalar.',
+    s2: 'Pasa la pantalla azul de Windows', s2p: 'Windows la muestra con cualquier app nueva sin firmar (una firma cuesta dinero). Haz clic en <b>Más información</b> y luego en <b>Ejecutar de todas formas</b>.',
+    ss_t: 'Windows protegió su PC', ss_p: 'Microsoft Defender SmartScreen impidió el inicio de una aplicación no reconocida.', ss_more: 'Más información', ss_run: 'Ejecutar de todas formas', ss_dont: 'No ejecutar',
+    s3: 'Elige tu idioma', s3p: 'Se abre una breve instalación en tu navegador: el idioma, tu carpeta de repeticiones (se encuentra sola) y si se abre con Fortnite.',
+    s4: 'Activa las repeticiones en Fortnite', s4p: 'Ajustes → Juego → Repeticiones → <b>Grabar repeticiones: Sí</b>. Sin eso no hay nada que contar.',
+    s5: 'Juega', s5p: 'Pon Fortnite en <b>Pantalla completa en ventana</b> para ver el overlay sobre el juego. Cada partida se cuenta unos segundos después de terminar.' },
+};
+function installPage(L) {
+  const T = IN_TXT[L];
+  const step = (n, title, text, extra = '') => `<section class="g-step"><span class="g-step-n">${n}</span><div><h2>${esc(title)}</h2><p>${text}</p>${extra}</div></section>`;
+  const smart = `<div class="ss-mock" role="img" aria-label="${attr(T.ss_t)}"><div class="ss-pane"><b>${esc(T.ss_t)}</b><p>${esc(T.ss_p)}</p><span class="ss-link">${esc(T.ss_more)}</span><div class="ss-btns"><span class="ss-btn ghost">${esc(T.ss_dont)}</span></div></div>
+    <span class="ss-arrow" aria-hidden="true">→</span><div class="ss-pane"><b>${esc(T.ss_t)}</b><p>${esc(T.ss_p)}</p><p class="ss-app">App: FortniteChestTracker.exe</p><div class="ss-btns"><span class="ss-btn hl">${esc(T.ss_run)}</span><span class="ss-btn ghost">${esc(T.ss_dont)}</span></div></div></div>`;
+  return { title: T.title, desc: T.desc, h1: T.h1, kicker: T.kicker, lead: T.lead,
+    body: [
+      step(1, T.s1, esc(T.s1p), `<p><a class="btn btn-lime" href="${REPO_DL}">${esc(UI[L].dl_long)}</a></p>`),
+      step(2, T.s2, T.s2p, smart),
+      step(3, T.s3, esc(T.s3p), `<img class="g-shot" src="/docs/setup-${L}.png" alt="" width="1200" height="760" loading="lazy">`),
+      step(4, T.s4, T.s4p),
+      step(5, T.s5, T.s5p),
+    ].join('\n') };
+}
+
 // ---------------------------------------------------------------- the guides
 const GUIDES = {
   season: {
     path: { en: 'guides/treasure-hunters/', fr: 'fr/guides/chasse-au-tresor/', es: 'es/guides/caza-del-tesoro/' },
     page: seasonPage,
+  },
+  install: {
+    path: { en: 'guides/install/', fr: 'fr/guides/installation/', es: 'es/guides/instalacion/' },
+    page: installPage,
   },
   help: {
     path: { en: 'help/', fr: 'fr/aide/', es: 'es/ayuda/' },

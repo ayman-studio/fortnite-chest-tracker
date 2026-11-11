@@ -691,3 +691,20 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .guess-out.err { color: #ffb3c2; }
 @media (max-width: 860px) { .guess { grid-template-columns: 1fr; } }
 .calc-share { margin-top: 12px; align-self: flex-start; }
+
+/* ---- Install guide: numbered steps, a mock of the SmartScreen dialog, the setup picture */
+.g-step { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 18px; margin: 30px 0; }
+.g-step h2 { margin-top: 6px !important; }
+.g-step-n { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--lime); color: var(--lime-ink); font: 26px/1 var(--display); }
+.g-shot { width: 100%; height: auto; border-radius: 16px; border: 1px solid var(--line); box-shadow: 0 18px 40px rgba(2, 6, 30, .35); }
+.ss-mock { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 12px; }
+.ss-pane { padding: 16px 18px; border-radius: 6px; background: #0b5cad; color: #fff; font-family: "Segoe UI", system-ui, sans-serif; min-height: 190px; display: flex; flex-direction: column; }
+.ss-pane b { font-size: 19px; font-weight: 600; }
+.ss-pane p { margin: 8px 0 0; color: #e6f0ff !important; font-size: 13px !important; line-height: 1.4 !important; }
+.ss-app { opacity: .9; }
+.ss-link { margin-top: 10px; color: #fff; text-decoration: underline; font-size: 13px; outline: 2px solid var(--lime); outline-offset: 3px; border-radius: 2px; align-self: flex-start; }
+.ss-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: auto; padding-top: 14px; }
+.ss-btn { padding: 6px 14px; border: 1px solid rgba(255, 255, 255, .7); font-size: 13px; }
+.ss-btn.hl { outline: 2px solid var(--lime); outline-offset: 3px; background: rgba(255, 255, 255, .15); }
+.ss-arrow { color: var(--lime); font-size: 28px; font-weight: 700; }
+@media (max-width: 760px) { .ss-mock { grid-template-columns: 1fr; } .ss-arrow { justify-self: center; transform: rotate(90deg); } .g-step { grid-template-columns: 1fr; } }

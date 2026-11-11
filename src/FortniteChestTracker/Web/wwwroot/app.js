@@ -1018,7 +1018,8 @@ function drawCard(c, goal, shotImage, art = {}) {
     { label: t('short_' + target.key), value: pctx(chanceOf(h, target)), accent: true, sub: t('shareRate', nf(target.odds)), art: target.key === 'odds_pirate' ? art.token : null },
     { label: t('timePlayed'), value: s.minutesPlayed ? hoursText(s.minutesPlayed / 60) : '—', accent: false },
     { label: t('matches'), value: nf(s.matches), accent: false },
-    { label: t('bestOneMatch'), value: nf(s.best), accent: false },
+    // during the hunt, the chests of the week (new prizes every week) instead of the best match
+    S.season && S.season.week >= 0 && S.season.weeks[S.season.week] ? { label: t('weekShort'), value: nf(S.season.weeks[S.season.week].chests), accent: false } : { label: t('bestOneMatch'), value: nf(s.best), accent: false },
     { label: t('treasures'), value: nf(s.treasures), accent: false },
   ];
   const gap = 16;

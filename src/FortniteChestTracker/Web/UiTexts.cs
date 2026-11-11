@@ -210,6 +210,7 @@ public static class UiTexts
         ("oddsRanked", "{0} coffres en Classé ne comptent pas : Epic ne donne pas de trésor en Classé.", "{0} chests in Ranked do not count: Epic gives no treasure in Ranked.", "{0} cofres en Clasificatoria no cuentan: Epic no da tesoros en Clasificatoria."),
         ("oddsBoosted", "{0} coffres ouverts pendant les Heures du trésor comptent avec leur bonus.", "{0} chests opened during Treasure Hours count with their boost.", "{0} cofres abiertos durante las Horas del tesoro cuentan con su bonificación."),
         ("dayShort", "j", "d", "d"),
+        ("weekShort", "Cette semaine", "This week", "Esta semana"),
         ("madeBy", "Créé par", "Made by", "Creado por"),
 
         // Setup wizard
