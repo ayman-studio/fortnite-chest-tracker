@@ -357,6 +357,54 @@
   hours.addEventListener('change', renderCalc);
   r.value = toRange(Number(n.value));
 
+  // ---------------------------------------------------------------- share my odds: a picture made in the page (nothing sent)
+  const shareBtn = $('#calc-share');
+  if (shareBtn) {
+    const loadImg = (src) => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; });
+    shareBtn.addEventListener('click', async () => {
+      const chests = Math.max(0, Math.floor(Number(n.value) || 0));
+      const p = pct(chance(chests, PIRATE / (hours.checked ? 1.5 : 1)));
+      try { await document.fonts.load('80px Anton'); } catch { /* falls back */ }
+      const c = document.createElement('canvas');
+      c.width = 1200; c.height = 630;
+      const g = c.getContext('2d');
+      const bg = g.createLinearGradient(0, 0, 0, 630);
+      bg.addColorStop(0, '#071447'); bg.addColorStop(1, '#1a4fd0');
+      g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+      try { g.drawImage(await loadImg('img/token.webp'), 840, 150, 300, 300); } catch { /* no token */ }
+      try { g.drawImage(await loadImg('img/relic-chest.webp'), 60, 46, 74, 74); } catch { /* no logo */ }
+      g.fillStyle = 'rgba(220,230,255,.85)'; g.font = '700 18px Outfit, Segoe UI, sans-serif'; g.fillText('FORTNITE', 150, 74);
+      g.font = '44px Anton, Impact, sans-serif'; g.fillStyle = '#f6f3ff'; g.fillText('CHEST', 150, 118);
+      g.fillStyle = '#c6ff3d'; g.fillText('TRACKER', 150 + g.measureText('CHEST ').width, 118);
+      const words = t('card_line', p).toUpperCase();
+      g.fillStyle = '#f6f3ff'; g.font = '62px Anton, Impact, sans-serif';
+      // two lines at most, the percentage in lime
+      const lines = []; let line = '';
+      for (const w of words.split(' ')) { const tryLine = line ? `${line} ${w}` : w; if (g.measureText(tryLine).width > 740 && line) { lines.push(line); line = w; } else line = tryLine; }
+      lines.push(line);
+      let y = 250;
+      for (const l of lines.slice(0, 3)) {
+        let x = 60;
+        for (const part of l.split(/([\d.,]+[\s  ]?%)/)) { g.fillStyle = /%/.test(part) ? '#c6ff3d' : '#f6f3ff'; g.fillText(part, x, y); x += g.measureText(part).width; }
+        y += 74;
+      }
+      g.fillStyle = 'rgba(220,230,255,.9)'; g.font = '600 28px Outfit, Segoe UI, sans-serif'; g.fillText(t('card_sub', nf(chests)), 60, y + 10);
+      g.fillStyle = '#c6ff3d'; g.font = '30px Anton, Impact, sans-serif'; g.fillText(t('card_ask').toUpperCase(), 60, 560);
+      g.fillStyle = 'rgba(220,230,255,.85)'; g.font = '700 22px Outfit, Segoe UI, sans-serif'; g.fillText('fortnite-chest-tracker.com', 60, 596);
+      c.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], 'fortnite-chest-tracker.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], text: `${t('card_line', p)} · fortnite-chest-tracker.com` }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+        }
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'fortnite-chest-tracker.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }, 'image/png');
+    });
+  }
+
   // ---------------------------------------------------------------- online estimate by Epic name (Worker /api/estimate)
   const guess = $('#guess');
   if (guess) {

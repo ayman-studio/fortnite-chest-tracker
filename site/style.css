@@ -690,3 +690,4 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .guess-out.ok { color: var(--text); }
 .guess-out.err { color: #ffb3c2; }
 @media (max-width: 860px) { .guess { grid-template-columns: 1fr; } }
+.calc-share { margin-top: 12px; align-self: flex-start; }
