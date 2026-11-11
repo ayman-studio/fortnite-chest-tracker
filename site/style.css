@@ -137,6 +137,45 @@ main:focus { outline: none; }
 .stage::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url("img/island-wide.webp") center / auto 100% no-repeat; transition: opacity .8s; }
 .hero.live3d .stage::before { opacity: 0; }
 @media (max-width: 1080px), (max-aspect-ratio: 4/3) { .stage::before { background-image: url("img/island.webp"); background-size: contain; } }
+/* Framed pictures floating around the island. scene.js gives the land's place in the hero: --isle-x (centre),
+   --isle-y (grass line), --isle-hw (half-width) and --isle-u (one world unit, ~ a block is half of it), so the
+   cards follow the island at every window size. Each card: --x across the land (0 left edge, 1 right edge),
+   --y in units under the grass, --w/--h in units, --r its tilt. */
+.crew { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity .8s .3s; }
+.hero.live3d .crew { opacity: 1; }
+.card { --u: var(--isle-u, 50px); position: absolute; margin: 0; pointer-events: auto;
+  left: clamp(calc(var(--w) * var(--u) * .6 + 8px), calc(var(--isle-x, 50%) + (var(--x) * 2 - 1) * var(--isle-hw, 40vw)), calc(100% - var(--w) * var(--u) * .6 - 8px)); top: calc(var(--isle-y, 50%) + var(--y) * var(--u));
+  width: calc(var(--w) * var(--u)); height: calc(var(--h) * var(--u));
+  translate: -50% -50%; rotate: var(--r); transition: scale .25s, rotate .25s, filter .25s;
+  animation: card-float var(--t, 6s) ease-in-out var(--d, 0s) infinite alternate; filter: drop-shadow(0 14px 18px rgba(2, 8, 40, .45)); }
+.card:hover { scale: 1.07; rotate: 0deg; filter: drop-shadow(0 18px 26px rgba(2, 8, 40, .55)) brightness(1.06); }
+@keyframes card-float { from { transform: translateY(calc(var(--u) * -.14)); } to { transform: translateY(calc(var(--u) * .14)); } }
+/* The frame: dark at the top, warm at the bottom, a light rim */
+.card::before { content: ""; position: absolute; inset: 0; border-radius: calc(var(--u) * .28);
+  background: radial-gradient(120% 70% at 50% 100%, rgba(214, 160, 70, .55), transparent 70%), linear-gradient(180deg, #2c3038 0%, #3a3a3c 50%, #6b5634 100%);
+  border: 1px solid rgba(255, 255, 255, .2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14); }
+.card img { position: absolute; display: block; max-width: none; pointer-events: none; }
+/* Characters: zoomed from the head to the thighs, the head a little past the top, cut at the bottom */
+.card .pic { position: absolute; left: 0; right: 0; bottom: 0; top: -30%; overflow: hidden; border-radius: 0 0 calc(var(--u) * .28) calc(var(--u) * .28); pointer-events: none; }
+.card.port img { left: 50%; top: 18%; width: 172%; height: auto; translate: -50% 0; }
+/* The key art fills its frame */
+.card.wide::before { display: none; }
+.card.wide img { inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: calc(var(--u) * .28); border: 1px solid rgba(255, 255, 255, .25); box-sizing: border-box; }
+/* Small sprites stand in the middle of their frame, a little bigger than it */
+.card.sprite img { inset: -8%; width: 116%; height: 116%; object-fit: contain; }
+.card.diamond::before { inset: 15%; rotate: 45deg; }
+.c1 { --x: -.08; --y: .9;  --w: 3.1; --h: 4;   --r: -6deg; --t: 6.4s; }
+.c2 { --x: 1.05; --y: -.7; --w: 2;   --h: 2;   --r: 8deg;  --t: 5.2s; --d: -1.5s; }
+.c3 { --x: .04;  --y: 6.3; --w: 2.4; --h: 3.1; --r: -11deg; --t: 5.8s; --d: -3s; }
+.c4 { --x: .25;  --y: 6.5; --w: 2.3; --h: 2.9; --r: 5deg;  --t: 6.8s; --d: -2.2s; }
+.c5 { --x: .5;   --y: 5.8; --w: 5.8; --h: 3.26; --r: -2deg; --t: 7.2s; --d: -4s; }
+.c6 { --x: .77;  --y: 6.5; --w: 2.3; --h: 2.9; --r: -6deg; --t: 6s;  --d: -.8s; }
+.c7 { --x: .94;  --y: 6.1; --w: 2.3; --h: 2.3; --r: 4deg;  --t: 5.5s; --d: -2.7s; }
+/* Only next to the live island on a wide screen (phones and narrow windows keep the still picture alone) */
+.hero.poster-only .crew { display: none; }
+@media (max-width: 1080px), (max-aspect-ratio: 4/3) { .crew { display: none; } }
+@media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+
 /* The demo HUD sits in the top bar, left of the logo, and stays there while scrolling (wide screens only:
    it needs the free space left of the content) */
 .hero-hud { position: fixed !important; z-index: 60; left: 10px; top: 0; pointer-events: none; transform: scale(.72); transform-origin: top left; }

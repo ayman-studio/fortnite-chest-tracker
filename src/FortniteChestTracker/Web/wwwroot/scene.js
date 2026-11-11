@@ -785,6 +785,15 @@ function init() {
     camera.top = view.cy / ppu;
     camera.bottom = -(h - view.cy) / ppu;
     camera.updateProjectionMatrix();
+    // Where the land sits, for the page around it (the website's floating cards): its centre at the grass line,
+    // its half-width and one world unit, in pixels of the scene's box
+    const host = root.parentElement;
+    if (host) {
+      host.style.setProperty('--isle-x', `${view.cx.toFixed(1)}px`);
+      host.style.setProperty('--isle-y', `${(view.cy + (grassTop - look.y) * -ppu).toFixed(1)}px`);
+      host.style.setProperty('--isle-hw', `${((COLS * CELL) / 2 * ppu).toFixed(1)}px`);
+      host.style.setProperty('--isle-u', `${ppu.toFixed(2)}px`);
+    }
   }
   const onStage = (e) => active && e.target instanceof Element && e.target.closest('.home-page .stage');
   // The view leans towards the mouse: left/right turns it, up/down tilts it (kept facing the cut)
