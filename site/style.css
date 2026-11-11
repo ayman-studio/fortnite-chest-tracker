@@ -146,12 +146,10 @@ main:focus { outline: none; }
 .hero.live3d .stage::before { opacity: 0; }
 @media (max-width: 1080px), (max-aspect-ratio: 4/3) { .stage::before { background-image: url("img/island.webp"); background-size: contain; } }
 /* ---- Framed pictures all around the hero ----
-   Four characters (one size), two spirits (one size) and the key art. Characters stand in the corners, the spirits
-   between them, the key art hangs under the island: scene.js gives the land's place in the hero (--isle-x centre,
-   --isle-y grass line, --isle-b room under it, --isle-u one world unit). They lean with the mouse (--mx/--my, main.js),
-   tilt towards the pointer when hovered (--tx/--ty) and float gently. */
+   Three characters (one size) and the key art in the corners, a spirit between the two on the left. They lean with
+   the mouse (--mx/--my, main.js), tilt towards the pointer when hovered (--tx/--ty) and float gently. */
 .crew { position: absolute; inset: 0; z-index: 1; pointer-events: none; visibility: hidden; --mx: 0; --my: 0;
-  --cw: clamp(150px, 11.5vw, 300px); --ch: calc(var(--cw) * 1.25); --sw: clamp(96px, 6.6vw, 170px); }
+  --cw: clamp(120px, 8.5vw, 220px); --ch: calc(var(--cw) * 1.25); --sw: clamp(76px, 5vw, 124px); --aw: clamp(190px, 14vw, 360px); }
 .hero.live3d .crew { visibility: visible; }
 .flo { position: absolute; margin: 0; left: var(--x); top: var(--y); pointer-events: auto; will-change: transform;
   translate: calc(-50% + var(--mx) * var(--dp)) calc(-50% + var(--my) * var(--dp)); transition: translate 1s cubic-bezier(.16, .8, .3, 1);
@@ -188,23 +186,20 @@ main:focus { outline: none; }
     linear-gradient(160deg, rgba(255, 255, 255, .6), rgba(190, 150, 255, .2) 45%, rgba(130, 230, 255, .8)) border-box;
   box-shadow: 0 18px 36px -10px rgba(2, 8, 40, .65), 0 0 0 1px rgba(0, 0, 0, .25), 0 0 38px rgba(150, 110, 255, .35); }
 .spirit img { z-index: 1; inset: -11%; width: 122%; height: 122%; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(10, 4, 40, .5)); }
-/* Key art: under the island, below the player's tunnel (the miner stays in sight), as big as the room allows */
-.art { --ah: clamp(130px, calc(var(--isle-b, 300px) - 4.75 * var(--isle-u, 40px) - 14px), calc(min(22vw, 500px) * 9 / 16));
-  width: calc(var(--ah) * 16 / 9); height: var(--ah); --dp: 8px;
-  --x: var(--isle-x, 50%); --y: calc(var(--isle-y, 60%) + 4.75 * var(--isle-u, 40px) + var(--ah) / 2); --r: -1.5deg; --t: 7.4s; --d: -4s; --in: .5s; }
+/* Key art: in the bottom-right corner, as far from the edge as the character in the bottom-left one, low enough
+   to stay clear of the island's crystals */
+.art { width: var(--aw); height: calc(var(--aw) * 9 / 16); --dp: 10px; --r: -4deg; --t: 6.1s; --d: -.8s; --in: .35s;
+  --x: calc(92% + var(--cw) / 2 - var(--aw) / 2); --y: calc(96% - var(--aw) * 9 / 32); }
 .art img { inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: var(--R); }
 .art .face::before { z-index: 1; background: none; border-color: rgba(255, 255, 255, .45); }
 /* Places: characters in the corners, spirits between them a little inwards */
 .c1 { --x: 9%;  --y: 27%; --r: -6deg; --t: 6.4s; --in: .05s; }
 .c2 { --x: 91%; --y: 27%; --r: 6deg;  --t: 5.9s; --d: -2.2s; --in: .15s; }
 .c3 { --x: 8%;  --y: calc(94% - var(--ch) / 2); --r: 5deg; --t: 6.8s; --d: -3s; --in: .25s; }
-.c4 { --x: 92%; --y: calc(94% - var(--ch) / 2); --r: -5deg; --t: 6.1s; --d: -.8s; --in: .35s; }
-.s1 { --x: 17%; --y: calc(57% - var(--ch) / 4); --r: -8deg; --t: 5.2s; --d: -1.5s; --in: .4s; }
-.s2 { --x: 83%; --y: calc(57% - var(--ch) / 4); --r: 9deg;  --t: 5.6s; --d: -2.7s; --in: .45s; }
+.s1 { --x: 15%; --y: calc(50% - var(--ch) / 4); --r: -8deg; --t: 5.2s; --d: -1.5s; --in: .4s; }
 /* Wide screens next to the live island only (phones and narrow windows keep the still picture alone) */
 .hero.poster-only .crew { display: none; }
 @media (max-width: 1279px), (max-aspect-ratio: 4/3) { .crew { display: none; } }
-@media (max-height: 720px) { .art { display: none; } } /* no room under the island */
 @media (prefers-reduced-motion: reduce) { .flo, .hero.live3d .face { animation: none; } .flo { transition: none; } }
 
 /* The demo HUD sits in the top bar, left of the logo, and stays there while scrolling (wide screens only:
