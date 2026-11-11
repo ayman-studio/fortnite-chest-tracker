@@ -161,14 +161,12 @@ main:focus { outline: none; }
 .flo:hover .face { rotate: 0deg; scale: 1.06; transition: transform .12s linear, rotate .45s, scale .35s cubic-bezier(.2, .8, .3, 1.4); }
 .hero.live3d .face { animation: card-in .9s cubic-bezier(.2, .9, .3, 1.25) var(--in, 0s) backwards; }
 @keyframes card-in { from { opacity: 0; scale: .7; translate: 0 40px; } }
-/* Frame: gradient rim, dark top, warm glow at the bottom, a faint diagonal weave */
+/* Frame: gradient rim, deep blue at the top, bright blue glow at the bottom (the hero's colours) */
 .face::before { content: ""; position: absolute; inset: 0; border-radius: var(--R); border: 2px solid transparent;
-  background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 14px) padding-box,
-    radial-gradient(90% 55% at 50% 100%, rgba(255, 180, 72, .72), transparent 72%) padding-box,
-    radial-gradient(70% 45% at 50% 0%, rgba(120, 160, 255, .2), transparent 70%) padding-box,
-    linear-gradient(180deg, #1c2030 0%, #2a2b35 55%, #4d3a22 100%) padding-box,
-    linear-gradient(160deg, rgba(255, 255, 255, .55), rgba(255, 214, 140, .14) 40%, rgba(255, 186, 84, .75)) border-box;
-  box-shadow: 0 22px 44px -10px rgba(2, 8, 40, .65), 0 0 0 1px rgba(0, 0, 0, .25), 0 0 34px rgba(255, 190, 90, .12); }
+  background: radial-gradient(90% 55% at 50% 100%, rgba(80, 200, 255, .7), transparent 72%) padding-box,
+    linear-gradient(180deg, #0a1850 0%, #12358f 55%, #2470d8 100%) padding-box,
+    linear-gradient(160deg, rgba(255, 255, 255, .6), rgba(140, 190, 255, .16) 40%, rgba(110, 210, 255, .8)) border-box;
+  box-shadow: 0 22px 44px -10px rgba(2, 8, 40, .65), 0 0 0 1px rgba(0, 0, 0, .25), 0 0 34px rgba(80, 180, 255, .18); }
 /* Light sweeping across on hover */
 .face::after { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: var(--R); pointer-events: none;
   background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, .32) 47%, rgba(255, 255, 255, .06) 54%, transparent 68%) 130% 0 / 260% 100% no-repeat; }
@@ -178,13 +176,13 @@ main:focus { outline: none; }
 .char { width: var(--cw); height: var(--ch); --dp: 14px; }
 .char .pic { position: absolute; z-index: 1; inset: -30% 2px 2px; overflow: hidden; border-radius: 0 0 14px 14px; }
 .char img { left: 50%; top: 18%; width: 172%; height: auto; translate: -50% 0; }
-/* Spirits: a violet, magic frame; the creature a little bigger than it */
+/* Spirits: a green frame (the site's lime); the creature a little bigger than it */
 .spirit { width: var(--sw); height: var(--sw); --dp: 26px; }
 .spirit .face { --R: 22px; }
-.spirit .face::before { background: radial-gradient(65% 65% at 50% 55%, rgba(176, 120, 255, .7), transparent 72%) padding-box,
-    linear-gradient(160deg, #1d1846 0%, #2c1d62 55%, #44206a 100%) padding-box,
-    linear-gradient(160deg, rgba(255, 255, 255, .6), rgba(190, 150, 255, .2) 45%, rgba(130, 230, 255, .8)) border-box;
-  box-shadow: 0 18px 36px -10px rgba(2, 8, 40, .65), 0 0 0 1px rgba(0, 0, 0, .25), 0 0 38px rgba(150, 110, 255, .35); }
+.spirit .face::before { background: radial-gradient(65% 65% at 50% 55%, rgba(198, 255, 61, .55), transparent 72%) padding-box,
+    linear-gradient(160deg, #0e2a12 0%, #17441a 55%, #2a6a1e 100%) padding-box,
+    linear-gradient(160deg, rgba(255, 255, 255, .6), rgba(198, 255, 61, .25) 45%, rgba(198, 255, 61, .9)) border-box;
+  box-shadow: 0 18px 36px -10px rgba(2, 8, 40, .65), 0 0 0 1px rgba(0, 0, 0, .25), 0 0 38px rgba(198, 255, 61, .3); }
 .spirit img { z-index: 1; inset: -11%; width: 122%; height: 122%; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(10, 4, 40, .5)); }
 /* Key art: on the right, close to the edge, beside the top of the island (higher on tall screens, where the island
    is wider, to stay clear of its crystals) */
