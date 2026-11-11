@@ -751,3 +751,6 @@ label.btn { cursor: url("/cursors/hand.png") 8 2, pointer; }
 .hud-squad svg { width: 15px; height: 15px; color: var(--lime); }
 .hud-squad b { color: var(--text); }
 .hud-squad .faint { font-size: 12px; }
+/* Home: the cards over the animated island get no backdrop blur (it would be recomputed at every frame of the
+   island): a slightly denser panel instead, it looks the same over the sky */
+.home-page .hud, .home-page .ov-dock, .main:has(.home-page) .banner { backdrop-filter: none; background: rgba(10, 24, 82, .9); }

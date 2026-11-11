@@ -7,8 +7,8 @@
 // /models/LICENSE-Kenney.txt); the land and the crystals are built here.
 // The view turns with the mouse position; wheel to zoom, double-click to reset. The land is as wide as the window
 // allows (more columns on a wide screen). Driven by the page through "fct-scene" events.
-// Light on purpose: 120 fps at most, 30 when the window is in the background, 12 while a match is played, fewer when
-// frames are slow to draw (software rendering), stopped when the page is hidden or another page of the interface is shown.
+// Smooth on purpose: 60 fps in every case; under load the resolution drops instead of the frame rate. Shadows are
+// refreshed every other frame.
 import * as THREE from './vendor/three/three.module.js';
 import { GLTFLoader } from './vendor/three/GLTFLoader.js';
 
@@ -64,6 +64,7 @@ function init() {
   if (software) document.documentElement.classList.add('no-gpu'); // (app.css then drops the blur and the endless decorations)
   renderer.setPixelRatio(software ? Math.min(devicePixelRatio, 1) * 0.75 : Math.min(devicePixelRatio, 1.5));
   renderer.shadowMap.enabled = !software;
+  renderer.shadowMap.autoUpdate = false; // refreshed every other frame by the loop (half the shadow cost)
   renderer.shadowMap.type = THREE.PCFShadowMap; // (PCFSoftShadowMap is gone from three.js: it fell back to this with a warning)
   renderer.toneMapping = THREE.NeutralToneMapping;
   root.appendChild(renderer.domElement);
@@ -122,7 +123,7 @@ function init() {
   const cx = (c) => (c - (COLS - 1) / 2) * CELL;
   const halfW = (COLS * CELL) / 2 + 1;
   Object.assign(sun.shadow.camera, { left: -halfW, right: halfW, top: 6, bottom: -9, near: 1, far: 60 });
-  sun.shadow.mapSize.set(COLS > 40 ? 4096 : 2048, 2048);
+  sun.shadow.mapSize.set(2048, 1024);
   const cy = (r) => -(r + 0.5) * CELL;
   const cz = (l) => (1 - l) * CELL;
   const inset = (r) => (r === ROWS - 3 ? 1 : r === ROWS - 2 ? 3 : r === ROWS - 1 ? 5 : 0);
@@ -939,18 +940,31 @@ function init() {
     renderer.compileAsync(scene, camera).catch(() => {}).finally(() => { compiling = false; });
   }
   warmUp();
+  // Smoothness first: 60 frames a second whether the window has the focus or not, a match running or not (another
+  // game beside it included). When frames come late (busy graphics card), the scene draws fewer pixels instead of
+  // fewer frames, and goes back up when there is room again.
+  const baseRatio = renderer.getPixelRatio();
+  const minRatio = Math.max(0.5, baseRatio * 0.5);
+  let ratio = baseRatio;
+  let late = 0;
+  let onTime = 0;
+  let frameNo = 0;
   renderer.setAnimationLoop((now) => {
     if (!active || document.hidden || compiling) { lastFrame = now; justDrawn = false; return; }
-    // (one slow frame, like the first ones while the models arrive and the shaders compile, counts as 60 ms at most:
-    // it must not slow the scene down for seconds afterwards; only frames that stay slow do)
-    if (justDrawn) { const c = Math.min(60, now - lastFrame); cost = cost ? cost * 0.8 + c * 0.2 : c; justDrawn = false; }
-    // a match is being played: leave the GPU to the game; window in the background: no need for smooth motion
-    const fps = reduced ? 1 : live ? 12 : software ? 5 : document.hasFocus() ? 120 : 30;
-    const wait = Math.max(1000 / fps - 0.5, cost > 25 ? cost * 2 : 0);
-    if (now - lastFrame < wait) return;
-    const dt = Math.min(0.1, (now - lastFrame) / 1000);
+    const gap = now - lastFrame;
+    if (justDrawn) { const c = Math.min(60, gap); cost = cost ? cost * 0.8 + c * 0.2 : c; justDrawn = false; }
+    const fps = reduced ? 1 : software ? 5 : 60;
+    const wait = software ? Math.max(1000 / fps - 0.5, cost > 25 ? cost * 2 : 0) : 1000 / fps - 2;
+    if (gap < wait) return;
+    if (!software && !reduced && lastFrame > 0) {
+      if (gap > 24) { late++; onTime = 0; } else if (gap < 19) { onTime++; late = Math.max(0, late - 1); }
+      if (late >= 12 && ratio > minRatio) { ratio = Math.max(minRatio, ratio - 0.15); renderer.setPixelRatio(ratio); late = 0; }
+      else if (onTime >= 240 && ratio < baseRatio) { ratio = Math.min(baseRatio, ratio + 0.1); renderer.setPixelRatio(ratio); onTime = 0; }
+    }
+    const dt = Math.min(0.1, gap / 1000);
     lastFrame = now;
     step(dt);
+    if (frameNo++ % 2 === 0) renderer.shadowMap.needsUpdate = true;
     renderer.render(scene, camera);
     justDrawn = true;
   });
@@ -1030,6 +1044,7 @@ function init() {
       shot.updateProjectionMatrix();
       renderer.setPixelRatio(1);
       renderer.setSize(width, height, false);
+      renderer.shadowMap.needsUpdate = true;
       renderer.render(scene, shot);
       const url = renderer.domElement.toDataURL('image/png');
       renderer.setPixelRatio(prevRatio);
