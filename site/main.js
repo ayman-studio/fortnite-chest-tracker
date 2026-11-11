@@ -357,6 +357,42 @@
   hours.addEventListener('change', renderCalc);
   r.value = toRange(Number(n.value));
 
+  // ---------------------------------------------------------------- online estimate by Epic name (Worker /api/estimate)
+  const guess = $('#guess');
+  if (guess) {
+    const out = $('#guess-out');
+    const PER_MATCH = 18;
+    guess.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = $('#guess-name').value.trim();
+      if (name.length < 3) return;
+      out.className = 'guess-out';
+      out.textContent = t('guess_wait', name);
+      $('#guess-go').disabled = true;
+      try {
+        const res = await fetch(`/api/estimate?name=${encodeURIComponent(name)}`);
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          const matches = data.season ?? 0;
+          if (!matches) { out.textContent = t('guess_none', data.name || name); return; }
+          const chests = matches * PER_MATCH;
+          n.value = chests;
+          n.dispatchEvent(new Event('input'));
+          out.className = 'guess-out ok';
+          out.textContent = t('guess_ok', data.name || name, nf(matches), nf(chests));
+        } else {
+          out.className = 'guess-out err';
+          out.textContent = t({ not_found: 'guess_404', private: 'guess_403', busy: 'guess_busy' }[data.error] || 'guess_off');
+        }
+      } catch {
+        out.className = 'guess-out err';
+        out.textContent = t('guess_off');
+      } finally {
+        $('#guess-go').disabled = false;
+      }
+    });
+  }
+
   // ---------------------------------------------------------------- gallery (tabs; turns by itself while on screen)
   const tabs = $$('#gal-tabs [role=tab]');
   const SHOTS = tabs.map((b) => b.dataset.shot);

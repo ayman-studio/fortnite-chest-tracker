@@ -674,3 +674,19 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .cmp-txt { color: var(--text-3); font-size: 13.5px; }
 @media (max-width: 1080px) { .safe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 620px) { .safe-grid { grid-template-columns: 1fr; } .cmp { font-size: 13.5px; } .cmp th, .cmp td { padding: 10px; } }
+
+/* ---- Online estimate by Epic name (above the calculator) */
+.guess { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); gap: 10px 24px; align-items: center; margin-bottom: 18px; padding: 18px 22px; border-radius: 20px;
+  background: linear-gradient(120deg, rgba(198, 255, 61, .12), rgba(6, 16, 58, .6) 55%); border: 1px solid rgba(198, 255, 61, .35); }
+.guess-t b { display: block; font: 22px/1.1 var(--display); text-transform: uppercase; letter-spacing: .02em; color: var(--text); }
+.guess-t span { color: var(--text-2); font-size: 14px; }
+.guess-row { display: flex; gap: 10px; }
+.guess-row input { flex: 1; min-width: 0; height: 46px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(4, 14, 52, .7); color: var(--text); font: 600 16px var(--font); }
+.guess-row input:focus { outline: 2px solid var(--lime); outline-offset: 1px; }
+.guess-row .btn { height: 46px; }
+.guess-row .btn[disabled] { opacity: .6; }
+.guess-out { grid-column: 1 / -1; margin: 0; min-height: 0; color: var(--text-2); font-size: 14.5px; }
+.guess-out:empty { display: none; }
+.guess-out.ok { color: var(--text); }
+.guess-out.err { color: #ffb3c2; }
+@media (max-width: 860px) { .guess { grid-template-columns: 1fr; } }
