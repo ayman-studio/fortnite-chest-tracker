@@ -12,12 +12,18 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = 'ayman-studio/fortnite-chest-tracker';
 // The site lives at the root of its own domain (Cloudflare Pages); every page uses relative links (sub-pages add <base href="../">)
 const BASE = 'https://fortnite-chest-tracker.com/';
-const LANGS = ['en', 'fr', 'es'];
-const URLS = { en: BASE, fr: BASE + 'fr/', es: BASE + 'es/' };
-const OG_LOCALE = { en: 'en_GB', fr: 'fr_FR', es: 'es_ES' };
+const LANGS = ['en', 'fr', 'es', 'de', 'pt'];
+const URLS = { en: BASE, fr: BASE + 'fr/', es: BASE + 'es/', de: BASE + 'de/', pt: BASE + 'pt/' };
+const OG_LOCALE = { en: 'en_GB', fr: 'fr_FR', es: 'es_ES', de: 'de_DE', pt: 'pt_BR' };
+// hreflang of each page (Brazilian Portuguese), and the languages that have their own pictures and guides
+const HREFLANG = { pt: 'pt-BR' };
+const hl = (l) => HREFLANG[l] || l;
+const FULL = ['en', 'fr', 'es'];
+const own = (L) => (FULL.includes(L) ? L : 'en');
 
 const sandbox = { window: {} };
 vm.runInNewContext(readFileSync(join(HERE, 'i18n.js'), 'utf8'), sandbox);
+vm.runInNewContext(readFileSync(join(HERE, 'i18n-more.js'), 'utf8'), sandbox); // German, Brazilian Portuguese
 const { I18N, BUBBLES } = sandbox.window;
 const template = readFileSync(join(OUT, 'index.html'), 'utf8');
 
@@ -59,14 +65,14 @@ function fill(html, T) {
 }
 
 // Marks that scripts run (the reveal-on-scroll hides sections only then), and sends a visitor to their language: ?lang=xx anywhere, or on the English page the saved choice / the browser language
-const redirect = `<script>document.documentElement.classList.add('js');(function(){var L=['en','fr','es'],c=document.documentElement.lang,w=null,s=null,q=new URLSearchParams(location.search).get('lang');try{s=localStorage.getItem('cct-lang')}catch(e){}
+const redirect = `<script>document.documentElement.classList.add('js');(function(){var L=['en','fr','es','de','pt'],c=document.documentElement.lang,w=null,s=null,q=new URLSearchParams(location.search).get('lang');try{s=localStorage.getItem('cct-lang')}catch(e){}
 if(L.indexOf(q)>=0){w=q;try{localStorage.setItem('cct-lang',q)}catch(e){}}else if(c==='en'){if(L.indexOf(s)>=0)w=s;else if(!s){var n=navigator.languages||[navigator.language];for(var i=0;i<n.length;i++){var x=(n[i]||'').slice(0,2).toLowerCase();if(L.indexOf(x)>=0){w=x;break}}}}
 if(w&&(w!==c||q))location.replace(new URL(w==='en'?'./':w+'/',document.baseURI).href+location.hash)})()</script>`;
 
 const strip = (s) => String(s).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 
 function seo(L, T, version) {
-  const og = `${BASE}og/og-${L}.jpg`;
+  const og = `${BASE}og/og-${own(L)}.jpg`;
   const author = { '@type': 'Person', '@id': `${BASE}#author`, name: 'Ayman Studio', url: 'https://x.com/ayman_studioo', sameAs: ['https://github.com/ayman-studio'] };
   // WebSite: the site name Google shows above the result; SoftwareApplication: the app; FAQPage: the questions of the page
   const site = {
@@ -94,7 +100,7 @@ function seo(L, T, version) {
   const graph = { '@context': 'https://schema.org', '@graph': [site, app, faq, author] };
   return [
     `<link rel="canonical" href="${URLS[L]}">`,
-    ...LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${URLS[l]}">`),
+    ...LANGS.map((l) => `<link rel="alternate" hreflang="${hl(l)}" href="${URLS[l]}">`),
     `<link rel="alternate" hreflang="x-default" href="${URLS.en}">`,
     '<meta property="og:type" content="website">',
     '<meta property="og:site_name" content="Fortnite - Chest Tracker">',
@@ -131,8 +137,8 @@ for (const L of LANGS) {
     .replace('<!--LANG-REDIRECT-->', () => redirect)
     .replace('<!--SEO-->', () => seo(L, T, version))
     .replace('<!--I18N-->', () => `<script>window.I18N=${json({ [L]: runtimeTexts(T) })};window.BUBBLES=${json({ [L]: BUBBLES[L] })};</script>`)
-    .replace(/shots\/en-/g, `shots/${L}-`)
-    .replace(/\{\{guide:(\w+)\}\}/g, (m, id) => '/' + GUIDE_PATHS[id][L])
+    .replace(/shots\/en-/g, `shots/${own(L)}-`)
+    .replace(/\{\{guide:(\w+)\}\}/g, (m, id) => '/' + (GUIDE_PATHS[id][L] ?? GUIDE_PATHS[id].en))
     .replace(new RegExp(`(data-lang="${L}" lang="${L}" aria-label="[^"]+") aria-pressed="false"`), '$1 aria-pressed="true" class="on"');
   if (sub) html = html.replace(/href="#/g, `href="${L}/#`); // same-page anchors, with <base href="../">
   html = fill(html, T).replace(/\n{3,}/g, '\n\n');
@@ -143,7 +149,7 @@ for (const L of LANGS) {
 
 const guides = buildGuides(OUT, version);
 const today = new Date().toISOString().slice(0, 10);
-const alts = LANGS.map((l) => `    <xhtml:link rel="alternate" hreflang="${l}" href="${URLS[l]}"/>`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${URLS.en}"/>`;
+const alts = LANGS.map((l) => `    <xhtml:link rel="alternate" hreflang="${hl(l)}" href="${URLS[l]}"/>`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${URLS.en}"/>`;
 writeFileSync(join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${LANGS.map((l) => `  <url>\n    <loc>${URLS[l]}</loc>\n    <lastmod>${today}</lastmod>\n${alts}\n  </url>`).join('\n')}
@@ -151,4 +157,5 @@ ${guides.join('\n')}
 </urlset>
 `);
 rmSync(join(OUT, 'i18n.js'), { force: true }); // the texts of each page are inlined in it
+rmSync(join(OUT, 'i18n-more.js'), { force: true });
 console.log(`pre-rendered ${LANGS.join(', ')} + ${guides.length} guide pages${version ? ` (release ${version})` : ' (no release found)'}`);

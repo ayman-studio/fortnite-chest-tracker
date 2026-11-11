@@ -27,11 +27,13 @@
   var T = {
     fr: ['Ce coffre est vide', "La page que tu cherches n'existe pas ou a changé d'adresse.", "Retour à l'accueil", 'Page introuvable', 'fr/'],
     es: ['Este cofre está vacío', 'La página que buscas no existe o ha cambiado de dirección.', 'Volver al inicio', 'Página no encontrada', 'es/'],
+    de: ['Diese Truhe ist leer', 'Die gesuchte Seite gibt es nicht oder sie ist umgezogen.', 'Zurück zur Startseite', 'Seite nicht gefunden', 'de/'],
+    pt: ['Este baú está vazio', 'A página que você procura não existe ou mudou de endereço.', 'Voltar ao início', 'Página não encontrada', 'pt/'],
   };
   var l = null;
   try { l = localStorage.getItem('cct-lang'); } catch (e) { /* storage blocked */ }
   if (!l) l = (navigator.language || '').slice(0, 2).toLowerCase();
-  var m = location.pathname.match(/\/(fr|es)\//);
+  var m = location.pathname.match(/\/(fr|es|de|pt)\//);
   if (m) l = m[1];
   var t = T[l];
   if (!t) return;

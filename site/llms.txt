@@ -13,6 +13,8 @@
 - [Home (English)](https://fortnite-chest-tracker.com/): features, in-game overlay, odds calculator, FAQ
 - [Accueil (français)](https://fortnite-chest-tracker.com/fr/)
 - [Inicio (español)](https://fortnite-chest-tracker.com/es/)
+- [Startseite (Deutsch)](https://fortnite-chest-tracker.com/de/)
+- [Início (português do Brasil)](https://fortnite-chest-tracker.com/pt/)
 - [Treasure Hunters calendar](https://fortnite-chest-tracker.com/guides/treasure-hunters/): every Treasure Hour in local time with its boosts, the prizes of each week
 - [Fortnite pirate token odds](https://fortnite-chest-tracker.com/guides/pirate-token-odds/): Epic's rates for every chest treasure, chance after N chests, Treasure Hours
 - [Turn on Fortnite replays and find the replay folder](https://fortnite-chest-tracker.com/guides/fortnite-replays/)

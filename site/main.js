@@ -5,11 +5,11 @@
   const REPO = 'ayman-studio/fortnite-chest-tracker';
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
-  const LANGS = ['en', 'fr', 'es'];
+  const LANGS = ['en', 'fr', 'es', 'de', 'pt'];
   const lang = LANGS.includes(document.documentElement.lang) ? document.documentElement.lang : 'en';
   const TX = (window.I18N && window.I18N[lang]) || {};
   const t = (k, ...a) => String(TX[k] ?? k).replace(/\{(\d)\}/g, (_, i) => a[i]);
-  const locale = { en: 'en-GB', fr: 'fr-FR', es: 'es-ES' }[lang];
+  const locale = { en: 'en-GB', fr: 'fr-FR', es: 'es-ES', de: 'de-DE', pt: 'pt-BR' }[lang];
   const nbsp = (s) => s.replace(/ /g, ' ');
   // Spanish leaves 4-digit numbers ungrouped by default ("2000" next to "12.345"): always group, like fr and en
   const nf = (n) => nbsp(new Intl.NumberFormat(locale, { useGrouping: 'always' }).format(n));
@@ -305,7 +305,7 @@
   // ---------------------------------------------------------------- Treasure Hour strip (season.json, also read by the app)
   const strip = $('#th-strip');
   if (strip) {
-    const D = { fr: 'j', en: 'd', es: 'd' }[lang] || 'd';
+    const D = { fr: 'j', en: 'd', es: 'd', de: 'T', pt: 'd' }[lang] || 'd';
     const left = (ms) => {
       const m = Math.max(0, Math.floor(ms / 6e4)), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
       return d > 0 ? `${d} ${D} ${h} h` : h > 0 ? `${h} h ${String(mi).padStart(2, '0')}` : `${mi} min ${String(Math.max(0, Math.floor(ms / 1e3) % 60)).padStart(2, '0')} s`;
