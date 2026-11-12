@@ -826,7 +826,8 @@ function boardCard(F, D) {
   const body = D.friends.length
     ? `<div class="fit" data-fit="board" data-row="56">${list}</div>${pager('board', rows.length)}`
     : empty(t('boardEmpty'), t('boardEmptyText'));
-  return card('s8 board-card', t('boardTitle'), body, { actions: seg });
+  const share = D.friends.length ? button(`${icon('camera')}${esc(t('shareSquadBtn'))}`, 'data-act="share-squad"', 'btn-sm') : '';
+  return card('s8 board-card', t('boardTitle'), body, { actions: seg + share });
 }
 
 function squadMemberTile(m, best) {
@@ -868,7 +869,7 @@ function squadCard(F, D) {
     ? `<div class="row sq-invite"><select id="sq-invite-who" aria-label="${esc(t('squadInvite'))}">${others.map((f) => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('')}</select>${button(`${icon('users')}${esc(t('squadInvite'))}`, 'data-act="squad-invite"', 'btn-sm')}</div>`
     : '<span></span>';
   const pending = sq.invited.length ? `<div class="faint small sq-pending">${esc(t('squadPending', sq.invited.map((m) => m.name).join(', ')))}</div>` : '';
-  const actions = `${seg}${button(esc(t('squadLeave')), 'data-sq="leave"', 'btn-sm btn-ghost')}`;
+  const actions = `${seg}${button(`${icon('camera')}${esc(t('shareSquadBtn'))}`, 'data-act="share-squad"', 'btn-sm')}${button(esc(t('squadLeave')), 'data-sq="leave"', 'btn-sm btn-ghost')}`;
   const body = `${invites}<div class="sq-members">${sq.members.map((m) => squadMemberTile(m, best)).join('')}</div>
     ${pending}<div class="row between sq-foot">${invite}<span class="faint small">${esc(t('squadAfterMatch'))}</span></div>`;
   return card('s8 squad-card on', t('squadTitle'), body, { hint: t('squadSince', time(new Date(sq.since).toISOString())), actions });
@@ -1318,12 +1319,133 @@ function drawCard(c, goal, shotImage, art = {}) {
   }
 }
 
+// ---- Friends share picture: the podium of who opened the most chests (last match, session or season) ------------
+// The squad's own numbers for the session when the player is in one, else the leaderboard of the Friends tab.
+function squadShareRows(period) {
+  const F = S.friends;
+  const sq = F.data?.squad;
+  if (period === 'session' && sq && sq.members.length > 1) {
+    return sq.members.filter((m) => m.sessionMatches > 0)
+      .map((m) => ({ name: m.name, skin: m.skin, value: m.sessionChests, me: m.id === F.meId }))
+      .sort((a, b) => b.value - a.value);
+  }
+  const saved = ui.lbPeriod;
+  ui.lbPeriod = period;
+  const rows = boardRows(F, F.data || FR_EMPTY).filter((r) => r.value != null);
+  ui.lbPeriod = saved;
+  return rows.map((r) => ({ name: r.name, skin: r.skin, value: r.value, me: !!r.me }));
+}
+
+async function makeSquadCard(period) {
+  const rows = squadShareRows(period).slice(0, 4);
+  if (rows.length < 2) return null;
+  await Promise.all(['900 120px Anton', '400 40px Anton'].map((f) => document.fonts.load(f).catch(() => {})));
+  const c = document.createElement('canvas');
+  c.width = CARD_W;
+  c.height = CARD_H;
+  const g = c.getContext('2d');
+  const font = (px) => `${px}px Anton, Impact, sans-serif`;
+  // Sky picture, darkened, then a vignette
+  try {
+    const bg = await loadImage('/img/overlay-bg.webp');
+    const sc = Math.max(CARD_W / bg.width, CARD_H / bg.height);
+    g.filter = 'blur(6px)';
+    g.drawImage(bg, (CARD_W - bg.width * sc) / 2, (CARD_H - bg.height * sc) / 2, bg.width * sc, bg.height * sc);
+    g.filter = 'none';
+  } catch { g.fillStyle = '#12266c'; g.fillRect(0, 0, CARD_W, CARD_H); }
+  const shade = g.createLinearGradient(0, 0, 0, CARD_H);
+  shade.addColorStop(0, 'rgba(7,16,54,.82)');
+  shade.addColorStop(0.55, 'rgba(7,16,54,.55)');
+  shade.addColorStop(1, 'rgba(7,16,54,.9)');
+  g.fillStyle = shade;
+  g.fillRect(0, 0, CARD_W, CARD_H);
+  // Title and period
+  g.textBaseline = 'alphabetic';
+  g.fillStyle = '#ffffff';
+  g.font = font(76);
+  g.fillText(t('shareSquadTitle').toUpperCase(), 70, 130);
+  const label = { last: t('lbLast'), session: t('lbSession'), season: t('lbSeason') }[period];
+  g.font = font(34);
+  g.fillStyle = '#c6ff3d';
+  g.fillText(`${label} · ${date(new Date().toISOString(), { day: 'numeric', month: 'long' })}`.toUpperCase(), 72, 182);
+  // Podium: the winner in the middle (or first), bigger, with a lime frame and a star
+  const order = rows.length >= 3 ? [1, 0, 2, 3].filter((i) => i < rows.length) : rows.map((_, i) => i);
+  const colW = 330;
+  const x0 = (CARD_W - order.length * colW) / 2;
+  const skins = await Promise.all(rows.map((r) => (r.skin ? loadImage(`/skin/${encodeURIComponent(r.skin)}.png`).catch(() => null) : null)));
+  const round = (x, y, w, h, r) => { g.beginPath(); g.roundRect(x, y, w, h, r); };
+  order.forEach((i, col) => {
+    const r = rows[i];
+    const first = i === 0;
+    const size = first ? 250 : 200;
+    const cx = x0 + col * colW + colW / 2;
+    const top = first ? 250 : 300;
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,.5)';
+    g.shadowBlur = 30;
+    g.shadowOffsetY = 12;
+    round(cx - size / 2 - 7, top - 7, size + 14, size + 14, 40);
+    g.fillStyle = first ? '#c6ff3d' : r.me ? '#3ee6ff' : '#0b1a4a';
+    g.fill();
+    g.restore();
+    g.save();
+    round(cx - size / 2, top, size, size, 34);
+    g.clip();
+    const tile = g.createLinearGradient(0, top, 0, top + size);
+    tile.addColorStop(0, '#2a4aa8');
+    tile.addColorStop(1, '#0b1a4a');
+    g.fillStyle = tile;
+    g.fillRect(cx - size / 2, top, size, size);
+    if (skins[i]) g.drawImage(skins[i], cx - size / 2, top, size, size);
+    else { g.fillStyle = '#8aa3d6'; g.font = font(size * 0.45); g.textAlign = 'center'; g.fillText(String(r.name || '?')[0].toUpperCase(), cx, top + size * 0.66); }
+    g.restore();
+    if (first) {
+      g.fillStyle = '#ffbf3a';
+      g.beginPath();
+      const sx = cx + size / 2 - 8;
+      const sy = top - 4;
+      for (let k = 0; k < 10; k++) {
+        const a = -Math.PI / 2 + (k * Math.PI) / 5;
+        const rr = k % 2 ? 18 : 42;
+        g.lineTo(sx + Math.cos(a) * rr, sy + Math.sin(a) * rr);
+      }
+      g.closePath();
+      g.fill();
+    }
+    g.textAlign = 'center';
+    g.font = font(first ? 130 : 100);
+    g.lineWidth = 10;
+    g.strokeStyle = '#071036';
+    const ny = top + size + (first ? 150 : 125);
+    g.strokeText(nf(r.value), cx, ny);
+    g.fillStyle = first ? '#c6ff3d' : '#ffffff';
+    g.fillText(nf(r.value), cx, ny);
+    g.font = font(38);
+    g.fillStyle = r.me ? '#3ee6ff' : '#d8e6ff';
+    let name = String(r.name);
+    while (g.measureText(name).width > colW - 30 && name.length > 2) name = name.slice(0, -2) + '…';
+    g.fillText(name, cx, ny + 58);
+    g.font = font(30);
+    g.fillStyle = 'rgba(216,230,255,.7)';
+    g.fillText(`#${i + 1}`, cx, top - 22);
+    g.textAlign = 'left';
+  });
+  // Footer
+  g.font = font(32);
+  g.fillStyle = 'rgba(216,230,255,.85)';
+  g.textAlign = 'right';
+  g.fillText(S.app.site || 'fortnite-chest-tracker.com', CARD_W - 70, CARD_H - 50);
+  g.textAlign = 'left';
+  g.fillText(`${t('chests').toUpperCase()} · FORTNITE CHEST TRACKER`, 70, CARD_H - 50);
+  return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
+}
+
 async function buildShare() {
   const sh = ui.share;
   sh.making = true;
   render();
   let blob = null;
-  try { blob = await makeCard(sh.goal); } catch { /* shown as an error below */ }
+  try { blob = sh.squad ? await makeSquadCard(sh.period) : await makeCard(sh.goal); } catch { /* shown as an error below */ }
   if (ui.share !== sh) return;        // closed meanwhile
   if (!blob) { sh.making = false; toast('error', t('shareFailed')); closeShare(); return; }
   if (sh.url) URL.revokeObjectURL(sh.url);
@@ -1335,6 +1457,20 @@ function openShare() {
   if (ui.share) return;
   shareShots = {};
   ui.share = { goal: ui.goal };       // starts with the goal of the home page, can be changed in the window
+  buildShare();
+}
+
+function openSquadShare() {
+  if (ui.share) return;
+  const period = ['last', 'session', 'season'].includes(ui.lbPeriod) ? ui.lbPeriod : 'session';
+  if (squadShareRows(period).length < 2) { toast('info', t('shareSquadEmpty')); return; }
+  ui.share = { squad: true, period };
+  buildShare();
+}
+
+function shareSquadPeriod(period) {
+  if (!ui.share || ui.share.making || ui.share.period === period) return;
+  ui.share.period = period;
   buildShare();
 }
 
@@ -1362,7 +1498,10 @@ function shareModal() {
     const label = k === 'auto' ? t('goalAuto') : t('short_' + k);
     return `<button class="goal${k === 'odds_pirate' ? ' featured' : ''}${sh.goal === k ? ' on' : ''}" data-share-goal="${k}"${sh.making ? ' disabled' : ''}>${k === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : ''}<span>${esc(label)}</span>${o ? `<b>${esc(pctx(chanceOf(h, o)))}</b>` : ''}</button>`;
   }).join('');
-  const picker = `<div class="share-pick"><span>${esc(t('shareGoal'))}</span><div class="goals">${chips}</div></div>`;
+  const picker = sh.squad
+    ? `<div class="share-pick"><span>${esc(t('shareSquadPick'))}</span><div class="seg">${[['last', t('lbLast')], ['session', t('lbSession')], ['season', t('lbSeason')]]
+      .map(([k, label]) => `<button class="${sh.period === k ? 'on' : ''}" data-share-period="${k}"${sh.making || squadShareRows(k).length < 2 ? ' disabled' : ''}>${esc(label)}</button>`).join('')}</div></div>`
+    : `<div class="share-pick"><span>${esc(t('shareGoal'))}</span><div class="goals">${chips}</div></div>`;
   const body = picker + (sh.url
     ? `<div class="share-frame${sh.making ? ' busy' : ''}"><img class="share-preview" src="${sh.url}" alt="${esc(t('shareTitle'))}">${sh.making ? '<div class="spin"></div>' : ''}</div>`
     : `<div class="share-wait"><div class="spin"></div><span>${esc(t('shareMaking'))}</span></div>`);
@@ -1371,7 +1510,7 @@ function shareModal() {
        <a class="btn" href="${sh.url}" download="${esc(file)}">${icon('down')}${esc(t('shareDownload'))}</a>
        ${button(`${icon('copy')}${esc(t('shareCopy'))}`, 'data-act="share-copy"', 'btn-primary')}`;
   return `<div class="backdrop" data-share-backdrop><div class="modal share-modal" role="dialog" aria-modal="true" aria-label="${esc(t('shareTitle'))}">
-    <header><h1>${esc(t('shareTitle'))}</h1></header><div class="body">${body}</div><div class="foot">${foot}</div></div></div>`;
+    <header><h1>${esc(t(sh.squad ? 'shareSquadModal' : 'shareTitle'))}</h1></header><div class="body">${body}</div><div class="foot">${foot}</div></div></div>`;
 }
 
 async function copyShare() {
@@ -1455,6 +1594,8 @@ document.addEventListener('click', async (e) => {
   if (e.target.matches && e.target.matches('[data-share-backdrop]')) { closeShare(); return; }
   const pickGoal = e.target.closest && e.target.closest('[data-share-goal]');
   if (pickGoal) { shareGoal(pickGoal.dataset.shareGoal); return; }
+  const pickPeriod = e.target.closest && e.target.closest('[data-share-period]');
+  if (pickPeriod && !pickPeriod.disabled) { shareSquadPeriod(pickPeriod.dataset.sharePeriod); return; }
   const el = e.target.closest('[data-cmd],[data-act],[data-open],[data-nav],[data-sub],[data-range],[data-ovstyle],[data-corner],[data-goal],[data-rename],[data-page],[data-select],[data-goto],[data-notice],[data-copy],[data-prize],[data-setup],[data-setup-choice],[data-fr],[data-sq],[data-lbperiod],[data-sqperiod],[data-friend],[data-frsub],[data-sqcorner]');
   if (!el || el.disabled) return;
   if (el.dataset.nav) { go(el.dataset.nav); return; }
@@ -1615,6 +1756,7 @@ document.addEventListener('click', async (e) => {
       break;
     }
     case 'share': openShare(); break;
+    case 'share-squad': openSquadShare(); break;
     case 'token-activate': await cmd('token/activate'); break;
     case 'token-reset': await cmd('token/reset'); break;
     case 'share-close': closeShare(); break;
