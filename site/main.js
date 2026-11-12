@@ -467,7 +467,7 @@
     const k = SHOTS[shot];
     img.classList.add('fade');
     const next = new Image();
-    next.src = `shots/${lang}-${k}.webp`;
+    next.src = `shots/${lang}-${k}.webp?v=13`; // ?v=: new screenshots show at once (pictures are cached for days)
     next.decode().catch(() => {}).finally(() => { img.src = next.src; img.alt = t(`g_${k}`); img.classList.remove('fade'); });
     $('#gal-cap').textContent = t(`gc_${k}`);
     tabs.forEach((b, j) => { b.classList.toggle('on', j === shot); b.setAttribute('aria-selected', String(j === shot)); b.tabIndex = j === shot ? 0 : -1; });
