@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.3.0 (unreleased)
+
+**Friends**
+- New Friends tab: add the friends who have the app (by Epic name, from your recent teammates or with your invite
+  link), see their chests, their treasure odds, the treasures they found and their last match.
+- Ranking of who opens the most chests: last match, session, season. Share it as a picture with everyone's outfit.
+- Squad mode: invite a friend (or turn it on after a match played together) and everyone's chests show up a few
+  seconds after each of their matches.
+- Friends overlay: a second in-game overlay with each player's outfit above their chests, its own settings, and an
+  OBS version.
+- A notification when a friend finds a treasure, and a recap of the evening when Fortnite closes.
+- Shared only with the friends you accept: Epic name, outfit, chests and treasure odds. Turning it off deletes them
+  from the server.
+
+**Matches**
+- Rare items around you: the treasure hunt items other players had near you.
+
 ## 1.2.0 (2026-11-11)
 
 **Treasure hunt**

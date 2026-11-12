@@ -198,8 +198,11 @@ function changelogHtml() {
     .replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
   let html = '', list = false, item = null;
   const flush = () => { if (item != null) { html += `<li>${inline(item)}</li>`; item = null; } };
+  let skip = false; // a version still being made ("## x.y.z (unreleased)") is not published
   for (const line of md.split('\n')) {
     if (line.startsWith('# ')) continue;
+    if (line.startsWith('## ')) skip = /\(unreleased\)/i.test(line);
+    if (skip) continue;
     if (line.startsWith('## ')) { flush(); if (list) { html += '</ul>'; list = false; } html += `<h2>${inline(line.slice(3))}</h2>`; continue; }
     if (/^- /.test(line)) { flush(); if (!list) { html += '<ul>'; list = true; } item = line.slice(2); continue; }
     if (/^\s{2,}\S/.test(line) && item != null) { item += ' ' + line.trim(); continue; }

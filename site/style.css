@@ -347,6 +347,7 @@ main:focus { outline: none; }
 /* Same blurred island picture as the overlay settings of the app */
 .game-bg { position: absolute; inset: 0; background: #4aa3e8 url("img/overlay-bg.webp") center / cover no-repeat; }
 .game-view .hud { z-index: 1; }
+.squad-shot { position: relative; z-index: 1; width: 86%; height: auto; filter: drop-shadow(0 18px 30px rgba(2, 6, 30, .45)); }
 
 /* The HUD, drawn like the real one: outlined Anton numbers on a soft halo, no frame */
 .hud { --o: #071036; --ring: 3px 0 0 var(--o), -3px 0 0 var(--o), 0 3px 0 var(--o), 0 -3px 0 var(--o), 2px 2px 0 var(--o), -2px 2px 0 var(--o), 2px -2px 0 var(--o), -2px -2px 0 var(--o), 0 6px 8px rgba(4, 10, 40, .55);

@@ -128,6 +128,8 @@ const RUNTIME = /^(h_|t_|g_|gc_|guess_|card_|calc_half$|size_mb$|released$|sha_|
 const runtimeTexts = (T) => Object.fromEntries(Object.entries(T).filter(([k]) => RUNTIME.test(k)));
 
 const version = await latestVersion();
+const num = (v) => String(v).split('.').map((n) => parseInt(n, 10) || 0);
+const atLeast = (v, min) => { const a = num(v), b = num(min); for (let i = 0; i < 3; i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return true; };
 for (const L of LANGS) {
   const T = I18N[L];
   const sub = L !== 'en';
@@ -142,6 +144,8 @@ for (const L of LANGS) {
     .replace(new RegExp(`(data-lang="${L}" lang="${L}" aria-label="[^"]+") aria-pressed="false"`), '$1 aria-pressed="true" class="on"');
   if (sub) html = html.replace(/href="#/g, `href="${L}/#`); // same-page anchors, with <base href="../">
   html = fill(html, T).replace(/\n{3,}/g, '\n\n');
+  // Parts about a release that is out (data-since="x.y.z" <= the latest release) are shown; the others stay hidden
+  html = html.replace(/(data-since="([\d.]+)") hidden/g, (m, attr, since) => (version && atLeast(version, since) ? attr : m));
   const dir = sub ? join(OUT, L) : OUT;
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'index.html'), html);

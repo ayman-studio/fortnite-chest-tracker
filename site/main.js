@@ -90,6 +90,11 @@
         b.addEventListener('click', () => copy(sha[1], t('sha_copied')));
       }
       $('#dl-facts').hidden = false;
+      // Parts about a version that is not out yet stay hidden (data-since="x.y.z"); the prerender already shows those
+      // of the release it saw, this catches a release published after the build.
+      const num = (v) => String(v).replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0);
+      const atLeast = (v, min) => { const a = num(v), b = num(min); for (let i = 0; i < 3; i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); return true; };
+      $$('[data-since]').forEach((el) => { if (atLeast(rel.tag, el.dataset.since)) el.hidden = false; });
     }
     // Honest numbers only, and only once they mean something
     const stars = repo ? repo.stars : 0;
