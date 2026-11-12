@@ -36,6 +36,7 @@ const ui = {
   prevTotal: null,
   lbPeriod: ['last', 'session', 'season'].includes(localStorage.getItem('fct-lb')) ? localStorage.getItem('fct-lb') : 'session', // friends leaderboard
   friendOpen: null,     // friend whose details are open
+  frSub: localStorage.getItem('fct-frsub') === 'squadov' ? 'squadov' : 'friends', // section of the Friends tab
 };
 
 // ---- Helpers -------------------------------------------------------------------------------------
@@ -308,7 +309,9 @@ function pageHead() {
   if (ui.page === 'home') return '';
   const subs = ui.page === 'settings'
     ? `<div class="seg big" role="tablist">${SUBS.map((k) => `<button class="${ui.sub === k ? 'on' : ''}" data-sub="${k}">${esc(k === 'general' ? t('general') : t('page_' + k))}</button>`).join('')}</div>`
-    : '';
+    : ui.page === 'friends' && S.friends?.sharing && S.friends.status !== 'noprofile'
+      ? `<div class="seg big" role="tablist">${[['friends', t('frSubFriends')], ['squadov', t('frSubOverlay')]].map(([k, label]) => `<button class="${ui.frSub === k ? 'on' : ''}" data-frsub="${k}">${esc(label)}</button>`).join('')}</div>`
+      : '';
   return `<header class="page-head"><h1>${esc(t('page_' + ui.page))}</h1>${subs}</header>`;
 }
 
@@ -893,14 +896,36 @@ function friendsSide(F, D) {
     <p class="faint small">${esc(t('frLinkText'))}</p>
     <div class="row"><input type="text" id="fr-key" readonly value="${esc(F.key || '')}" style="flex:1;font-size:11px">${button(`${icon('copy')}${esc(t('copy'))}`, 'data-copy="fr-key"', 'btn-sm')}</div>
     <div class="row" style="margin-top:8px"><input type="text" id="fr-key-new" data-draft value="${esc(draft('fr-key-new'))}" placeholder="${esc(t('frLinkPaste'))}" style="flex:1;font-size:11px" autocomplete="off">${button(esc(t('frLinkSave')), 'data-act="friend-link"', 'btn-sm')}</div></details>`;
-  const ov = F.overlay;
-  const sw = (id, checked, label, hint, disabled) => `<div class="setting fr-set"><div class="what"><b>${esc(label)}</b>${hint ? `<span>${esc(hint)}</span>` : ''}</div><label class="switch"><input type="checkbox" id="${id}" data-change="${id}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}><span></span></label></div>`;
-  const overlay = `${sw('sq-overlay', ov.enabled, t('squadOverlay'), t('squadOverlayHint'))}${sw('sq-locked', ov.locked, t('overlayLock'), '', !ov.running)}`;
   const share = `<div class="setting fr-set"><div class="what"><b>${esc(t('frSharing'))}</b><span>${esc(t('frSharingHint'))}</span></div><label class="switch"><input type="checkbox" id="fr-sharing" data-change="fr-sharing" checked><span></span></label></div>`;
   const body = `<div class="fr-side">${status}${add}${section(t('frRequests'), incoming)}${section(t('frSuggest'), suggest)}
     ${section(t('frList', nf(D.friends.length)), friends || `<p class="faint small">${esc(t('frNone'))}</p>`)}${section(t('frSent'), outgoing)}
-    <div class="section-title">${esc(t('settings'))}</div>${overlay}${share}${link}</div>`;
+    <div class="section-title">${esc(t('settings'))}</div>${share}${link}</div>`;
   return card('s4 friends-card', t('frTitle'), body);
+}
+
+// Squad overlay settings, laid out like the main overlay's (Settings → Overlay): switches on the left, preview on
+// the right (the live picture in a squad, an example otherwise).
+function squadOverlayPage(F) {
+  const ov = F.overlay;
+  const inSquad = !!F.data?.squad && F.data.squad.members.length > 1;
+  const live = inSquad && ov.enabled;
+  const sw = (id, checked, label, hint, disabled) => `<div class="setting"><div class="what"><b>${esc(label)}</b><span>${esc(hint)}</span></div><label class="switch"><input type="checkbox" id="${id}" data-change="${id}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}><span></span></label></div>`;
+  const sel = (id, values, current) => `<select id="${id}" data-change="${id}">${values.map((v) => `<option value="${v}"${v === current ? ' selected' : ''}>${pct(v)}</option>`).join('')}</select>`;
+  const seg = `<div class="seg" role="group" aria-label="${esc(t('squadPeriod'))}">${[['last', t('lbLast')], ['session', t('lbSession')]]
+    .map(([k, label]) => `<button class="${ov.period === k ? 'on' : ''}" data-sqperiod="${k}">${esc(label)}</button>`).join('')}</div>`;
+  const controls = card('s7', t('frSubOverlay'), `
+    ${sw('sq-overlay', ov.enabled && (!ov.running || ov.visible), t('squadOverlayShow'), t('squadOverlayShowHint'), false)}
+    ${sw('sq-locked', ov.locked, t('overlayLock'), t('overlayLockHint'), !ov.running)}
+    <div class="setting"><div class="what"><b>${esc(t('squadPeriod'))}</b><span>${esc(t('squadPeriodHint'))}</span></div>${seg}</div>
+    <div class="setting"><div class="what"><b>${esc(t('overlaySize'))}</b></div>${sel('sq-size', S.settings.sizes, ov.size)}</div>
+    <div class="setting"><div class="what"><b>${esc(t('overlayOpacity'))}</b></div>${sel('sq-opacity', S.settings.opacities, ov.opacity)}</div>
+    <div class="setting"><div class="what"><b>${esc(t('overlayPlace'))}</b><span>${esc(ov.running ? '' : t('squadPlaceHint'))}</span></div><div class="corners">${[0, 1, 2, 3].map((c) => `<button class="btn btn-sm" data-sqcorner="${c}"${ov.running ? '' : ' disabled'} title="${esc(t('corner_' + c))}" aria-label="${esc(t('corner_' + c))}"><i class="corner c${c}"></i></button>`).join('')}</div></div>`,
+    { hint: inSquad ? '' : t('squadOverlayNoSquad') });
+  const src = live ? `/squad.png?v=${esc(ov.hud)}` : `/squad.png?demo=1&v=${esc(ov.demo)}`;
+  const preview = card('s5', t('overlayPreview'), `<div class="ov-stage"><img class="hud-img" src="${src}" srcset="${src} 2x" alt="" draggable="false"></div>
+    ${live ? '' : `<p class="faint small sq-example">${esc(t('squadExample'))}</p>`}
+    ${inSquad ? '' : `<div class="row" style="margin-top:12px">${button(`${icon('users')}${esc(t('friendsDockGo'))}`, 'data-frsub="friends"', 'btn-sm btn-primary')}</div>`}`);
+  return `<div class="page" style="grid-template-rows:minmax(0,1fr)">${controls}${preview}</div>`;
 }
 
 function friendsPage() {
@@ -913,6 +938,7 @@ function friendsPage() {
   if (F.status === 'noprofile') {
     return `<div class="page" style="grid-template-rows:max-content">${card('s12', t('frTitle'), empty(t('frNoProfile'), t('frNoProfileText')))}</div>`;
   }
+  if (ui.frSub === 'squadov') return squadOverlayPage(F);
   const D = F.data || FR_EMPTY;
   return `<div class="page friends-page" style="grid-template-rows:max-content minmax(0,1fr)">${squadCard(F, D)}${friendsSide(F, D)}${boardCard(F, D)}</div>`;
 }
@@ -961,7 +987,7 @@ function friendsDock() {
       <div class="dock-main">
         <div class="dock-title">${icon('friends')}${esc(t('friendsDock'))}<span class="dot off"></span></div>
         <p class="dock-text">${esc(t('friendsDockText'))}</p>
-        <button class="btn btn-sm btn-primary" data-nav="friends">${icon('users')}${esc(t('friendsDockGo'))}</button>
+        <button class="btn btn-sm btn-primary" data-frsub="friends">${icon('users')}${esc(t('friendsDockGo'))}</button>
       </div>
     </section>`;
   }
@@ -976,7 +1002,7 @@ function friendsDock() {
       <div class="dock-sws">${sw('sq-overlay', ov.enabled, t('overlayShowShort2'))}${sw('sq-locked', ov.locked, t('overlayLockShort'), !ov.running)}</div>
       <div class="dock-style">${seg}</div>
     </div>
-    <button class="icon-btn" data-nav="friends" title="${esc(t('page_friends'))}" aria-label="${esc(t('page_friends'))}">${icon('settings')}</button>
+    <button class="icon-btn" data-frsub="squadov" title="${esc(t('frSubOverlay'))}" aria-label="${esc(t('frSubOverlay'))}">${icon('settings')}</button>
   </section>`;
 }
 
@@ -1413,7 +1439,7 @@ document.addEventListener('click', async (e) => {
   if (e.target.matches && e.target.matches('[data-share-backdrop]')) { closeShare(); return; }
   const pickGoal = e.target.closest && e.target.closest('[data-share-goal]');
   if (pickGoal) { shareGoal(pickGoal.dataset.shareGoal); return; }
-  const el = e.target.closest('[data-cmd],[data-act],[data-open],[data-nav],[data-sub],[data-range],[data-ovstyle],[data-corner],[data-goal],[data-rename],[data-page],[data-select],[data-goto],[data-notice],[data-copy],[data-prize],[data-setup],[data-setup-choice],[data-fr],[data-sq],[data-lbperiod],[data-sqperiod],[data-friend]');
+  const el = e.target.closest('[data-cmd],[data-act],[data-open],[data-nav],[data-sub],[data-range],[data-ovstyle],[data-corner],[data-goal],[data-rename],[data-page],[data-select],[data-goto],[data-notice],[data-copy],[data-prize],[data-setup],[data-setup-choice],[data-fr],[data-sq],[data-lbperiod],[data-sqperiod],[data-friend],[data-frsub],[data-sqcorner]');
   if (!el || el.disabled) return;
   if (el.dataset.nav) { go(el.dataset.nav); return; }
   if (el.dataset.goal) { ui.goal = el.dataset.goal; localStorage.setItem('fct-goal', ui.goal); ui.sceneInstant = true; cmd('goal', { key: ui.goal }); render(); return; }
@@ -1429,6 +1455,8 @@ document.addEventListener('click', async (e) => {
     if (S.friends.overlay.period !== el.dataset.sqperiod) { S.friends.overlay.period = el.dataset.sqperiod; render(); cmd('friends/settings', { period: el.dataset.sqperiod }); }
     return;
   }
+  if (el.dataset.frsub) { ui.frSub = el.dataset.frsub; localStorage.setItem('fct-frsub', ui.frSub); if (ui.page !== 'friends') go('friends'); else render(); return; }
+  if (el.dataset.sqcorner) { cmd('friends/settings', { overlayCorner: Number(el.dataset.sqcorner) }); return; }
   if (el.dataset.friend) { ui.friendOpen = ui.friendOpen === el.dataset.friend ? null : el.dataset.friend; render(); return; }
   if (el.dataset.fr) {
     const a = el.dataset.fr;
@@ -1617,6 +1645,8 @@ document.addEventListener('change', async (e) => {
       break;
     case 'sq-overlay': cmd('friends/settings', { overlay: v }); break;
     case 'sq-locked': cmd('friends/settings', { overlayLocked: v }); break;
+    case 'sq-size': cmd('friends/settings', { overlaySize: Number(v) }); break;
+    case 'sq-opacity': cmd('friends/settings', { overlayOpacity: Number(v) }); break;
     case 'import-file': {
       const file = el.files && el.files[0];
       if (!file) break;

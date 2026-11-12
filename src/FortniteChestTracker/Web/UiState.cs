@@ -53,7 +53,12 @@ public sealed record UiSquadSuggestion(string Sid, IReadOnlyList<string> Names);
 
 /// <param name="Hud">Hash of what the squad overlay draws (the page reloads /squad.png when it changes).</param>
 /// <param name="Demo">Hash of the example squad shown on the home page while the player has no squad (/squad.png?demo=1).</param>
-public sealed record UiSquadOverlay(bool Enabled, bool Running, bool Visible, bool Locked, string Period, string Hud, string Demo = "");
+public sealed record UiSquadOverlay(bool Enabled, bool Running, bool Visible, bool Locked, string Period, string Hud, string Demo = "")
+{
+    /// <summary>Size and opacity of the squad overlay (percent), its own, apart from the main overlay's.</summary>
+    public int Size { get; init; } = 100;
+    public int Opacity { get; init; } = 100;
+}
 
 /// <summary>
 /// Treasure hunt of the season: chests opened since it started, treasures found since then (gizmos apart from the

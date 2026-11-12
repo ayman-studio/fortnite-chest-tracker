@@ -386,6 +386,7 @@ input:focus, select:focus { outline: none; border-color: var(--lime); }
 .ov-dock .kbd { height: 22px; font-size: 11px; padding: 0 7px; }
 .app.anim .ov-dock { animation: fadeUp .45s var(--ease) .2s both; }
 .app.anim .fr-dock { animation-delay: .3s; }
+.sq-example { margin: 10px 0 0; text-align: center; }
 .fr-dock .dock-text { max-width: 230px; margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--text-2); }
 .fr-dock .btn { align-self: flex-start; }
 @media (max-height: 900px), (max-width: 1100px) { .ov-dock .dock-hud, .ov-dock .dock-keys { display: none; } }

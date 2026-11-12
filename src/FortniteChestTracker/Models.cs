@@ -188,6 +188,8 @@ public sealed class Config
     public int? SquadOverlayY { get; set; }
     public bool SquadOverlayLocked { get; set; }
     public string SquadOverlayPeriod { get; set; } = "last";
+    public int SquadOverlaySize { get; set; } = 100;
+    public int SquadOverlayOpacity { get; set; } = 100;
 }
 
 public sealed class TrackerData

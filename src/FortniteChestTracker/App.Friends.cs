@@ -370,7 +370,7 @@ public sealed partial class App
         var squadId = Str(squad.Value, "id");
         if (!SquadOverlay.IsRunning)
         {
-            SquadOverlay.SetAppearance(_config.OverlaySize, _config.OverlayOpacity);
+            SquadOverlay.SetAppearance(_config.SquadOverlaySize, _config.SquadOverlayOpacity);
             SquadOverlay.Update(view);
             SquadOverlay.Start(_config.SquadOverlayX ?? DefaultSquadX(), _config.SquadOverlayY, _config.SquadOverlayLocked,
                 (x, y) => Post(() => { _config.SquadOverlayX = x; _config.SquadOverlayY = y; SaveConfig(); }),
@@ -578,6 +578,16 @@ public sealed partial class App
         {
             SquadOverlay.SnapTo(corner);
         }
+        if (Int(args, "overlaySize") is { } size)
+        {
+            _config.SquadOverlaySize = OverlayAppearance.ClampSize(size);
+            SquadOverlay.SetAppearance(_config.SquadOverlaySize, _config.SquadOverlayOpacity);
+        }
+        if (Int(args, "overlayOpacity") is { } opacity)
+        {
+            _config.SquadOverlayOpacity = OverlayAppearance.ClampOpacity(opacity);
+            SquadOverlay.SetAppearance(_config.SquadOverlaySize, _config.SquadOverlayOpacity);
+        }
         if (Bool(args, "noticeSeen") == true)
         {
             _config.FriendsNoticeSeen = true;
@@ -601,7 +611,11 @@ public sealed partial class App
             new UiSquadOverlay(_config.ShowSquadOverlay, SquadOverlay.IsRunning, SquadOverlay.IsVisible,
                 SquadOverlay.IsRunning ? SquadOverlay.IsLocked : _config.SquadOverlayLocked, _config.SquadOverlayPeriod,
                 Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(squadView.Key)), 0, 6),
-                Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(_squadDemo.Key)), 0, 6)),
+                Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(_squadDemo.Key)), 0, 6))
+            {
+                Size = _config.SquadOverlaySize,
+                Opacity = _config.SquadOverlayOpacity,
+            },
             SkinCache.Version, me?.Key, FriendsClient.BaseUrl);
     }
 
