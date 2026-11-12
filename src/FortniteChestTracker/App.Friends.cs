@@ -33,17 +33,19 @@ public sealed partial class App
         {
             friends.Add((L.T($"Ami {i + 1}", $"Friend {i + 1}", $"Amigo {i + 1}"), DemoSkins[i]));
         }
+        // Same numbers as the chosen period: a session adds up several matches (the one still playing keeps its total).
+        var session = _config.SquadOverlayPeriod == "session";
         var members = new List<SquadMember>
         {
-            new(friends[0].Name, friends[0].Skin, 42, false, false),
-            new(me?.Name ?? L.T("Toi", "You", "Tú"), me?.Skin ?? DemoSkins[2], 35, false, true),
-            new(friends[1].Name, friends[1].Skin, null, true, false),
+            new(friends[0].Name, friends[0].Skin, session ? 168 : 42, false, false),
+            new(me?.Name ?? L.T("Toi", "You", "Tú"), me?.Skin ?? DemoSkins[2], session ? 131 : 35, false, true),
+            new(friends[1].Name, friends[1].Skin, session ? 97 : null, true, false),
         };
         foreach (var m in members)
         {
             SkinCache.Want(m.Skin);
         }
-        return new SquadView("last", members);
+        return new SquadView(session ? "session" : "last", members);
     }
 
     private sealed record SquadSuggestion(string Sid, long Since, DateTime Until, List<(string Id, string Name)> Friends);
