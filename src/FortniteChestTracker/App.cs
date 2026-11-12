@@ -101,7 +101,7 @@ public sealed partial class App
         _server = new WebServer(() => { var s = _state; return (s.Version, s.Json); }, RunCommandAsync, UiTexts.Json)
         {
             HudPng = HudPng,
-            SquadPng = () => HudRenderer.RenderSquadPng(SquadOverlay.View, 2f),
+            SquadPng = demo => HudRenderer.RenderSquadPng(demo ? _squadDemo : SquadOverlay.View, 2f),
             SkinFile = SkinCache.PathOf,
             ExportData = () => File.Exists(_store.DataPath) ? File.ReadAllBytes(_store.DataPath) : System.Text.Encoding.UTF8.GetBytes("{}"),
             ImportData = ImportHistoryAsync,

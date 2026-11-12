@@ -42,7 +42,7 @@ public sealed class WebServer : IDisposable
     public Func<byte[]?>? HudPng { get; init; }
 
     /// <summary>The squad overlay as a PNG (preview in the Friends tab).</summary>
-    public Func<byte[]?>? SquadPng { get; init; }
+    public Func<bool, byte[]?>? SquadPng { get; init; }
 
     /// <summary>File of an outfit icon (null while it is being downloaded).</summary>
     public Func<string?, string?>? SkinFile { get; init; }
@@ -294,14 +294,14 @@ public sealed class WebServer : IDisposable
                 }
                 case ("GET", "/squad.png"):
                 {
-                    var png = SquadPng?.Invoke();
+                    var png = SquadPng?.Invoke(req.QueryString["demo"] == "1");
                     if (png == null)
                     {
                         await Text(res, 404, "text/plain", "Not found");
                         return;
                     }
                     res.ContentType = "image/png";
-                    res.Headers["Cache-Control"] = "private, max-age=600"; // the page asks /squad.png?v=<what is drawn>
+                    res.Headers["Cache-Control"] = "private, max-age=600"; // the page asks /squad.png?v=<what is drawn> (demo=1: an example squad)
                     res.ContentLength64 = png.Length;
                     await res.OutputStream.WriteAsync(png);
                     res.Close();

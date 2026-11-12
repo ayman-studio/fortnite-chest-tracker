@@ -946,24 +946,33 @@ function overlayDock() {
   </section>`;
 }
 
-// Home: the friends' squad overlay next to the main one (preview while in a squad, else a shortcut to the Friends tab)
+// Home: the friends' squad overlay next to the main one. Without a squad: an example picture and a shortcut to the
+// Friends tab (no settings, they are useless then); in a squad: its live preview and its settings.
 function friendsDock() {
   const F = S.friends;
   if (!F || !F.sharing || F.status === 'noprofile') return '';
   const ov = F.overlay;
   const sq = F.data?.squad;
   const inSquad = !!sq && sq.members.length > 1;
+  const pic = (src) => `<div class="dock-hud"><img class="hud-img mini" src="${src}" srcset="${src} 2x" alt="" draggable="false"></div>`;
+  if (!inSquad) {
+    return `<section class="ov-dock fr-dock">
+      ${pic(`/squad.png?demo=1&v=${esc(ov.demo)}`)}
+      <div class="dock-main">
+        <div class="dock-title">${icon('friends')}${esc(t('friendsDock'))}<span class="dot off"></span></div>
+        <p class="dock-text">${esc(t('friendsDockText'))}</p>
+        <button class="btn btn-sm btn-primary" data-nav="friends">${icon('users')}${esc(t('friendsDockGo'))}</button>
+      </div>
+    </section>`;
+  }
   const on = ov.enabled && (!ov.running || ov.visible);
   const sw = (id, checked, label, disabled) => `<label class="dock-sw"><span>${esc(label)}</span><span class="switch"><input type="checkbox" id="${id}" data-change="${id}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}><span></span></span></label>`;
   const seg = `<div class="seg" role="group" aria-label="${esc(t('squadPeriod'))}">${[['last', t('lbLast')], ['session', t('lbSession')]]
     .map(([k, label]) => `<button class="${ov.period === k ? 'on' : ''}" data-sqperiod="${k}">${esc(label)}</button>`).join('')}</div>`;
-  const preview = inSquad && ov.enabled
-    ? `<div class="dock-hud"><img class="hud-img mini" src="/squad.png?v=${esc(ov.hud)}" srcset="/squad.png?v=${esc(ov.hud)} 2x" alt="" draggable="false"></div>`
-    : `<button class="dock-empty" data-nav="friends"><span class="skins">${(F.data?.friends || []).slice(0, 3).map((f) => skinBox(f.skin, f.name, 'xs')).join('') || icon('friends')}</span><span>${esc(t(inSquad ? 'squadOverlayOff' : 'squadNone'))}</span></button>`;
   return `<section class="ov-dock fr-dock">
-    ${preview}
+    ${ov.enabled ? pic(`/squad.png?v=${esc(ov.hud)}`) : pic(`/squad.png?demo=1&v=${esc(ov.demo)}`)}
     <div class="dock-main">
-      <div class="dock-title">${icon('friends')}${esc(t('friendsDock'))}<span class="dot ${inSquad && on ? '' : 'off'}"></span></div>
+      <div class="dock-title">${icon('friends')}${esc(t('friendsDock'))}<span class="dot ${on ? '' : 'off'}"></span></div>
       <div class="dock-sws">${sw('sq-overlay', ov.enabled, t('overlayShowShort2'))}${sw('sq-locked', ov.locked, t('overlayLockShort'), !ov.running)}</div>
       <div class="dock-style">${seg}</div>
     </div>

@@ -386,12 +386,9 @@ input:focus, select:focus { outline: none; border-color: var(--lime); }
 .ov-dock .kbd { height: 22px; font-size: 11px; padding: 0 7px; }
 .app.anim .ov-dock { animation: fadeUp .45s var(--ease) .2s both; }
 .app.anim .fr-dock { animation-delay: .3s; }
-.fr-dock .dock-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 150px; height: 100px; padding: 8px;
-  border: 1px dashed var(--line-2, var(--line)); border-radius: 12px; background: rgba(4, 14, 52, .35); color: var(--text-2); font: 600 12px var(--font); text-align: center; cursor: pointer; }
-.fr-dock .dock-empty:hover { border-color: var(--lime); color: var(--text); }
-.fr-dock .dock-empty .skins { display: flex; gap: 4px; }
-.fr-dock .dock-empty .skins > svg { width: 26px; height: 26px; color: var(--lime); }
-@media (max-height: 900px), (max-width: 1100px) { .ov-dock .dock-hud, .ov-dock .dock-keys, .fr-dock .dock-empty { display: none; } }
+.fr-dock .dock-text { max-width: 230px; margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--text-2); }
+.fr-dock .btn { align-self: flex-start; }
+@media (max-height: 900px), (max-width: 1100px) { .ov-dock .dock-hud, .ov-dock .dock-keys { display: none; } }
 
 /* ---- Home: three numbers over the dig ------------------------------------------------------- */
 .home-page { grid-template-rows: auto minmax(0, 1fr) auto; }

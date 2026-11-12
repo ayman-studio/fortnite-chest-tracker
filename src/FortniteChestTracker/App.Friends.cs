@@ -20,6 +20,31 @@ public sealed partial class App
     private readonly HashSet<string> _dismissedSuggestions = new();
     private string? _squadOverlayFor;         // squad id the squad overlay was shown for
     private int _friendsFailures;
+    private volatile SquadView _squadDemo = SquadView.Empty; // example shown on the home page without a squad
+
+    // Outfits of the example when the player has no friends yet (Epic's default outfits).
+    private static readonly string[] DemoSkins = { "CID_A_273_Athena_Commando_F_Prime_B", "CID_A_275_Athena_Commando_F_Prime_D", "CID_A_274_Athena_Commando_F_Prime_C" };
+
+    /// <summary>An example squad: the player and up to two friends (or example names), with example chests.</summary>
+    private SquadView SquadDemo(FriendsClient.Identity? me)
+    {
+        var friends = Items(_friends, "friends").Take(2).Select(f => (Name: Str(f, "name") ?? "?", Skin: Str(f, "skin"))).ToList();
+        for (var i = friends.Count; i < 2; i++)
+        {
+            friends.Add((L.T($"Ami {i + 1}", $"Friend {i + 1}", $"Amigo {i + 1}"), DemoSkins[i]));
+        }
+        var members = new List<SquadMember>
+        {
+            new(friends[0].Name, friends[0].Skin, 42, false, false),
+            new(me?.Name ?? L.T("Toi", "You", "Tú"), me?.Skin ?? DemoSkins[2], 35, false, true),
+            new(friends[1].Name, friends[1].Skin, null, true, false),
+        };
+        foreach (var m in members)
+        {
+            SkinCache.Want(m.Skin);
+        }
+        return new SquadView("last", members);
+    }
 
     private sealed record SquadSuggestion(string Sid, long Since, DateTime Until, List<(string Id, string Name)> Friends);
 
@@ -569,12 +594,14 @@ public sealed partial class App
         var view = Profiles.View(_data, _config);
         var status = !_config.FriendsSharing ? "off" : me == null ? "noprofile" : _friends == null && _friendsStatus == "ok" ? "connecting" : _friendsStatus;
         var squadView = SquadOverlay.View;
+        _squadDemo = SquadDemo(me);
         return new UiFriends(_config.FriendsSharing, status, me?.Id, me?.Name, me?.Skin, _friends,
             me != null ? FriendsSummary(view) : null,
             _squadSuggestion is { } s && s.Until > DateTime.UtcNow ? new UiSquadSuggestion(s.Sid, s.Friends.Select(f => f.Name).ToList()) : null,
             new UiSquadOverlay(_config.ShowSquadOverlay, SquadOverlay.IsRunning, SquadOverlay.IsVisible,
                 SquadOverlay.IsRunning ? SquadOverlay.IsLocked : _config.SquadOverlayLocked, _config.SquadOverlayPeriod,
-                Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(squadView.Key)), 0, 6)),
+                Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(squadView.Key)), 0, 6),
+                Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(System.Text.Encoding.UTF8.GetBytes(_squadDemo.Key)), 0, 6)),
             SkinCache.Version, me?.Key, FriendsClient.BaseUrl);
     }
 
