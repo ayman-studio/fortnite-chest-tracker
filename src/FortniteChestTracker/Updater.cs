@@ -12,8 +12,10 @@ public sealed record UpdateInfo(Version Version, string Tag, string AssetUrl, lo
 /// </summary>
 public static class Updater
 {
-    private static string ApiUrl => Environment.GetEnvironmentVariable("FCT_UPDATE_API")
-        ?? $"https://api.github.com/repos/{AppInfo.UpdateRepo}/releases/latest";
+    // FCT_UPDATE_API (tests) only counts in a local build: a published exe always asks its own repository.
+    private static string? TestApi => AppInfo.UpdatesAvailable ? null : Environment.GetEnvironmentVariable("FCT_UPDATE_API");
+
+    private static string ApiUrl => TestApi ?? $"https://api.github.com/repos/{AppInfo.UpdateRepo}/releases/latest";
 
     private static HttpClient NewClient(TimeSpan timeout)
     {
@@ -29,7 +31,7 @@ public static class Updater
     /// </summary>
     public static async Task<(UpdateInfo? Update, bool Reached)> CheckDetailedAsync()
     {
-        if (!AppInfo.UpdatesAvailable && Environment.GetEnvironmentVariable("FCT_UPDATE_API") == null)
+        if (!AppInfo.UpdatesAvailable && TestApi == null)
         {
             return (null, false); // local build: no repository to update from
         }

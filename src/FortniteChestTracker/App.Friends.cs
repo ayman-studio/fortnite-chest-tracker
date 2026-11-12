@@ -21,6 +21,30 @@ public sealed partial class App
     private string? _squadOverlayFor;         // squad id the squad overlay was shown for
     private int _friendsFailures;
     private FriendsLive? _live;               // doorbell of the server (sync as soon as something changed)
+    private string? _pendingInvite;           // Epic name from an invite link, waiting for the player's click
+    private EventWaitHandle? _inviteSignal;
+
+    /// <summary>The name left by a second launch from an invite link (see <see cref="Invite"/>).</summary>
+    private void TakePendingInvite()
+    {
+        var file = Invite.PendingFile(_store.Folder);
+        try
+        {
+            if (File.Exists(file))
+            {
+                var name = Invite.CleanName(File.ReadAllText(file));
+                File.Delete(file);
+                if (name != null)
+                {
+                    _pendingInvite = name;
+                }
+            }
+        }
+        catch
+        {
+            // unreadable: no invite
+        }
+    }
     private volatile SquadView _squadDemo = SquadView.Empty; // example shown on the home page without a squad
 
     // Outfits of the example when the player has no friends yet (Epic's default outfits).
@@ -236,6 +260,13 @@ public sealed partial class App
         var before = _friends;
         _friends = state;
         _friendsStatus = "ok";
+        foreach (var list in new[] { "friends", "incoming", "outgoing", "suggest", "invites" })
+        {
+            foreach (var p in Items(state, list))
+            {
+                SkinCache.Want(Str(p, "skin") ?? (p.TryGetProperty("from", out var from) ? Str(from, "skin") : null));
+            }
+        }
 
         var incomingBefore = Ids(before, "incoming");
         foreach (var p in Items(state, "incoming").Where(p => !incomingBefore.Contains(Str(p, "id") ?? "")))
@@ -614,6 +645,10 @@ public sealed partial class App
             var outcome = CommandResult.Done;
             if (result?.State is { } state)
             {
+                if (name == "friends/add" && string.Equals(Str(args, "name")?.Trim(), _pendingInvite, StringComparison.OrdinalIgnoreCase))
+                {
+                    _pendingInvite = null;
+                }
                 ApplyFriends(state);
                 _nextFriendsSync = DateTime.UtcNow.AddSeconds(NextFriendsDelay());
             }
@@ -737,7 +772,10 @@ public sealed partial class App
                 Opacity = _config.SquadOverlayOpacity,
                 ObsPath = _store.SquadOverlayPath,
             },
-            SkinCache.Version, me?.Key, FriendsClient.BaseUrl);
+            SkinCache.Version, null, FriendsClient.BaseUrl) // the key is only given by the "friends/key" command
+        {
+            Invite = _pendingInvite,
+        };
     }
 
     private void FriendsNotices(List<UiNotice> list)

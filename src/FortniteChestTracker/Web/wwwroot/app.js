@@ -36,7 +36,7 @@ const ui = {
   prevTotal: null,
   lbPeriod: ['last', 'session', 'season'].includes(localStorage.getItem('fct-lb')) ? localStorage.getItem('fct-lb') : 'session', // friends leaderboard
   friendOpen: null,     // friend whose details are open
-  invite: null,         // Epic name from an invite link (#ami=<name>), asked once the state is there
+  inviteSeen: null,     // invite (from a fctracker:// link) already brought to the front
   frSub: localStorage.getItem('fct-frsub') === 'squadov' ? 'squadov' : 'friends', // section of the Friends tab
 };
 
@@ -160,6 +160,8 @@ const ICONS = {
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
 };
 const icon = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+// Commands a button or a notice may run by itself (data-cmd, notices of the counter); everything else goes through code.
+const SAFE_CMDS = new Set(['scan', 'update/check', 'update/install', 'keep-open', 'squad/suggest', 'squad/join-latest', 'friends/notice-ok']);
 const button = (label, attrs = '', cls = '') => `<button class="btn ${cls}" ${attrs}>${label}</button>`;
 
 async function cmd(name, args) {
@@ -848,7 +850,7 @@ function squadCard(F, D) {
   const ov = F.overlay;
   const seg = `<div class="seg" role="group" aria-label="${esc(t('squadPeriod'))}">${[['last', t('lbLast')], ['session', t('lbSession')]]
     .map(([k, label]) => `<button class="${ov.period === k ? 'on' : ''}" data-sqperiod="${k}">${esc(label)}</button>`).join('')}</div>`;
-  const invites = D.invites.map((i) => `<div class="list-row">${skinBox(i.from.skin, i.from.name, 'sm')}<div class="main-t"><b>${esc(t('squadInviteFrom', i.from.name))}</b><span>${esc(i.members.length ? t('squadWith', i.members.join(', ')) : ago(i.at))}</span></div>
+  const invites = D.invites.map((i) => `<div class="list-row">${skinBox(i.from.skin, i.from.name, 'sm')}<div class="main-t"><b>${esc(t('squadInviteFrom', i.from.name))}</b><span>${esc(Array.isArray(i.members) && i.members.length ? t('squadWith', i.members.map(String).join(', ')) : ago(i.at))}</span></div>
     ${button(esc(t('join')), `data-sq="answer" data-squad="${esc(i.squad)}" data-accept="1"`, 'btn-sm btn-primary')}${button(esc(t('decline')), `data-sq="answer" data-squad="${esc(i.squad)}" data-accept="0"`, 'btn-sm btn-ghost')}</div>`).join('');
 
   if (!sq) {
@@ -877,12 +879,12 @@ function squadCard(F, D) {
 }
 
 function friendDetail(f) {
-  const s = f.summary || {};
-  const season = s.season || {};
-  const odds = s.odds || {};
+  const s = f.summary && typeof f.summary === 'object' ? f.summary : {};
+  const season = s.season && typeof s.season === 'object' ? s.season : {};
+  const odds = s.odds && typeof s.odds === 'object' ? s.odds : {};
   const goal = huntTarget(S.hunt);
   const key = goal && odds[goal.key] != null ? goal.key : 'odds_pirate';
-  const treasures = s.treasures || [];
+  const treasures = Array.isArray(s.treasures) ? s.treasures.filter((x) => x && typeof x === 'object') : [];
   const last = f.last || s.last;
   const stat = (label, value) => `<div><span>${esc(label)}</span><b>${esc(value)}</b></div>`;
   return `<div class="fr-detail">
@@ -895,7 +897,9 @@ function friendDetail(f) {
 function friendsSide(F, D) {
   const inviteUrl = F.meName ? `https://${S.app.site || 'fortnite-chest-tracker.com'}/ami/${encodeURIComponent(F.meName)}` : '';
   const invite = inviteUrl ? `<div class="fr-invite"><span>${esc(t('inviteLink'))}</span><div class="row"><input type="text" id="fr-invite" readonly value="${esc(inviteUrl)}">${button(`${icon('copy')}${esc(t('copy'))}`, 'data-copy="fr-invite"', 'btn-sm')}</div></div>` : '';
-  const add = `${invite}<div class="row fr-add"><input type="text" id="friend-name" data-draft value="${esc(draft('friend-name'))}" placeholder="${esc(t('frAddPlaceholder'))}" maxlength="40" data-enter="friend-add" autocomplete="off">
+  const pending = F.invite ? `<div class="fr-pending"><span>${esc(t('inviteFrom', F.invite))}</span><div class="row">
+      ${button(`${icon('users')}${esc(t('inviteAdd', F.invite))}`, `data-act="friend-invite-add"`, 'btn-sm btn-primary')}${button(esc(t('decline')), 'data-act="friend-invite-clear"', 'btn-sm btn-ghost')}</div></div>` : '';
+  const add = `${pending}${invite}<div class="row fr-add"><input type="text" id="friend-name" data-draft value="${esc(draft('friend-name'))}" placeholder="${esc(t('frAddPlaceholder'))}" maxlength="40" data-enter="friend-add" autocomplete="off">
     ${button(esc(t('frAdd')), 'id="friend-add" data-act="friend-add"', 'btn-sm btn-primary')}</div>`;
   const section = (title, html) => (html ? `<div class="section-title">${esc(title)}</div>${html}` : '');
   const incoming = D.incoming.map((p) => `<div class="list-row">${skinBox(p.skin, p.name, 'sm')}<div class="main-t"><b>${esc(p.name)}</b><span>${esc(t('frWants'))}</span></div>
@@ -912,7 +916,7 @@ function friendsSide(F, D) {
   const status = F.status === 'offline' ? `<p class="ko small">${esc(t('frOffline'))}</p>` : F.status === 'taken' ? `<p class="ko small">${esc(t('frTaken'))}</p>` : '';
   const link = `<details class="fr-link"${F.status === 'taken' ? ' open' : ''}><summary>${icon('key')}${esc(t('frLinkTitle'))}</summary>
     <p class="faint small">${esc(t('frLinkText'))}</p>
-    <div class="row"><input type="text" id="fr-key" readonly value="${esc(F.key || '')}" style="flex:1;font-size:11px">${button(`${icon('copy')}${esc(t('copy'))}`, 'data-copy="fr-key"', 'btn-sm')}</div>
+    <div class="row"><input type="text" id="fr-key" readonly value="${esc(ui.friendKey || '')}" placeholder="••••••••••••••••" style="flex:1;font-size:11px">${ui.friendKey ? button(`${icon('copy')}${esc(t('copy'))}`, 'data-copy="fr-key"', 'btn-sm') : button(esc(t('frKeyShow')), 'data-act="friend-key"', 'btn-sm')}</div>
     <div class="row" style="margin-top:8px"><input type="text" id="fr-key-new" data-draft value="${esc(draft('fr-key-new'))}" placeholder="${esc(t('frLinkPaste'))}" style="flex:1;font-size:11px" autocomplete="off">${button(esc(t('frLinkSave')), 'data-act="friend-link"', 'btn-sm')}</div></details>`;
   const share = `<div class="setting fr-set"><div class="what"><b>${esc(t('frSharing'))}</b><span>${esc(t('frSharingHint'))}</span></div><label class="switch"><input type="checkbox" id="fr-sharing" data-change="fr-sharing" checked><span></span></label></div>`;
   const body = `<div class="fr-side">${status}${add}${section(t('frRequests'), incoming)}${section(t('frSuggest'), suggest)}
@@ -1656,6 +1660,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (el.dataset.cmd) {
+    if (!SAFE_CMDS.has(el.dataset.cmd)) return;
     el.disabled = true;
     await cmd(el.dataset.cmd);
     el.disabled = false;
@@ -1667,7 +1672,7 @@ document.addEventListener('click', async (e) => {
     if (a === 'ui:settings') go('settings');
     else if (a === 'ui:friends') go('friends');
     else if (a === 'ui:profile') { const p = $('#profile'); if (p) { p.focus(); try { p.showPicker(); } catch { /* not allowed */ } } }
-    else cmd(a);
+    else if (SAFE_CMDS.has(a)) cmd(a);
     return;
   }
   if (el.dataset.copy) {
@@ -1753,6 +1758,21 @@ document.addEventListener('click', async (e) => {
       break;
     }
     case 'friends-on': await cmd('friends/settings', { sharing: true }); break;
+    case 'friend-key': {
+      const r = await cmd('friends/key');
+      if (r.ok && r.data) { ui.friendKey = r.data; render(); }
+      break;
+    }
+    case 'friend-invite-add': {
+      const name = S.friends?.invite;
+      if (!name) break;
+      el.disabled = true;
+      const r = await cmd('friends/add', { name });
+      el.disabled = false;
+      if (r.ok) toast('success', t('frRequestSent'));
+      break;
+    }
+    case 'friend-invite-clear': await cmd('friends/invite-clear'); break;
     case 'squad-invite': {
       const who = $('#sq-invite-who')?.value;
       if (who) { const r = await cmd('squad/invite', { target: who }); if (r.ok) toast('success', t('squadInviteSent')); }
@@ -1858,26 +1878,15 @@ function newActivity(state) {
   ui.lastActivity = Math.max(ui.lastActivity, last);
 }
 
-// Opened from a friend's invite link (fctracker://ami/<name> → #ami=<name>): Friends tab, request ready, the player confirms.
-function takeInvite() {
-  const m = location.hash.match(/^#ami=(.+)$/);
-  if (!m) return;
-  try { ui.invite = decodeURIComponent(m[1]).slice(0, 40); } catch { ui.invite = null; }
-  history.replaceState(null, '', location.pathname + location.search);
-  if (ui.invite) { ui.page = 'friends'; ui.frSub = 'friends'; ui.draft['friend-name'] = ui.invite; }
-}
-takeInvite();
-window.addEventListener('hashchange', () => { takeInvite(); if (S) { render(); askInvite(); } });
-
-async function askInvite() {
-  const name = ui.invite;
-  if (!name || !S?.friends || S.setup) return;
-  if (S.friends.status !== 'ok') return; // asked once the counter knows the player (or never if sharing is off)
-  ui.invite = null;
-  if (S.friends.data?.friends.some((f) => f.name.toLowerCase() === name.toLowerCase())) { toast('info', t('inviteAlready', name)); return; }
-  if (!confirm(t('inviteConfirm', name))) return;
-  const r = await cmd('friends/add', { name });
-  if (r.ok) { delete ui.draft['friend-name']; toast('success', t('frRequestSent')); render(); }
+// A friend's invite link (fctracker://ami/<name>) was opened: the counter keeps the name and the Friends tab shows it
+// with an "Add" button. Nothing is sent without that click (the page address is never trusted for this).
+function showInvite() {
+  const name = S?.friends?.invite;
+  if (!name || name === ui.inviteSeen || S.setup) return;
+  ui.inviteSeen = name;
+  if (ui.page !== 'friends') ui.animate = true;
+  ui.page = 'friends';
+  ui.frSub = 'friends';
 }
 
 async function onState(state) {
@@ -1891,7 +1900,7 @@ async function onState(state) {
   }
   if (textsLang !== S.app.lang) await loadTexts(S.app.lang);
   newActivity(state);
-  setTimeout(askInvite, 0);
+  showInvite();
   // A push while a button is pressed or a list is open would replace them under the mouse (lost click, list closed):
   // the page is redrawn just after instead.
   if (ui.pressing || ui.selectOpen) { ui.renderLater = true; return; }

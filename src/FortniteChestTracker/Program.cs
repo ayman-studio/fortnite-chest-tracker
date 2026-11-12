@@ -19,6 +19,8 @@ AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 };
 
 // ---- Arguments ---------------------------------------------------------------------------
+// Opened from an invite link: the link only (a crafted link cannot add --data, --uninstall…).
+args = Invite.Sanitize(args);
 string? dataArg = null;      // --data <folder>: another data folder (development, tests)
 string? previewPath = null;  // --overlay-preview <file.png>: development, saves pictures of the overlay and quits
 var auto = false;            // --auto: opened by the standby when Fortnite started (no page opened, closes after Fortnite)
@@ -81,10 +83,19 @@ if (previewPath == null && !AcquireInstance(instance, afterUpdate ? TimeSpan.Fro
     try { url = File.ReadAllText(App.UrlFile(store)).Trim(); } catch { }
     if (url != null && url.StartsWith("http://127.0.0.1:", StringComparison.Ordinal))
     {
-        // From a friend's invite link (fctracker://ami/<name>): the Friends tab with the request ready.
+        // From a friend's invite link (fctracker://ami/<name>): the running counter shows the request in its Friends tab.
         if (Invite.NameFromArgs(args) is { } invited)
         {
-            url += Invite.Fragment(invited);
+            try
+            {
+                File.WriteAllText(Invite.PendingFile(store.Folder), invited);
+                using var signal = EventWaitHandle.OpenExisting(Invite.SignalName(dataDir));
+                signal.Set();
+            }
+            catch
+            {
+                // an older counter without the signal: the name is read at its next start
+            }
         }
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true })?.Dispose(); } catch { }
     }

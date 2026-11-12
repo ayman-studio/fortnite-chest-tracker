@@ -16,8 +16,9 @@ public static class FriendsClient
     private static readonly Regex EpicId = new("^[0-9a-fA-F]{32}$", RegexOptions.Compiled);
     private static readonly HttpClient Http = CreateClient();
 
-    /// <summary>The website (FCT_FRIENDS_URL replaces it, e.g. http://127.0.0.1:8787 for a local test server).</summary>
-    public static string BaseUrl { get; } = Environment.GetEnvironmentVariable("FCT_FRIENDS_URL") is { Length: > 0 } url
+    /// <summary>The website. FCT_FRIENDS_URL replaces it (e.g. http://127.0.0.1:8787, a local test server) only in a local
+    /// build: a published exe never sends its key anywhere else.</summary>
+    public static string BaseUrl { get; } = !AppInfo.UpdatesAvailable && Environment.GetEnvironmentVariable("FCT_FRIENDS_URL") is { Length: > 0 } url
         ? url.TrimEnd('/')
         : "https://" + AppInfo.SiteName;
 

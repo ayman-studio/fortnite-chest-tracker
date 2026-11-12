@@ -817,6 +817,8 @@ label.btn { cursor: url("/cursors/hand.png") 8 2, pointer; }
 .board-val.none { color: var(--text-3); }
 .fr-add input { flex: 1; min-width: 0; }
 .fr-invite { margin-bottom: 12px; }
+.fr-pending { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; padding: 12px; border-radius: 12px; background: rgba(198, 255, 61, .1); border: 1px solid rgba(198, 255, 61, .35); }
+.fr-pending > span { font-size: 13px; font-weight: 600; color: var(--text); }
 .fr-invite > span { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
 .fr-invite input { flex: 1; min-width: 0; font-size: 12px; }
 .fr-item { border-bottom: 1px solid var(--line); }

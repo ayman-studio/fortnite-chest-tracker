@@ -91,3 +91,25 @@ ok(s2.status === 404, 'bad skin id refused');
   for (let i = 0; i < 35 && !busy; i++) busy = (await call(E, 'friend/add', { name: 'nobody' + i })).status === 429;
   ok(busy, 'limit: name lookups per player');
 }
+
+// ---- hardening: names, summaries, body size
+{
+  const G = { id: '9'.repeat(31) + 'a', key: 'a'.repeat(64), name: 'Evil‮gnirts\u0007  Name' };
+  let r = await call(G, 'sync', { summary: { season: { chests: 5, matches: 2, extra: 'x' }, odds: { odds_pirate: 2, '<b>': 1 }, treasures: [{ n: '<img src=x onerror=alert(1)>', g: true, t: 1, z: 9 }], script: 'nope' } });
+  const H = { id: '9'.repeat(31) + 'b', key: 'b'.repeat(64), name: 'Viewer' };
+  await call(H, 'sync', {});
+  await call(H, 'friend/add', { target: G.id });
+  r = await call(G, 'friend/answer', { target: H.id, accept: true });
+  r = await call(H, 'sync', {});
+  const g = r.friends.find((f) => f.id === G.id);
+  ok(g && g.name === 'Evilgnirts Name', 'name cleaned of direction/control characters');
+  ok(g && g.summary.script === undefined && g.summary.season.extra === undefined, 'summary: unknown fields dropped');
+  ok(g && g.summary.odds.odds_pirate === 1 && g.summary.odds['<b>'] === undefined, 'summary: odds clamped, odd keys dropped');
+  ok(g && g.summary.treasures[0].z === undefined && typeof g.summary.treasures[0].n === 'string', 'summary: treasures rebuilt');
+  const big = 'x'.repeat(70 * 1024);
+  const r1 = await fetch(`${B}/api/friends/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: H.id, key: H.key, pad: big }) });
+  ok(r1.status === 413, 'body over 64 KB refused');
+  const stream = new ReadableStream({ start(c) { for (let i = 0; i < 80; i++) c.enqueue(new TextEncoder().encode('y'.repeat(1024))); c.close(); } });
+  const r2 = await fetch(`${B}/api/friends/sync`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: stream, duplex: 'half' }).catch(() => ({ status: 'error' }));
+  ok(r2.status === 413, 'chunked body over 64 KB refused');
+}

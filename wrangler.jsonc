@@ -19,5 +19,11 @@
   "observability": { "enabled": false },
   // Friends and squads of the app (worker/friends.js): one Durable Object with its own SQLite database, created on deploy.
   "durable_objects": { "bindings": [{ "name": "HUB", "class_name": "FriendsHub" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["FriendsHub"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["FriendsHub"] }],
+  // Requests per IP and per minute, counted by Cloudflare at the edge (the hub keeps its own finer limits too)
+  "ratelimits": [
+    { "name": "LIMIT_FRIENDS", "namespace_id": "1001", "simple": { "limit": 300, "period": 60 } },
+    { "name": "LIMIT_ESTIMATE", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
+    { "name": "LIMIT_SKINS", "namespace_id": "1003", "simple": { "limit": 120, "period": 60 } }
+  ]
 }

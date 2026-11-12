@@ -189,6 +189,36 @@ public sealed class WebServerTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
     }
 
+    [Theory]
+    [InlineData("cross-site")]
+    [InlineData("same-site")]
+    public async Task Requests_from_another_website_are_refused(string site)
+    {
+        // Even a picture or the state: another website must not learn anything from the counter
+        foreach (var path in new[] { "", "api/state", "img/favicon.ico", "squad.png" })
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, _server.Url + path);
+            req.Headers.Add("Sec-Fetch-Site", site);
+            var res = await _http.SendAsync(req, TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+        }
+        var cmd = Cmd("scan", _server.Token);
+        cmd.Headers.Add("Sec-Fetch-Site", site);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _http.SendAsync(cmd, TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Empty(_commands);
+    }
+
+    [Fact]
+    public async Task Own_page_and_typed_address_are_served()
+    {
+        foreach (var site in new[] { "same-origin", "none" })
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, _server.Url + "api/state");
+            req.Headers.Add("Sec-Fetch-Site", site);
+            Assert.Equal(HttpStatusCode.OK, (await _http.SendAsync(req, TestContext.Current.CancellationToken)).StatusCode);
+        }
+    }
+
     [Fact]
     public async Task Bad_json_is_refused()
     {

@@ -26,9 +26,9 @@ const matchesOf = (body) => {
   return Number.isFinite(n) ? n : null;
 };
 
-async function estimate(url, env, ctx) {
+async function estimate(url, env, ctx, ip) {
   const name = (url.searchParams.get('name') || '').trim();
-  if (name.length < 3 || name.length > 32) return reply(400, { error: 'name' });
+  if (name.length < 3 || name.length > 32 || /[\p{C}]/u.test(name)) return reply(400, { error: 'name' });
   if (!env.FORTNITE_API_KEY) return reply(503, { error: 'not_configured' });
 
   const cacheKey = new Request(`https://cache.fortnite-chest-tracker.com/estimate/${encodeURIComponent(name.toLowerCase())}`);
@@ -36,6 +36,8 @@ async function estimate(url, env, ctx) {
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
 
+  // Only lookups that reach fortnite-api.com count (the cached ones are free): the site key is not a public proxy
+  if (env.LIMIT_ESTIMATE && !(await env.LIMIT_ESTIMATE.limit({ key: ip })).success) return reply(429, { error: 'busy' });
   const [season, lifetime] = await Promise.all([stats(name, 'season', env.FORTNITE_API_KEY), stats(name, 'lifetime', env.FORTNITE_API_KEY)]);
   let res;
   if (season.status === 200 || lifetime.status === 200) {
@@ -58,7 +60,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/api/estimate' && request.method === 'GET') {
       try {
-        return await estimate(url, env, ctx);
+        return await estimate(url, env, ctx, request.headers.get('cf-connecting-ip') || '?');
       } catch {
         return reply(502, { error: 'unavailable' });
       }
@@ -70,7 +72,7 @@ export default {
         return reply(502, { error: 'unavailable' });
       }
     }
-    if (url.pathname.startsWith('/api/skin/') && request.method === 'GET') return skin(url, ctx);
+    if (url.pathname.startsWith('/api/skin/') && request.method === 'GET') return skin(url, ctx, env, request.headers.get('cf-connecting-ip') || '?');
     if (url.pathname.startsWith('/ami/') && request.method === 'GET') {
       // A friend's invite link (/ami/<Epic name>): one page for every name, it reads the name from the address.
       const page = await env.ASSETS.fetch(new Request(new URL('/ami', url), request));

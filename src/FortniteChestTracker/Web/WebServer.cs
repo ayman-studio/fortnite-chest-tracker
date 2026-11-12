@@ -55,6 +55,27 @@ public sealed class WebServer : IDisposable
 
     private const int MaxImport = 64 * 1024 * 1024;
 
+    /// <summary>Pages following the state at the same time (a few tabs); more are refused.</summary>
+    private const int MaxPages = 12;
+
+    /// <summary>The body as text, or null when it is longer than <paramref name="max"/> characters.</summary>
+    private static async Task<string?> ReadBounded(Stream input, int max)
+    {
+        using var reader = new StreamReader(input, Encoding.UTF8);
+        var sb = new StringBuilder();
+        var buffer = new char[64 * 1024];
+        int n;
+        while ((n = await reader.ReadAsync(buffer)) > 0)
+        {
+            sb.Append(buffer, 0, n);
+            if (sb.Length > max)
+            {
+                return null;
+            }
+        }
+        return sb.ToString();
+    }
+
     public string Token { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
 
     /// <param name="state">Latest state (version + JSON), read from any thread.</param>
@@ -139,6 +160,13 @@ public sealed class WebServer : IDisposable
         return host == $"127.0.0.1:{Port}" || host == $"localhost:{Port}";
     }
 
+    /// <summary>
+    /// Sent by a page of another website (browsers say where a request comes from: "cross-site" / "same-site"). The
+    /// counter's own page sends "same-origin", and opening it from Windows or by typing the address sends "none".
+    /// </summary>
+    internal static bool FromAnotherSite(HttpListenerRequest req) =>
+        req.Headers["Sec-Fetch-Site"] is "cross-site" or "same-site";
+
     private bool OriginAllowed(HttpListenerRequest req)
     {
         var origin = req.Headers["Origin"];
@@ -153,7 +181,10 @@ public sealed class WebServer : IDisposable
         {
             res.Headers["X-Content-Type-Options"] = "nosniff";
             res.Headers["Referrer-Policy"] = "no-referrer";
-            if (!HostAllowed(req))
+            // No other website may read or embed anything of the counter, even a picture
+            res.Headers["Cross-Origin-Resource-Policy"] = "same-origin";
+            res.Headers["Cross-Origin-Opener-Policy"] = "same-origin";
+            if (!HostAllowed(req) || FromAnotherSite(req))
             {
                 await Text(res, 403, "text/plain", "Forbidden");
                 return;
@@ -165,7 +196,7 @@ public sealed class WebServer : IDisposable
                 case ("GET", "/index.html"):
                 {
                     var html = Asset("index.html")?.Replace("{{TOKEN}}", Token).Replace("{{VERSION}}", AppInfo.VersionText);
-                    res.Headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' blob:; frame-ancestors 'none'";
+                    res.Headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'";
                     res.Headers["X-Frame-Options"] = "DENY";
                     await Text(res, html != null ? 200 : 500, "text/html; charset=utf-8", html ?? "Missing interface");
                     return;
@@ -360,8 +391,12 @@ public sealed class WebServer : IDisposable
                         await Json(res, 413, CommandResult.Fail("too large"));
                         return;
                     }
-                    using var reader = new StreamReader(req.InputStream, Encoding.UTF8);
-                    var body = await reader.ReadToEndAsync();
+                    var body = await ReadBounded(req.InputStream, MaxImport);
+                    if (body == null)
+                    {
+                        await Json(res, 413, CommandResult.Fail("too large"));
+                        return;
+                    }
                     await Json(res, 200, await ImportData(body));
                     return;
                 }
@@ -445,6 +480,12 @@ public sealed class WebServer : IDisposable
         var signal = new SemaphoreSlim(0);
         lock (_clients)
         {
+            if (_clients.Count >= MaxPages)
+            {
+                res.StatusCode = 503; // more open pages than anyone uses: not served
+                res.Close();
+                return;
+            }
             _clients.Add(signal);
         }
         try

@@ -10,6 +10,11 @@
 // Live: each app keeps a WebSocket open (/api/friends/live, hibernated: free while idle). It only carries a doorbell:
 // "changed" when something the player sees changed (a friend's match, a request, the squad); the app then syncs.
 // Limits per IP and per player (requests, name lookups, new accounts) keep scripts from abusing the hub.
+//
+// Names: an app could claim any name, so names are checked with the public Fortnite stats (fortnite-api.com, the
+// FORTNITE_API_KEY secret): when the account's stats are public its real name replaces the one sent and the player is
+// "verified"; a friend request by name goes to the Epic account that really has that name. Names are cleaned (no
+// control or direction characters) and the summaries friends see are rebuilt field by field (no free-form data).
 
 import { DurableObject } from 'cloudflare:workers';
 
@@ -36,6 +41,51 @@ const LIMITS = {
 };
 
 const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+// A display name: no control, format or direction characters (they could disguise a name), single spaces, 40 max.
+const cleanName = (v) => (typeof v === 'string' ? v.replace(/[\p{C}\p{Zl}\p{Zp}]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 40) : '');
+const num = (v, min, max) => (Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : undefined);
+
+// What friends see of a player, rebuilt from known fields only (the app's summary, see FriendsSummary in the app).
+function cleanSummary(s) {
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
+  const counts = (o) => (o && typeof o === 'object' ? { chests: num(o.chests, 0, 1e7), matches: num(o.matches, 0, 1e6), best: num(o.best, 0, 1000) } : undefined);
+  const odds = {};
+  if (s.odds && typeof s.odds === 'object') {
+    for (const [k, v] of Object.entries(s.odds).slice(0, 16)) if (/^odds_[a-z]{2,20}$/.test(k) && Number.isFinite(v)) odds[k] = Math.min(1, Math.max(0, v));
+  }
+  const treasures = Array.isArray(s.treasures) ? s.treasures.slice(0, 20).filter((t) => t && typeof t === 'object')
+    .map((t) => ({ n: cleanName(String(t.n ?? '')).slice(0, 80) || '?', g: t.g === true, t: num(t.t, 0, 4e12) })) : [];
+  const last = s.last && typeof s.last === 'object'
+    ? { chests: num(s.last.chests, 0, 1000), ended: num(s.last.ended, 0, 4e12), dur: num(s.last.dur, 0, 7200), place: num(s.last.place, 1, 200) } : null;
+  return { v: 1, season: counts(s.season), session: counts(s.session), total: counts(s.total), odds, treasures, last };
+}
+
+// Public Fortnite stats of an account (by id or by name): its real id and name, null when private or unknown.
+const LOOKUPS = new Map();
+async function fortniteAccount(env, by, value) {
+  if (!env.FORTNITE_API_KEY) return { status: 'off' };
+  const cacheKey = by + ':' + value.toLowerCase();
+  const hit = LOOKUPS.get(cacheKey);
+  if (hit && Date.now() - hit.at < HOUR) return hit.r;
+  const url = by === 'id' ? `https://fortnite-api.com/v2/stats/br/v2/${encodeURIComponent(value)}`
+    : `https://fortnite-api.com/v2/stats/br/v2?name=${encodeURIComponent(value)}`;
+  let r;
+  try {
+    const res = await fetch(url, { headers: { Authorization: env.FORTNITE_API_KEY, 'User-Agent': 'fortnite-chest-tracker.com' }, signal: AbortSignal.timeout(5000) });
+    const body = await res.json().catch(() => null);
+    const acc = body?.data?.account;
+    r = res.status === 200 && typeof acc?.id === 'string' && EPIC_ID.test(acc.id.toLowerCase())
+      ? { status: 'found', id: acc.id.toLowerCase(), name: cleanName(acc.name) }
+      : { status: res.status === 404 ? 'none' : res.status === 403 ? 'private' : 'error' };
+  } catch {
+    r = { status: 'error' };
+  }
+  if (r.status !== 'error') {
+    if (LOOKUPS.size > 5000) LOOKUPS.clear();
+    LOOKUPS.set(cacheKey, { at: Date.now(), r });
+  }
+  return r;
+}
 const int = (v, min, max) => (Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : null);
 const skinOf = (v) => (typeof v === 'string' && SKIN.test(v) ? v : null);
 
@@ -76,6 +126,10 @@ export class FriendsHub extends DurableObject {
       CREATE INDEX IF NOT EXISTS members_squad ON members(squad);
       CREATE TABLE IF NOT EXISTS invites (squad TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (squad, to_id));
     `);
+    // 1 = the name was checked against the account's public Fortnite stats
+    if (!this.rows('PRAGMA table_info(players)').some((c) => c.name === 'verified')) {
+      this.sql.exec('ALTER TABLE players ADD COLUMN verified INTEGER NOT NULL DEFAULT 0');
+    }
   }
 
   rows(query, ...args) {
@@ -128,11 +182,11 @@ export class FriendsHub extends DurableObject {
       if (op === 'friend/add' && typeof body.target !== 'string') this.limit('lookup', me);
       this.cleanup();
       switch (op) {
-        case 'sync': this.sync(me, body); break;
-        case 'friend/add': this.addFriend(me, body); break;
-        case 'friend/answer': this.answerFriend(me, body); break;
-        case 'friend/remove': this.removeFriend(me, body); break;
-        case 'squad/invite': this.invite(me, body); break;
+        case 'sync': await this.sync(me, body); break;
+        case 'friend/add': await this.addFriend(me, body); break;
+        case 'friend/answer': await this.answerFriend(me, body); break;
+        case 'friend/remove': await this.removeFriend(me, body); break;
+        case 'squad/invite': await this.invite(me, body); break;
         case 'squad/answer': this.answerInvite(me, body); break;
         case 'squad/leave': this.leave(me); break;
         case 'forget': this.forget(me); this.ring(me); return reply(200, { ok: true });
@@ -157,13 +211,24 @@ export class FriendsHub extends DurableObject {
       if (player.key_hash !== hash) throw new Fail(409, 'taken');
       return id;
     }
-    const name = text(body.name, 40);
+    const name = cleanName(body.name);
     if (!mayRegister || !name) throw new Fail(401, 'unknown');
     this.limit('register', ip);
     const now = Date.now();
     this.sql.exec('INSERT INTO players (id, key_hash, name, name_lc, skin, seen, created) VALUES (?, ?, ?, ?, ?, ?, ?)',
       id, hash, name, name.toLowerCase(), skinOf(body.skin), now, now);
+    await this.checkName(id);
     return id;
+  }
+
+  // The real name of the account when its stats are public: replaces the one the app sent, and marks it verified.
+  async checkName(id) {
+    const acc = await fortniteAccount(this.env, 'id', id);
+    if (acc.status === 'found' && acc.id === id && acc.name) {
+      this.sql.exec('UPDATE players SET name = ?, name_lc = ?, verified = 1 WHERE id = ?', acc.name, acc.name.toLowerCase(), id);
+    } else if (acc.status === 'private' || acc.status === 'none') {
+      this.sql.exec('UPDATE players SET verified = 0 WHERE id = ?', id);
+    }
   }
 
   // WebSocket of an app (auth in headers, the player must exist). Tagged with the player's id.
@@ -230,15 +295,18 @@ export class FriendsHub extends DurableObject {
 
   // ---- Updates from the app ------------------------------------------------------------------------------
 
-  sync(me, body) {
+  async sync(me, body) {
     const now = Date.now();
-    const name = text(body.name, 40);
+    const name = cleanName(body.name);
     let summary = null;
-    if (body.summary && typeof body.summary === 'object') {
-      summary = JSON.stringify(body.summary);
+    const clean = cleanSummary(body.summary);
+    if (clean) {
+      summary = JSON.stringify(clean);
       if (summary.length > 8000) summary = null;
     }
-    const before = this.one('SELECT name, skin, summary, playing FROM players WHERE id = ?', me);
+    const before = this.one('SELECT name, skin, summary, playing, verified FROM players WHERE id = ?', me);
+    // A verified name only changes through Fortnite; another name sent is checked again (a real rename, or not)
+    const renamed = name && before && name.toLowerCase() !== before.name.toLowerCase();
     this.sql.exec(`UPDATE players SET name = COALESCE(NULLIF(?, ''), name), name_lc = COALESCE(NULLIF(?, ''), name_lc),
       skin = COALESCE(?, skin), summary = COALESCE(?, summary), playing = ?, seen = ? WHERE id = ?`,
       name, name.toLowerCase(), skinOf(body.skin), summary, body.playing === true ? 1 : 0, now, me);
@@ -265,22 +333,38 @@ export class FriendsHub extends DurableObject {
       this.sql.exec('UPDATE squads SET touched = ? WHERE id = ?', now, membership.squad);
     }
     // Friends only hear about what they see: a new match, "in a match", the summary, the name or the outfit.
+    if (renamed) {
+      this.sql.exec('UPDATE players SET verified = 0 WHERE id = ?', me); // until Fortnite confirms the new name
+      await this.checkName(me);
+    }
     const after = this.one('SELECT name, skin, summary, playing FROM players WHERE id = ?', me);
     if (matches.length || !before || before.name !== after.name || before.skin !== after.skin || before.summary !== after.summary || before.playing !== after.playing) {
       this.touch(this.watchers(me));
     }
   }
 
-  target(body, me) {
+  async target(body, me) {
     const id = typeof body.target === 'string' ? body.target.toLowerCase() : '';
     if (EPIC_ID.test(id)) {
       if (id === me) throw new Fail(400, 'self');
       if (!this.one('SELECT 1 AS x FROM players WHERE id = ?', id)) throw new Fail(404, 'not_found');
       return id;
     }
-    const name = text(body.name, 40).toLowerCase();
+    const name = cleanName(body.name).toLowerCase();
     if (name.length < 3) throw new Fail(400, 'name');
-    const found = this.one('SELECT id FROM players WHERE name_lc = ? ORDER BY seen DESC', name);
+    // By name, the request goes to the Epic account that really has this name (public stats), never to an app that
+    // only claims it. Accounts with private stats can only be found by name when one single player uses it.
+    let found = this.one('SELECT id FROM players WHERE name_lc = ? AND verified = 1', name);
+    if (!found) {
+      const acc = await fortniteAccount(this.env, 'name', name);
+      if (acc.status === 'found') {
+        found = this.one('SELECT id FROM players WHERE id = ?', acc.id);
+        if (found && acc.name) this.sql.exec('UPDATE players SET name = ?, name_lc = ?, verified = 1 WHERE id = ?', acc.name, acc.name.toLowerCase(), acc.id);
+      } else if (acc.status !== 'none') {
+        const same = this.rows('SELECT id FROM players WHERE name_lc = ? AND verified = 0 LIMIT 2', name);
+        if (same.length === 1) found = same[0];
+      }
+    }
     if (!found) throw new Fail(404, 'not_found');
     if (found.id === me) throw new Fail(400, 'self');
     return found.id;
@@ -294,8 +378,8 @@ export class FriendsHub extends DurableObject {
     return !!this.one('SELECT 1 AS x FROM friends WHERE ((a = ? AND b = ?) OR (a = ? AND b = ?)) AND ok = 1', a, b, b, a);
   }
 
-  addFriend(me, body) {
-    const other = this.target(body, me);
+  async addFriend(me, body) {
+    const other = await this.target(body, me);
     const mine = this.one('SELECT ok FROM friends WHERE a = ? AND b = ?', me, other);
     const theirs = this.one('SELECT ok FROM friends WHERE a = ? AND b = ?', other, me);
     if (mine?.ok || theirs?.ok || mine) return;
@@ -309,8 +393,8 @@ export class FriendsHub extends DurableObject {
     this.sql.exec('INSERT INTO friends (a, b, ok, at) VALUES (?, ?, 0, ?)', me, other, Date.now());
   }
 
-  answerFriend(me, body) {
-    const other = this.target(body, me);
+  async answerFriend(me, body) {
+    const other = await this.target(body, me);
     if (!this.one('SELECT 1 AS x FROM friends WHERE a = ? AND b = ? AND ok = 0', other, me)) throw new Fail(404, 'no_request');
     this.touch(other);
     if (body.accept === true) {
@@ -321,16 +405,16 @@ export class FriendsHub extends DurableObject {
     }
   }
 
-  removeFriend(me, body) {
-    const other = this.target(body, me);
+  async removeFriend(me, body) {
+    const other = await this.target(body, me);
     this.touch(other);
     this.sql.exec('DELETE FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)', me, other, other, me);
     this.sql.exec('DELETE FROM invites WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)', me, other, other, me);
     this.sql.exec('DELETE FROM mates WHERE (id = ? AND mate = ?) OR (id = ? AND mate = ?)', me, other, other, me);
   }
 
-  invite(me, body) {
-    const other = this.target(body, me);
+  async invite(me, body) {
+    const other = await this.target(body, me);
     if (!this.areFriends(me, other)) throw new Fail(403, 'not_friends');
     const now = Date.now();
     const mine = this.one('SELECT squad FROM members WHERE id = ?', me);
@@ -402,12 +486,12 @@ export class FriendsHub extends DurableObject {
   // ---- What the app shows -----------------------------------------------------------------------------------
 
   player(id) {
-    const p = this.one('SELECT id, name, skin, summary, playing, seen FROM players WHERE id = ?', id);
+    const p = this.one('SELECT id, name, skin, summary, playing, seen, verified FROM players WHERE id = ?', id);
     if (!p) return null;
     let summary = null;
     try { summary = p.summary ? JSON.parse(p.summary) : null; } catch { /* old or broken: none */ }
     const now = Date.now();
-    return { id: p.id, name: p.name, skin: p.skin, playing: !!p.playing && now - p.seen < PLAYING_STALE, seen: p.seen, summary };
+    return { id: p.id, name: p.name, skin: p.skin, verified: !!p.verified, playing: !!p.playing && now - p.seen < PLAYING_STALE, seen: p.seen, summary };
   }
 
   lastMatch(id, since = 0) {
@@ -468,16 +552,41 @@ export async function friends(request, env) {
   const live = new URL(request.url).pathname === '/api/friends/live';
   if (live ? request.method !== 'GET' : request.method !== 'POST') return reply(405, { error: 'method' });
   if (!env.HUB) return reply(503, { error: 'not_configured' });
-  const length = Number(request.headers.get('content-length') || 0);
-  if (length > 64 * 1024) return reply(413, { error: 'too_big' });
+  const ip = request.headers.get('cf-connecting-ip') || '?';
+  if (env.LIMIT_FRIENDS && !(await env.LIMIT_FRIENDS.limit({ key: ip })).success) return reply(429, { error: 'busy' });
   const headers = new Headers(request.headers);
-  headers.set('x-fct-ip', request.headers.get('cf-connecting-ip') || '?');
+  headers.set('x-fct-ip', ip);
   const hub = env.HUB.get(env.HUB.idFromName('hub'));
-  return hub.fetch(new Request(request, { headers }));
+  if (live) return hub.fetch(new Request(request, { headers }));
+  const body = await readCapped(request, 64 * 1024);
+  if (body == null) return reply(413, { error: 'too_big' });
+  headers.delete('content-length');
+  return hub.fetch(new Request(request.url, { method: 'POST', headers, body }));
+}
+
+/** The body, or null when it is bigger than max bytes (read in chunks: a chunked upload has no content-length). */
+export async function readCapped(request, max) {
+  if (Number(request.headers.get('content-length') || 0) > max) return null;
+  if (!request.body) return new Uint8Array(0);
+  const reader = request.body.getReader();
+  const parts = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) { reader.cancel().catch(() => {}); return null; }
+    parts.push(value);
+  }
+  const out = new Uint8Array(size);
+  let at = 0;
+  for (const p of parts) { out.set(p, at); at += p.byteLength; }
+  return out;
 }
 
 /** /api/skin/<outfit id>.png: the small icon of an outfit (fortnite-api.com), cached at the edge for a month. */
-export async function skin(url, ctx) {
+export async function skin(url, ctx, env, ip) {
+  if (env?.LIMIT_SKINS && !(await env.LIMIT_SKINS.limit({ key: ip || '?' })).success) return new Response('busy', { status: 429 });
   const m = url.pathname.match(/^\/api\/skin\/([A-Za-z0-9_-]{1,120})\.png$/);
   if (!m) return new Response('not found', { status: 404 });
   const id = m[1].toLowerCase();

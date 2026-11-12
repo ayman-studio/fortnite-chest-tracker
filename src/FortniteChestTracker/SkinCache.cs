@@ -49,6 +49,9 @@ public static class SkinCache
         return null;
     }
 
+    /// <summary>The icon file when it is on disk, without downloading anything (pages may only show known icons).</summary>
+    public static string? Existing(string? id) => IsValid(id) && FileOf(id!) is { } file && File.Exists(file) ? file : null;
+
     /// <summary>Downloads the icon in the background when it is missing (failures wait an hour before another try).</summary>
     public static void Want(string? id)
     {
@@ -59,6 +62,10 @@ public static class SkinCache
         if (Failed.TryGetValue(id!, out var at) && DateTime.UtcNow - at < TimeSpan.FromHours(1))
         {
             return;
+        }
+        if (Failed.Count > 2000)
+        {
+            Failed.Clear();
         }
         if (!Downloading.TryAdd(id!, 0))
         {
@@ -123,7 +130,7 @@ public static class SkinCache
 
     private static HttpClient CreateClient()
     {
-        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10), MaxResponseContentBufferSize = 512 * 1024 }; // icons are ~20 KB
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"FortniteChestTracker/{AppInfo.VersionText}");
         return http;
     }

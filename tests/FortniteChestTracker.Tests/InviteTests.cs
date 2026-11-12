@@ -19,6 +19,21 @@ public class InviteTests
     public void Anything_else_is_ignored(string arg) => Assert.Null(Invite.NameFromArgs(new[] { arg }));
 
     [Fact]
+    public void A_link_brings_no_other_option()
+    {
+        // A crafted link must not add --data, --uninstall… to the command line
+        Assert.Equal(new[] { "fctracker://ami/Bravo" }, Invite.Sanitize(new[] { "--invite", "fctracker://ami/Bravo", "--uninstall", "--quiet", "--data", @"\\evil\share" }));
+        Assert.Empty(Invite.Sanitize(new[] { "--invite", "--uninstall", "--confirmed" }));
+        Assert.Equal(new[] { "--data", "x" }, Invite.Sanitize(new[] { "--data", "x" }));
+    }
+
+    [Theory]
+    [InlineData("Bravo‮evil")]
+    [InlineData("a\nb\nc")]
+    [InlineData("<b>name</b>")]
+    public void Odd_names_are_refused(string name) => Assert.Null(Invite.CleanName(name));
+
+    [Fact]
     public void The_link_is_on_the_website() =>
         Assert.Equal("https://fortnite-chest-tracker.com/ami/Le%20Vrai%20Bravo", Invite.LinkFor("Le Vrai Bravo"));
 }

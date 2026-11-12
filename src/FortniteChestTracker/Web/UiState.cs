@@ -46,7 +46,11 @@ public sealed record UiState(
 /// <param name="Status">"off" (sharing off), "noprofile" (no Epic account seen yet), "connecting", "ok", "offline", "taken".</param>
 /// <param name="Key">Secret key of this PC, to link another PC to the same Epic account.</param>
 public sealed record UiFriends(bool Sharing, string Status, string? MeId, string? MeName, string? MeSkin, System.Text.Json.JsonElement? Data,
-    object? MeSummary, UiSquadSuggestion? Suggestion, UiSquadOverlay Overlay, int SkinsVersion, string? Key, string Server);
+    object? MeSummary, UiSquadSuggestion? Suggestion, UiSquadOverlay Overlay, int SkinsVersion, string? Key, string Server)
+{
+    /// <summary>Epic name from an invite link (fctracker://), shown with an "Add" button until sent or dismissed.</summary>
+    public string? Invite { get; init; }
+}
 
 /// <summary>Friends played with in the last match who are not in the squad yet.</summary>
 public sealed record UiSquadSuggestion(string Sid, IReadOnlyList<string> Names);

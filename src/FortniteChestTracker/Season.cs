@@ -133,7 +133,9 @@ public static class Season
     /// <summary>Uses this calendar if it is at least as recent as the current one (tests, saved copy, download).</summary>
     public static bool Use(SeasonData? data)
     {
-        if (data == null || data.Version < _current.Version)
+        // A calendar is only replaced by a newer one; a jump of thousands of versions is not a real update (it would
+        // block every later calendar for good).
+        if (data == null || data.Version < _current.Version || data.Version > _current.Version + 1000)
         {
             return false;
         }
@@ -163,15 +165,14 @@ public static class Season
     {
         try
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8), MaxResponseContentBufferSize = 256 * 1024 };
             http.DefaultRequestHeaders.UserAgent.ParseAdd($"FortniteChestTracker/{AppInfo.VersionText}");
             var json = await http.GetStringAsync(RemoteUrl).ConfigureAwait(false);
             var data = Parse(json);
-            if (data == null || data.Version <= _current.Version)
+            if (data == null || data.Version <= _current.Version || !Use(data))
             {
                 return false;
             }
-            Use(data);
             var path = Path.Combine(dataFolder, FileName);
             await File.WriteAllTextAsync(path + ".tmp", json).ConfigureAwait(false);
             File.Move(path + ".tmp", path, overwrite: true);

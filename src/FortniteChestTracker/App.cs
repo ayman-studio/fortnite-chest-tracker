@@ -94,6 +94,11 @@ public sealed partial class App
         NativeOverlay.StateChanged += () => _wake.Set();
         SquadOverlay.StateChanged += () => _wake.Set();
         SkinCache.Init(_store.Folder, FriendsClient.BaseUrl);
+        // An invite link opened while the counter runs: the second launch leaves the name and rings this signal
+        _pendingInvite = Invite.NameFromArgs(_args);
+        TakePendingInvite();
+        _inviteSignal = new EventWaitHandle(false, EventResetMode.AutoReset, Invite.SignalName(_dataDir));
+        ThreadPool.RegisterWaitForSingleObject(_inviteSignal, (_, _) => Post(TakePendingInvite), null, Timeout.Infinite, false);
         SkinCache.Downloaded += () => Post(UpdateSquadOverlay);
         _tracker.Changed += Publish; // raised by Scan, on this thread: lets the page follow a long batch
         Publish(); // a first state before the server answers anything
@@ -102,7 +107,7 @@ public sealed partial class App
         {
             HudPng = HudPng,
             SquadPng = demo => HudRenderer.RenderSquadPng(demo ? _squadDemo : SquadOverlay.View, 2f),
-            SkinFile = SkinCache.PathOf,
+            SkinFile = SkinCache.Existing, // only icons already downloaded (for the friends the counter knows)
             ExportData = () => File.Exists(_store.DataPath) ? File.ReadAllBytes(_store.DataPath) : System.Text.Encoding.UTF8.GetBytes("{}"),
             ImportData = ImportHistoryAsync,
         };
@@ -133,9 +138,9 @@ public sealed partial class App
         CreateWatcher();
         Publish();
 
-        if (Invite.NameFromArgs(_args) is { } invited)
+        if (_pendingInvite != null)
         {
-            OpenUi(Invite.Fragment(invited)); // opened from a friend's invite link: Friends tab, request ready
+            OpenUi(); // opened from a friend's invite link: the page shows it in the Friends tab
         }
         else if (!_auto && !_afterUpdate && (_setupPending || _config.OpenUiOnStart))
         {
@@ -711,6 +716,15 @@ public sealed partial class App
             case "friends/settings":
                 return FriendsSettings(args);
 
+            case "friends/invite-clear":
+                _pendingInvite = null;
+                return CommandResult.Done;
+
+            case "friends/key":
+                // Only on request (a click on "show"): the key is never in the state the pages receive
+                return new CommandResult(true, Data: Profiles.Current(_data, _config) is { } owner && FriendsClient.IsEpicId(owner.Key)
+                    && _config.FriendKeys.TryGetValue(owner.Key.ToLowerInvariant(), out var friendKey) ? friendKey : null);
+
             case "friends/notice-ok":
                 _config.FriendsNoticeSeen = true;
                 SaveConfig();
@@ -1136,13 +1150,11 @@ public sealed partial class App
         return OpenTarget(target) ? CommandResult.Done : CommandResult.Fail(target);
     }
 
-    private void OpenUi() => OpenUi("");
-
-    private void OpenUi(string fragment)
+    private void OpenUi()
     {
         if (_server != null)
         {
-            OpenTarget(_server.Url + fragment);
+            OpenTarget(_server.Url);
         }
     }
 
