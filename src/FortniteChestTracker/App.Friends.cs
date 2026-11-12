@@ -182,7 +182,7 @@ public sealed partial class App
         var status = error == "taken" ? "taken" : "offline";
         if (status != _friendsStatus && status == "taken")
         {
-            Activity.Warning(L.T("Potes : ce compte Epic est déjà lié à un autre PC. Colle la clé de l'autre PC dans l'onglet Potes pour lier celui-ci.",
+            Activity.Warning(L.T("Amis : ce compte Epic est déjà lié à un autre PC. Colle la clé de l'autre PC dans l'onglet Amis pour lier celui-ci.",
                 "Friends: this Epic account is already linked to another PC. Paste the other PC's key in the Friends tab to link this one.",
                 "Amigos: esta cuenta de Epic ya está vinculada a otro PC. Pega la clave del otro PC en la pestaña Amigos para vincular este."));
         }
@@ -200,8 +200,8 @@ public sealed partial class App
         foreach (var p in Items(state, "incoming").Where(p => !incomingBefore.Contains(Str(p, "id") ?? "")))
         {
             var name = Str(p, "name") ?? "?";
-            Activity.Info(L.T($"{name} veut être ton pote (onglet Potes).", $"{name} wants to be your friend (Friends tab).", $"{name} quiere ser tu amigo (pestaña Amigos)."));
-            NativeTray.Notify(L.T("Demande de pote", "Friend request", "Solicitud de amistad"),
+            Activity.Info(L.T($"{name} veut être ton ami (onglet Amis).", $"{name} wants to be your friend (Friends tab).", $"{name} quiere ser tu amigo (pestaña Amigos)."));
+            NativeTray.Notify(L.T("Demande d'ami", "Friend request", "Solicitud de amistad"),
                 L.T($"{name} veut voir tes coffres et te montrer les siens.", $"{name} wants to see your chests and show you theirs.", $"{name} quiere ver tus cofres y enseñarte los suyos."));
         }
         var outgoingBefore = Ids(before, "outgoing");
@@ -211,14 +211,14 @@ public sealed partial class App
             foreach (var p in Items(before, "outgoing").Where(p => friendsNow.Contains(Str(p, "id") ?? "")))
             {
                 var name = Str(p, "name") ?? "?";
-                Activity.Success(L.T($"{name} a accepté : vous êtes potes !", $"{name} accepted: you are friends!", $"{name} aceptó: ¡sois amigos!"));
+                Activity.Success(L.T($"{name} a accepté : vous êtes amis !", $"{name} accepted: you are friends!", $"{name} aceptó: ¡sois amigos!"));
             }
         }
         var invitesBefore = Items(before, "invites").Select(i => Str(i, "squad")).ToHashSet();
         foreach (var inv in Items(state, "invites").Where(i => !invitesBefore.Contains(Str(i, "squad"))))
         {
             var from = inv.TryGetProperty("from", out var f) ? Str(f, "name") ?? "?" : "?";
-            Activity.Success(L.T($"{from} t'invite dans son escouade (onglet Potes).", $"{from} invites you to their squad (Friends tab).", $"{from} te invita a su escuadrón (pestaña Amigos)."));
+            Activity.Success(L.T($"{from} t'invite dans son escouade (onglet Amis).", $"{from} invites you to their squad (Friends tab).", $"{from} te invita a su escuadrón (pestaña Amigos)."));
             NativeTray.Notify(L.T("Invitation d'escouade", "Squad invite", "Invitación de escuadrón"),
                 L.T($"{from} t'invite : vous verrez les coffres de chacun après chaque partie.", $"{from} invites you: you will see each other's chests after every match.", $"{from} te invita: veréis los cofres de cada uno después de cada partida."));
         }
@@ -399,7 +399,7 @@ public sealed partial class App
                 {
                     prepared.SetResult((null, new(), _config.FriendsSharing
                         ? L.T("joue d'abord une partie : l'app doit lire ton compte Epic dans un replay", "play a match first: the app must read your Epic account in a replay", "juega primero una partida: la app debe leer tu cuenta de Epic en una repetición")
-                        : L.T("le partage avec tes potes est coupé", "sharing with your friends is off", "compartir con tus amigos está desactivado")));
+                        : L.T("le partage avec tes amis est coupé", "sharing with your friends is off", "compartir con tus amigos está desactivado")));
                     return;
                 }
                 var calls = new List<(string, Dictionary<string, object?>)>();
@@ -583,7 +583,7 @@ public sealed partial class App
         if (!_config.FriendsNoticeSeen && _config.FriendsSharing)
         {
             list.Add(new UiNotice("friends-new", "info",
-                L.T("Nouveau : tes coffres sont partagés avec tes potes qui ont l'app (pseudo Epic, skin, coffres, chances de trésor). Ajoute-les dans l'onglet Potes, ou coupe le partage là-bas.",
+                L.T("Nouveau : tes coffres sont partagés avec tes amis qui ont l'app (pseudo Epic, skin, coffres, chances de trésor). Ajoute-les dans l'onglet Amis, ou coupe le partage là-bas.",
                     "New: your chests are shared with your friends who have the app (Epic name, outfit, chests, treasure odds). Add them in the Friends tab, or turn sharing off there.",
                     "Nuevo: tus cofres se comparten con tus amigos que tienen la app (nombre de Epic, skin, cofres, probabilidades de tesoro). Añádelos en la pestaña Amigos, o desactiva el uso compartido allí."),
                 L.T("OK", "OK", "OK"), "friends/notice-ok"));
@@ -592,7 +592,7 @@ public sealed partial class App
         {
             var names = string.Join(", ", s.Friends.Select(f => f.Name));
             list.Add(new UiNotice("squad-suggest", "success",
-                L.T($"Tu viens de jouer avec {names} : active le mode escouade pour voir vos coffres ensemble (overlay et onglet Potes).",
+                L.T($"Tu viens de jouer avec {names} : active le mode escouade pour voir vos coffres ensemble (overlay et onglet Amis).",
                     $"You just played with {names}: turn on squad mode to see your chests together (overlay and Friends tab).",
                     $"Acabas de jugar con {names}: activa el modo escuadrón para ver vuestros cofres juntos (overlay y pestaña Amigos)."),
                 L.T("Activer", "Turn on", "Activar"), "squad/suggest"));
@@ -611,7 +611,7 @@ public sealed partial class App
         {
             var names = string.Join(", ", incoming.Take(3).Select(p => Str(p, "name")));
             list.Add(new UiNotice("friend-requests", "info",
-                L.T($"Demande de pote : {names}.", $"Friend request: {names}.", $"Solicitud de amistad: {names}."),
+                L.T($"Demande d'ami : {names}.", $"Friend request: {names}.", $"Solicitud de amistad: {names}."),
                 L.T("Voir", "See", "Ver"), "ui:friends"));
         }
     }

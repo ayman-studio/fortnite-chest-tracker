@@ -371,7 +371,9 @@ input:focus, select:focus { outline: none; border-color: var(--lime); }
 .hud-img { position: relative; display: block; max-width: 92%; height: auto; user-select: none; filter: drop-shadow(0 6px 18px rgba(4, 10, 40, .25)); }
 .hud-img.mini { max-width: none; height: 96px; width: auto; filter: none; }
 /* Home: overlay dock, bottom left */
-.ov-dock { position: fixed; left: 24px; bottom: 24px; z-index: 5; display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 10px; border-radius: 18px;
+.docks { position: fixed; left: 24px; bottom: 24px; z-index: 5; display: flex; align-items: stretch; gap: 14px; pointer-events: none; }
+.docks > * { pointer-events: auto; }
+.ov-dock { display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 10px; border-radius: 18px;
   background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); backdrop-filter: blur(14px); }
 .ov-dock .dock-hud { display: grid; place-items: center; padding: 2px; border-radius: 12px; background: #4aa3e8 url("/img/overlay-bg.webp") center / cover no-repeat; overflow: hidden; }
 .ov-dock .dock-main { display: flex; flex-direction: column; gap: 8px; }
@@ -383,7 +385,13 @@ input:focus, select:focus { outline: none; border-color: var(--lime); }
 .ov-dock .dock-style .seg button { height: 24px; padding: 0 10px; font-size: 12px; }
 .ov-dock .kbd { height: 22px; font-size: 11px; padding: 0 7px; }
 .app.anim .ov-dock { animation: fadeUp .45s var(--ease) .2s both; }
-@media (max-height: 900px), (max-width: 1100px) { .ov-dock .dock-hud, .ov-dock .dock-keys { display: none; } }
+.app.anim .fr-dock { animation-delay: .3s; }
+.fr-dock .dock-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 150px; height: 100px; padding: 8px;
+  border: 1px dashed var(--line-2, var(--line)); border-radius: 12px; background: rgba(4, 14, 52, .35); color: var(--text-2); font: 600 12px var(--font); text-align: center; cursor: pointer; }
+.fr-dock .dock-empty:hover { border-color: var(--lime); color: var(--text); }
+.fr-dock .dock-empty .skins { display: flex; gap: 4px; }
+.fr-dock .dock-empty .skins > svg { width: 26px; height: 26px; color: var(--lime); }
+@media (max-height: 900px), (max-width: 1100px) { .ov-dock .dock-hud, .ov-dock .dock-keys, .fr-dock .dock-empty { display: none; } }
 
 /* ---- Home: three numbers over the dig ------------------------------------------------------- */
 .home-page { grid-template-rows: auto minmax(0, 1fr) auto; }

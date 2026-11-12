@@ -9,7 +9,7 @@ const TOKEN = document.querySelector('meta[name="fct-token"]').content;
 let S = null;          // latest state
 let T = {};            // texts of the interface, in the counter's language
 let textsLang = null;
-const PAGES = ['home', 'matches', 'stats', 'treasures', 'friends', 'settings'];
+const PAGES = ['home', 'matches', 'stats', 'friends', 'treasures', 'settings'];
 const OLD_PAGES = { estimate: 'estimate', overlay: 'overlay', journal: 'journal' }; // pages that moved into the settings
 // Preferences of the page, kept by the browser. Versions 1.0.x stored them under another prefix: moved over once.
 for (const key of ['page', 'goal', 'sub', 'range']) {
@@ -500,7 +500,7 @@ function home() {
       <div class="hud-actions"><button class="btn btn-sm" data-goto="${esc(m.id)}">${icon('right')}${esc(t('seeDetail'))}</button></div>` : `<div class="hud-sub" style="margin-top:12px"><span>${esc(t('noMatchYet'))}</span></div>`}</section>`;
   }
 
-  return `<div class="page home-page">${total}${token}${last}<div class="stage"></div>${overlayDock()}
+  return `<div class="page home-page">${total}${token}${last}<div class="stage"></div><div class="docks">${overlayDock()}${friendsDock()}</div>
     <button class="share-fab" data-act="share" title="${esc(t('shareTitle'))}">${icon('camera')}<span>${esc(t('share'))}</span></button></div>`;
 }
 
@@ -749,7 +749,7 @@ function treasures() {
   return `<div class="page treasures-page" style="grid-template-rows:max-content max-content minmax(340px,1fr)">${seasonCard()}${oddsCard()}${list}</div>`;
 }
 
-// ---- Friends ("Potes"): squad, leaderboard, friends ------------------------------------------------------------
+// ---- Friends ("Amis"): squad, leaderboard, friends ------------------------------------------------------------
 // Everything comes from the friends server through the counter (S.friends.data). The numbers of a friend arrive a few
 // seconds after the end of each of their matches (replays can only be read once a match is over).
 const FR_EMPTY = { friends: [], incoming: [], outgoing: [], suggest: [], invites: [], squad: null };
@@ -943,6 +943,31 @@ function overlayDock() {
       <div class="dock-keys">${o.toggleHotkey ? `<span class="kbd">${esc(t('keyToggle'))}</span>` : ''}${o.lockHotkey ? `<span class="kbd">${esc(t('keyLock'))}</span>` : ''}</div>
     </div>
     <button class="icon-btn" data-nav="overlay" title="${esc(t('overlaySettings'))}" aria-label="${esc(t('overlaySettings'))}">${icon('settings')}</button>
+  </section>`;
+}
+
+// Home: the friends' squad overlay next to the main one (preview while in a squad, else a shortcut to the Friends tab)
+function friendsDock() {
+  const F = S.friends;
+  if (!F || !F.sharing || F.status === 'noprofile') return '';
+  const ov = F.overlay;
+  const sq = F.data?.squad;
+  const inSquad = !!sq && sq.members.length > 1;
+  const on = ov.enabled && (!ov.running || ov.visible);
+  const sw = (id, checked, label, disabled) => `<label class="dock-sw"><span>${esc(label)}</span><span class="switch"><input type="checkbox" id="${id}" data-change="${id}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}><span></span></span></label>`;
+  const seg = `<div class="seg" role="group" aria-label="${esc(t('squadPeriod'))}">${[['last', t('lbLast')], ['session', t('lbSession')]]
+    .map(([k, label]) => `<button class="${ov.period === k ? 'on' : ''}" data-sqperiod="${k}">${esc(label)}</button>`).join('')}</div>`;
+  const preview = inSquad && ov.enabled
+    ? `<div class="dock-hud"><img class="hud-img mini" src="/squad.png?v=${esc(ov.hud)}" srcset="/squad.png?v=${esc(ov.hud)} 2x" alt="" draggable="false"></div>`
+    : `<button class="dock-empty" data-nav="friends"><span class="skins">${(F.data?.friends || []).slice(0, 3).map((f) => skinBox(f.skin, f.name, 'xs')).join('') || icon('friends')}</span><span>${esc(t(inSquad ? 'squadOverlayOff' : 'squadNone'))}</span></button>`;
+  return `<section class="ov-dock fr-dock">
+    ${preview}
+    <div class="dock-main">
+      <div class="dock-title">${icon('friends')}${esc(t('friendsDock'))}<span class="dot ${inSquad && on ? '' : 'off'}"></span></div>
+      <div class="dock-sws">${sw('sq-overlay', ov.enabled, t('overlayShowShort2'))}${sw('sq-locked', ov.locked, t('overlayLockShort'), !ov.running)}</div>
+      <div class="dock-style">${seg}</div>
+    </div>
+    <button class="icon-btn" data-nav="friends" title="${esc(t('page_friends'))}" aria-label="${esc(t('page_friends'))}">${icon('settings')}</button>
   </section>`;
 }
 

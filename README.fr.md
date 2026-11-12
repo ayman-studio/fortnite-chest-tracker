@@ -117,7 +117,7 @@ Fortnite ne garde que tes derniers replays. La section **Anciennes parties** est
 |:---:|---|
 | ✅ | Lit les fichiers `.replay` que Fortnite écrit après chaque partie, **en lecture seule**. |
 | ❌ | Ne touche jamais au jeu : aucune lecture de mémoire, aucune injection, aucun fichier modifié. |
-| ❌ | Pas de connexion, pas de compte Epic, pas de télémétrie. Accès réseau : les mises à jour (GitHub), le calendrier de la saison, et l'onglet Potes : ton pseudo Epic, ton skin et tes coffres, vus seulement par les potes que tu acceptes (un bouton coupe tout et les efface du serveur). |
+| ❌ | Pas de connexion, pas de compte Epic, pas de télémétrie. Accès réseau : les mises à jour (GitHub), le calendrier de la saison, et l'onglet Amis : ton pseudo Epic, ton skin et tes coffres, vus seulement par les amis que tu acceptes (un bouton coupe tout et les efface du serveur). |
 | ✅ | Tourne en priorité basse, dort entre les parties, ralentit sa scène 3D pendant que tu joues. |
 
 ---

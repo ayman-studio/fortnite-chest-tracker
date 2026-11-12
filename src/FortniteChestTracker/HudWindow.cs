@@ -474,7 +474,7 @@ internal sealed class HudWindow
             else
             {
                 Activity.Muted(locked
-                    ? L.T($"{Cap(_name)} verrouillé : la souris passe au travers. Déverrouille-le depuis l'onglet Potes.",
+                    ? L.T($"{Cap(_name)} verrouillé : la souris passe au travers. Déverrouille-le depuis l'onglet Amis.",
                           $"{Cap(_name)} locked: the mouse goes through it. Unlock it from the Friends tab.",
                           $"{Cap(_name)} bloqueado: el ratón lo atraviesa. Desbloquéalo desde la pestaña Amigos.")
                     : L.T($"{Cap(_name)} déverrouillé : glisse-le où tu veux, puis clique sur le cadenas pour le verrouiller.",
@@ -510,7 +510,7 @@ internal sealed class HudWindow
             }
             else
             {
-                Activity.Muted(L.T($"{Cap(_name)} masqué : réaffiche-le depuis l'onglet Potes.", $"{Cap(_name)} hidden: show it again from the Friends tab.",
+                Activity.Muted(L.T($"{Cap(_name)} masqué : réaffiche-le depuis l'onglet Amis.", $"{Cap(_name)} hidden: show it again from the Friends tab.",
                     $"{Cap(_name)} oculto: vuelve a mostrarlo desde la pestaña Amigos."));
             }
         }
