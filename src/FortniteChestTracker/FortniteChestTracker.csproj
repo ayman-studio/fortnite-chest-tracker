@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>FortniteChestTracker</AssemblyName>
     <RootNamespace>FortniteChestTracker</RootNamespace>
-    <Version>1.3.0</Version>
+    <Version>1.3.1</Version>
     <!-- GitHub repository ("owner/name") whose releases update the exe. Empty = local build, updates unavailable.
          The GitHub workflow passes its own repository: -p:TrackerRepo=${{ github.repository }} -->
     <TrackerRepo Condition="'$(TrackerRepo)' == ''"></TrackerRepo>

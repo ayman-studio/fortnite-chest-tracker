@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.1 (2026-11-13)
+
+**Security**
+- Updates are signed: the app only installs a new version signed with the release key (a release uploaded any other
+  way is refused, even with a correct checksum).
+- Friend invite links: the request is only sent when you click "Add" in the Friends tab, never by a web address, and a
+  link can no longer pass other options to the app.
+- The local interface refuses requests coming from other websites, even for a picture.
+- The Friends key is no longer in the page data: it is shown only when you click "Show".
+- Friends: requests by name go to the Epic account that really has that name; names and summaries are cleaned.
+- Size limits on imports and downloads; the season calendar cannot be locked by a bogus version.
+
 ## 1.3.0 (2026-11-12)
 
 **Friends**
