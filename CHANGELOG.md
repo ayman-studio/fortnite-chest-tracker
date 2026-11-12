@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.0 (unreleased)
+## 1.3.0 (2026-11-12)
 
 **Friends**
 - New Friends tab: add the friends who have the app (by Epic name, from your recent teammates or with your invite
@@ -16,6 +16,9 @@
 
 **Matches**
 - Rare items around you: the treasure hunt items other players had near you.
+
+**App**
+- On first start, the replays still on disk are read again for outfits and rare items (about 2 minutes).
 
 ## 1.2.0 (2026-11-11)
 
