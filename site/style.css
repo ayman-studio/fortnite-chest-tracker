@@ -526,6 +526,7 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .legal-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 .legal-x:hover { background: rgba(255, 255, 255, .12); }
 .legal p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; }
+.legal h3 { margin: 18px 0 8px; font: 20px/1.1 var(--display); text-transform: uppercase; letter-spacing: .02em; color: var(--lime); }
 .legal a { color: var(--aqua); text-decoration: underline; }
 
 /* ---- Reveal on scroll ---- */
