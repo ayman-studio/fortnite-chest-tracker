@@ -13,7 +13,7 @@ W="$ROOT/src/FortniteChestTracker/Web/wwwroot"
 rm -rf "$OUT"
 mkdir -p "$OUT/docs"
 cp -r "$ROOT/site/." "$OUT/"
-rm -f "$OUT/build.sh" "$OUT/prerender.mjs" "$OUT/guides.mjs"
+rm -f "$OUT/build.sh" "$OUT/prerender.mjs" "$OUT/guides.mjs" "$OUT/csp.mjs"
 cp "$W/scene.js" "$OUT/"
 cp "$W/season.json" "$OUT/"                   # the calendar of the treasure hunt: the app downloads it from here
 cp -r "$W/vendor" "$W/models" "$W/img" "$W/cursors" "$OUT/"
@@ -33,4 +33,5 @@ else
 fi
 
 node "$ROOT/site/prerender.mjs" "$OUT"
+node "$ROOT/site/csp.mjs" "$OUT"                # a strict script policy per page (inline scripts allowed by hash)
 echo "site assembled in $OUT"
