@@ -97,6 +97,7 @@ public class RealReplayTests
                         m.ChestsOpened,
                         m.AmmoBoxesOpened,
                         Treasures = m.TreasureFinds.Count,
+                        Rare = m.RareNearby?.Select(r => $"{(r.Golden ? "golden" : "held")} {r.AtSeconds}s {r.Item} by {r.PlayerName}{(r.IsMate ? " (mate)" : "")}"),
                     }),
                     TotalChests = data.Matches.Sum(m => m.ChestsOpened),
                     TotalTreasures = data.Matches.Sum(m => m.TreasureFinds.Count),

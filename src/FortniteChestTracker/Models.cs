@@ -82,6 +82,30 @@ public sealed class MatchRecord
 
     /// <summary>Real teammates of the match (bots left out): Epic id, name, outfit. Null = solo or unknown.</summary>
     public List<MateRecord>? Mates { get; set; }
+
+    /// <summary>
+    /// Rare items other players got near the player (only what the replay holds: what happened in network range).
+    /// Null = none seen (or a record older than analyzer version 16).
+    /// </summary>
+    public List<RareSighting>? RareNearby { get; set; }
+}
+
+/// <summary>A treasure hunt item another player got (golden chest) or was seen holding, near the tracked player.</summary>
+public sealed class RareSighting
+{
+    /// <summary>Epic name of the player (null when the replay does not give it).</summary>
+    public string? PlayerName { get; set; }
+    /// <summary>A teammate of the tracked player (treasures are shared with the team, so only golden chests are kept for them).</summary>
+    public bool IsMate { get; set; }
+    /// <summary>Item blueprint seen in the player's hands (e.g. "WID_RelicExtractor"), or the prize id of a golden chest.</summary>
+    public string Item { get; set; } = "";
+    /// <summary>True = the player opened a golden treasure chest (certain, prize id known). False = seen holding the item
+    /// (they, or a teammate of theirs, got it earlier in the match).</summary>
+    public bool Golden { get; set; }
+    /// <summary>Replay seconds: when the golden chest was opened, or when the item was first seen in hand.</summary>
+    public float AtSeconds { get; set; }
+
+    public string DisplayName => Item.Contains(':') ? TreasureNames.Friendly(Item) : L.Name(TreasureNames.Friendly(Item));
 }
 
 /// <summary>A teammate seen in a replay (used to suggest friends who have the app).</summary>

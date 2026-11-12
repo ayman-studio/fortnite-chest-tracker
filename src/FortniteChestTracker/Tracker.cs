@@ -671,6 +671,14 @@ public sealed class Tracker
             NativeTray.Notify(L.T("Trésor !", "Treasure!", "¡Tesoro!"),
                 L.T($"{prize.DisplayName} dans ta dernière partie. Bien joué !", $"{prize.DisplayName} in your last match. Well played!", $"{prize.DisplayName} en tu última partida. ¡Bien jugado!"));
         }
+        // Only for new matches of this session: a re-analysis of the whole history would flood the activity log.
+        foreach (var r in !updated && ThisSession.Contains(m) ? m.RareNearby ?? new() : new())
+        {
+            var who = r.PlayerName ?? L.T("Un joueur", "A player", "Un jugador");
+            Activity.Info(r.Golden
+                ? L.T($"◆ {who} a ouvert un coffre doré près de toi : {r.DisplayName}", $"◆ {who} opened a golden chest near you: {r.DisplayName}", $"◆ {who} abrió un cofre dorado cerca de ti: {r.DisplayName}")
+                : L.T($"◆ {who} avait {r.DisplayName} près de toi", $"◆ {who} had {r.DisplayName} near you", $"◆ {who} tenía {r.DisplayName} cerca de ti"));
+        }
         foreach (var find in m.TreasureFinds)
         {
             Activity.Treasure($"{(find.FromGoldenChest ? "★★" : "★")} {L.T("Trésor obtenu : ", "Treasure obtained: ", "Tesoro obtenido: ")}{find.DisplayName} ({Pretty.Obtained(find)})");

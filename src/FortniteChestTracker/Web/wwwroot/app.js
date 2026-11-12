@@ -430,7 +430,21 @@ function matchCard(m, cls, title, compact = false) {
     <div class="facts hide-tiny${compact ? ' hidden' : ''}">${fact('crosshair', t('eliminations'), m.kills != null ? nf(m.kills) : '—')}${fact('clock', t('duration'), duration(m.durationSeconds))}</div>
     ${kinds.length && !compact ? `<div class="divider"></div><div class="stack">${stack}</div><div class="legend${kinds.length > 3 ? ' many' : ''}" style="margin-top:12px">${legend}</div>` : ''}
     ${tr && !compact ? `<div class="row wrap" style="gap:6px;margin-top:12px">${tr}</div>` : ''}
+    ${compact ? '' : rareNearby(m)}
     ${compact ? '' : lootTimeline(m)}`, { hint: dateTime(m.when) });
+}
+
+// Rare items other players got near the player: golden chests they opened (certain) and treasure items seen in their
+// hands. Only what happened in range of the player's game is in the replay.
+function rareNearby(m) {
+  if (!m.rare || !m.rare.length) return '';
+  const MAX = 3;
+  const line = (r) => `${r.player || t('rareUnknown')}${r.mate ? ` (${t('rareMate')})` : ''} · ${r.item} · ${t(r.golden ? 'rareGolden' : 'rareHeld', duration(r.at))}`;
+  const rows = m.rare.slice(0, MAX).map((r) => `<div class="rare-it${r.golden ? ' gold' : ''}" title="${esc(line(r) + (r.golden ? '' : '\n' + t('rareHeldHint')))}">
+    ${icon(r.golden ? 'star' : 'users')}<span class="who">${esc(r.player || t('rareUnknown'))}${r.mate ? ` <span class="faint">(${esc(t('rareMate'))})</span>` : ''}</span>
+    <span class="what">${esc(r.item)}</span><span class="when faint num">${esc(duration(r.at))}</span></div>`).join('');
+  const more = m.rare.length > MAX ? `<span class="tag" title="${esc(m.rare.slice(MAX).map(line).join('\n'))}">+${m.rare.length - MAX}</span>` : '';
+  return `<div class="divider"></div><div class="rare"><div class="tl-h" title="${esc(t('rareHint'))}"><span class="tl-t">${esc(t('rareTitle'))}</span></div>${rows}${more}</div>`;
 }
 
 // Looting over the match: chests per minute of the match clock (the replay's, like the times of the treasures), the
@@ -518,7 +532,7 @@ function matches() {
     : '';
   const rows = list.slice(p.start, p.end).map((m) => `<tr data-select="${esc(m.id)}" class="${m.id === ui.selected ? 'sel' : ''}">
     <td>${esc(dateTime(m.when))}</td><td>${esc(m.mode)}</td><td>${placeBadge(m)}</td><td class="r strong">${nf(m.chests)}</td>
-    <td>${m.treasures.map((x) => `<span class="star${x.golden ? ' gold' : ''}" title="${esc(x.name)}">${icon('star').replace('<svg', '<svg style="width:15px;height:15px;display:inline-block"')}</span>`).join(' ')}</td></tr>`).join('');
+    <td>${m.treasures.map((x) => `<span class="star${x.golden ? ' gold' : ''}" title="${esc(x.name)}">${icon('star').replace('<svg', '<svg style="width:15px;height:15px;display:inline-block"')}</span>`).join(' ')}${m.rare?.length ? ` <span class="star rare-seen" title="${esc(`${t('rareTitle')} : ${m.rare.map((r) => `${r.player || t('rareUnknown')} (${r.item})`).join(', ')}`)}">${icon('users').replace('<svg', '<svg style="width:15px;height:15px;display:inline-block"')}</span>` : ''}</td></tr>`).join('');
   const table = card('s8', t('allMatches'), `<div class="fit" data-fit="matches" data-row="45" data-extra="37"><table class="tbl">
     <colgroup><col style="width:22%"><col><col style="width:16%"><col style="width:12%"><col style="width:12%"></colgroup>
     <thead><tr><th>${esc(t('date'))}</th><th>${esc(t('mode'))}</th><th>${esc(t('placement'))}</th><th class="r">${esc(t('chests'))}</th><th>${esc(t('treasure'))}</th></tr></thead>

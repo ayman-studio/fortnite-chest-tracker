@@ -154,7 +154,12 @@ public sealed record UiTreasure(DateTime When, string Name, bool Golden, string?
 
 /// <param name="ChestTimes">When each chest was opened (seconds on the match clock, in order), null when the record has no times.</param>
 public sealed record UiMatch(string Id, DateTime When, string Mode, string Placement, int? Rank, int? Players, int? Kills, int Chests, int Destroyed,
-    int AmmoBoxes, int? DurationSeconds, IReadOnlyList<UiMatchTreasure> Treasures, IReadOnlyList<UiCount> Kinds, IReadOnlyList<int>? ChestTimes = null);
+    int AmmoBoxes, int? DurationSeconds, IReadOnlyList<UiMatchTreasure> Treasures, IReadOnlyList<UiCount> Kinds, IReadOnlyList<int>? ChestTimes = null,
+    IReadOnlyList<UiRare>? Rare = null);
+
+/// <summary>A rare item another player got near the player (<see cref="RareSighting"/>).</summary>
+/// <param name="Golden">From a golden treasure chest they opened (certain); false = seen holding it.</param>
+public sealed record UiRare(string? Player, string Item, bool Golden, bool Mate, int At);
 
 public sealed record UiMatchTreasure(string Name, bool Golden);
 
@@ -355,7 +360,8 @@ public static class UiStateBuilder
             m.DurationSeconds,
             m.TreasureFinds.Select(f => new UiMatchTreasure(f.DisplayName, f.FromGoldenChest)).ToList(),
             m.Chests.GroupBy(c => c.Kind).Select(g => new UiCount(L.Name(g.Key), g.Count(), g.Key)).OrderByDescending(c => c.Count).ToList(),
-            ChestTimes(m)))
+            ChestTimes(m),
+            m.RareNearby?.Select(r => new UiRare(r.PlayerName, r.DisplayName, r.Golden, r.IsMate, (int)Math.Round(r.AtSeconds))).ToList()))
         .ToList();
 
     /// <summary>Seconds (match clock) at which the chests were opened; null when none has a time (very old records).</summary>

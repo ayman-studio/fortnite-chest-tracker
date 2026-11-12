@@ -116,7 +116,7 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
     private readonly List<GrantEvent> _grants = new();
 
     /// <summary>Bump when the analysis changes so that existing replays are re-analyzed.</summary>
-    public const int CurrentVersion = 15; // 15: chests of the teammates seen in the replay (squad chance)
+    public const int CurrentVersion = 16; // 16: rare items other players got near the player
 
     private static readonly bool ProbeDebug = Environment.GetEnvironmentVariable("FCT_DEBUG") == "4";
 
@@ -872,6 +872,8 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
 
         finds.Sort((a, b) => (a.ObtainedAtSeconds ?? float.MaxValue).CompareTo(b.ObtainedAtSeconds ?? float.MaxValue));
 
+        var rareNearby = RareNearby(players, targetPawns, mateIds);
+
         var info = replay.Info;
         var header = replay.Header;
         var isRecorder = recorderPs != null && targetPlayerStates.Contains(recorderPs.Value);
@@ -905,7 +907,69 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
             SquadChests = squadChests,
             Skin = target != null ? OutfitOf(target) : null,
             Mates = mates is { Count: > 0 } ? mates : null,
+            RareNearby = rareNearby.Count > 0 ? rareNearby : null,
         };
+    }
+
+    /// <summary>
+    /// Treasure hunt items other players got near the target. The replay only holds what the server sent to the
+    /// recording player (network range), and the treasure grant itself is only sent to its owner, so there are two
+    /// sources: golden treasure chests (opener and prize id, certain) and treasure items seen in other players' hands
+    /// (they or a teammate of theirs got it earlier: treasures are shared with the team). Teammates holding an item are
+    /// left out (it is most likely the team's own treasure), bots too.
+    /// </summary>
+    private List<RareSighting> RareNearby(List<PlayerData> players, HashSet<uint> targetPawns, HashSet<int> mateIds)
+    {
+        PlayerData? PlayerOf(uint pawn) =>
+            _pawnToPlayerState.TryGetValue(pawn, out var ps) && _playerStateToPlayerId.TryGetValue(ps, out var pid)
+                ? players.FirstOrDefault(p => p.Id == pid) : null;
+
+        var list = new List<RareSighting>();
+        foreach (var pz in _prizes)
+        {
+            if (pz.Pawn is not uint pawn || targetPawns.Contains(pawn))
+            {
+                continue;
+            }
+            var p = PlayerOf(pawn);
+            list.Add(new RareSighting
+            {
+                PlayerName = p?.PlayerName,
+                IsMate = p?.Id is int id && mateIds.Contains(id),
+                Item = pz.PrizeId,
+                Golden = true,
+                AtSeconds = MathF.Round(pz.Time, 1),
+            });
+        }
+
+        // Held items: one line per player and item, at the first time it was seen.
+        var held = _equips
+            .Where(e => !targetPawns.Contains(e.Pawn) && e.Item.StartsWith("WID_", StringComparison.OrdinalIgnoreCase)
+                        && TreasureItem.IsMatch(e.Item) && !EventItem.IsMatch(e.Item))
+            .OrderBy(e => e.Time)
+            .Select(e => (e, p: PlayerOf(e.Pawn)))
+            .Where(x => x.p != null && x.p.IsBot != true && !(x.p.Id is int id && mateIds.Contains(id)))
+            .GroupBy(x => (x.p!.Id, Name: TreasureNames.Friendly(x.e.Item)))
+            .Select(g => g.First());
+        foreach (var (e, p) in held)
+        {
+            list.Add(new RareSighting
+            {
+                PlayerName = p!.PlayerName,
+                Item = e.Item,
+                AtSeconds = MathF.Round(e.Time, 1),
+            });
+        }
+
+        list.Sort((a, b) => a.AtSeconds.CompareTo(b.AtSeconds));
+        if (Environment.GetEnvironmentVariable("FCT_DEBUG") == "1")
+        {
+            foreach (var s in list)
+            {
+                Console.Error.WriteLine($"DBG rare {s.AtSeconds,7:F1}s {(s.Golden ? "GOLDEN" : "HELD")} {s.Item} by {s.PlayerName ?? "?"}{(s.IsMate ? " (MATE)" : "")}");
+            }
+        }
+        return list;
     }
 
     private string? OutfitOf(PlayerData p) =>
