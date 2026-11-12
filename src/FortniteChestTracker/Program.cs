@@ -81,6 +81,11 @@ if (previewPath == null && !AcquireInstance(instance, afterUpdate ? TimeSpan.Fro
     try { url = File.ReadAllText(App.UrlFile(store)).Trim(); } catch { }
     if (url != null && url.StartsWith("http://127.0.0.1:", StringComparison.Ordinal))
     {
+        // From a friend's invite link (fctracker://ami/<name>): the Friends tab with the request ready.
+        if (Invite.NameFromArgs(args) is { } invited)
+        {
+            url += Invite.Fragment(invited);
+        }
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true })?.Dispose(); } catch { }
     }
     else

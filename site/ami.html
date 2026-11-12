@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Friend invite · Fortnite - Chest Tracker</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="A friend invites you to compare your Fortnite chests with Fortnite - Chest Tracker.">
+<meta name="theme-color" content="#071447">
+<link rel="icon" href="icons/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="icons/favicon-48.png" type="image/png" sizes="48x48">
+<link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  .inv-steps { display: grid; gap: 14px; width: min(560px, 100%); margin: 8px 0 0; padding: 0; list-style: none; text-align: left; }
+  .inv-steps li { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 18px; background: rgba(10, 24, 82, .72); border: 1px solid rgba(150, 190, 255, .18); }
+  .inv-steps b.n { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--lime); color: #0b1a4a; font: 22px/1 var(--display); }
+  .inv-steps .t { flex: 1; color: #dce6ff; font-size: 15.5px; }
+  .inv-steps .t strong { display: block; color: #fff; font-size: 17px; }
+  .inv-steps .btn { flex: none; }
+  .inv-name { color: var(--lime); }
+  .inv-hint { max-width: 560px; margin: 4px 0 0; color: #a9bce6; font-size: 14px; }
+  @media (max-width: 560px) { .inv-steps li { flex-wrap: wrap; } }
+</style>
+</head>
+<body class="nf">
+<!-- /ami/<Epic name> (served by the Worker): a friend's invite link. Step 1 gets the app, step 2 opens it
+     (fctracker://ami/<name>) with the friend request ready to send. -->
+<main class="nf-in">
+  <a class="brand" href="./"><img src="img/relic-chest.webp" alt="" width="40" height="40"><span><small>FORTNITE</small><b>CHEST <em>TRACKER</em></b></span></a>
+  <img class="nf-chest" src="img/chest-pirate.webp" alt="" width="160" height="160">
+  <h1 id="inv-title">A friend invites you</h1>
+  <p class="nf-sub" id="inv-sub">Compare your Fortnite chests: after every match, see who opened the most.</p>
+  <ol class="inv-steps">
+    <li><b class="n">1</b><span class="t"><strong id="inv-s1">Get the app</strong><span id="inv-s1t">Free, Windows 10 / 11.</span></span>
+      <a class="btn btn-lime" id="inv-dl" href="https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest">Download</a></li>
+    <li><b class="n">2</b><span class="t"><strong id="inv-s2">Add your friend</strong><span id="inv-s2t">Opens the app with the request ready.</span></span>
+      <a class="btn btn-lime" id="inv-open" href="fctracker://ami/">Add</a></li>
+  </ol>
+  <p class="inv-hint" id="inv-hint">Nothing opens? In the app: Friends tab → type their Epic name → Add.</p>
+</main>
+<script>
+(function () {
+  var T = {
+    en: ['{0} invites you', 'Compare your Fortnite chests: after every match, see who opened the most.', 'Get the app', 'Free, Windows 10 / 11.', 'Download',
+      'Add {0}', 'Opens the app with the friend request ready.', 'Add', 'Nothing opens? In the app: Friends tab → type {0} → Add.', 'Friend invite', 'A friend invites you'],
+    fr: ['{0} t’invite', 'Comparez vos coffres Fortnite : après chaque partie, vous voyez qui en a ouvert le plus.', 'Installe l’app', 'Gratuite, Windows 10 / 11.', 'Télécharger',
+      'Ajoute {0}', 'Ouvre l’app avec la demande d’ami prête.', 'Ajouter', 'Rien ne s’ouvre ? Dans l’app : onglet Amis → tape {0} → Ajouter.', 'Invitation', 'Un ami t’invite'],
+    es: ['{0} te invita', 'Comparad vuestros cofres de Fortnite: después de cada partida, veréis quién abrió más.', 'Instala la app', 'Gratis, Windows 10 / 11.', 'Descargar',
+      'Añade a {0}', 'Abre la app con la solicitud de amistad lista.', 'Añadir', '¿No se abre nada? En la app: pestaña Amigos → escribe {0} → Añadir.', 'Invitación', 'Un amigo te invita'],
+    de: ['{0} lädt dich ein', 'Vergleicht eure Fortnite-Truhen: Nach jedem Match seht ihr, wer die meisten geöffnet hat.', 'Hol dir die App', 'Kostenlos, Windows 10 / 11.', 'Herunterladen',
+      '{0} hinzufügen', 'Öffnet die App mit fertiger Freundschaftsanfrage.', 'Hinzufügen', 'Nichts passiert? In der App: Tab Freunde → {0} eingeben → Hinzufügen.', 'Einladung', 'Ein Freund lädt dich ein'],
+    pt: ['{0} te convidou', 'Comparem seus baús do Fortnite: depois de cada partida, vejam quem abriu mais.', 'Instale o app', 'Grátis, Windows 10 / 11.', 'Baixar',
+      'Adicione {0}', 'Abre o app com o pedido de amizade pronto.', 'Adicionar', 'Nada abriu? No app: aba Amigos → digite {0} → Adicionar.', 'Convite', 'Um amigo te convidou'],
+  };
+  var l = null;
+  try { l = localStorage.getItem('cct-lang'); } catch (e) { /* storage blocked */ }
+  if (!l) l = (navigator.language || '').slice(0, 2).toLowerCase();
+  var t = T[l] || T.en;
+  if (T[l]) document.documentElement.lang = l;
+  // The Epic name from /ami/<name> (Epic names: letters, digits, spaces, - _ . and a few more, 3 to 32 characters)
+  var raw = (location.pathname.match(/^\/ami\/([^/]+)\/?$/) || [])[1] || '';
+  var name = '';
+  try { name = decodeURIComponent(raw).trim(); } catch (e) { name = ''; }
+  if (name.length < 3 || name.length > 32 || /[<>"\u0000-\u001f]/.test(name)) name = '';
+  var f = function (s) { return s.replace('{0}', name); };
+  var set = function (id, s) { document.getElementById(id).textContent = s; };
+  set('inv-title', name ? f(t[0]) : t[10]);
+  set('inv-sub', t[1]);
+  set('inv-s1', t[2]);
+  set('inv-s1t', t[3]);
+  set('inv-dl', t[4]);
+  set('inv-s2', name ? f(t[5]) : t[5].replace(' {0}', '').replace('{0}', ''));
+  set('inv-s2t', t[6]);
+  set('inv-open', t[7]);
+  set('inv-hint', name ? f(t[8]) : t[8].replace('{0}', '…'));
+  document.title = (name ? f(t[0]) : t[9]) + ' · Fortnite - Chest Tracker';
+  var open = document.getElementById('inv-open');
+  if (name) open.setAttribute('href', 'fctracker://ami/' + encodeURIComponent(name));
+  else open.parentNode.style.display = 'none';
+})();
+</script>
+</body>
+</html>

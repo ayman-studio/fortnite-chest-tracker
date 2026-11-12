@@ -36,6 +36,7 @@ const ui = {
   prevTotal: null,
   lbPeriod: ['last', 'session', 'season'].includes(localStorage.getItem('fct-lb')) ? localStorage.getItem('fct-lb') : 'session', // friends leaderboard
   friendOpen: null,     // friend whose details are open
+  invite: null,         // Epic name from an invite link (#ami=<name>), asked once the state is there
   frSub: localStorage.getItem('fct-frsub') === 'squadov' ? 'squadov' : 'friends', // section of the Friends tab
 };
 
@@ -892,7 +893,9 @@ function friendDetail(f) {
 }
 
 function friendsSide(F, D) {
-  const add = `<div class="row fr-add"><input type="text" id="friend-name" data-draft value="${esc(draft('friend-name'))}" placeholder="${esc(t('frAddPlaceholder'))}" maxlength="40" data-enter="friend-add" autocomplete="off">
+  const inviteUrl = F.meName ? `https://${S.app.site || 'fortnite-chest-tracker.com'}/ami/${encodeURIComponent(F.meName)}` : '';
+  const invite = inviteUrl ? `<div class="fr-invite"><span>${esc(t('inviteLink'))}</span><div class="row"><input type="text" id="fr-invite" readonly value="${esc(inviteUrl)}">${button(`${icon('copy')}${esc(t('copy'))}`, 'data-copy="fr-invite"', 'btn-sm')}</div></div>` : '';
+  const add = `${invite}<div class="row fr-add"><input type="text" id="friend-name" data-draft value="${esc(draft('friend-name'))}" placeholder="${esc(t('frAddPlaceholder'))}" maxlength="40" data-enter="friend-add" autocomplete="off">
     ${button(esc(t('frAdd')), 'id="friend-add" data-act="friend-add"', 'btn-sm btn-primary')}</div>`;
   const section = (title, html) => (html ? `<div class="section-title">${esc(title)}</div>${html}` : '');
   const incoming = D.incoming.map((p) => `<div class="list-row">${skinBox(p.skin, p.name, 'sm')}<div class="main-t"><b>${esc(p.name)}</b><span>${esc(t('frWants'))}</span></div>
@@ -1855,6 +1858,28 @@ function newActivity(state) {
   ui.lastActivity = Math.max(ui.lastActivity, last);
 }
 
+// Opened from a friend's invite link (fctracker://ami/<name> → #ami=<name>): Friends tab, request ready, the player confirms.
+function takeInvite() {
+  const m = location.hash.match(/^#ami=(.+)$/);
+  if (!m) return;
+  try { ui.invite = decodeURIComponent(m[1]).slice(0, 40); } catch { ui.invite = null; }
+  history.replaceState(null, '', location.pathname + location.search);
+  if (ui.invite) { ui.page = 'friends'; ui.frSub = 'friends'; ui.draft['friend-name'] = ui.invite; }
+}
+takeInvite();
+window.addEventListener('hashchange', () => { takeInvite(); if (S) { render(); askInvite(); } });
+
+async function askInvite() {
+  const name = ui.invite;
+  if (!name || !S?.friends || S.setup) return;
+  if (S.friends.status !== 'ok') return; // asked once the counter knows the player (or never if sharing is off)
+  ui.invite = null;
+  if (S.friends.data?.friends.some((f) => f.name.toLowerCase() === name.toLowerCase())) { toast('info', t('inviteAlready', name)); return; }
+  if (!confirm(t('inviteConfirm', name))) return;
+  const r = await cmd('friends/add', { name });
+  if (r.ok) { delete ui.draft['friend-name']; toast('success', t('frRequestSent')); render(); }
+}
+
 async function onState(state) {
   S = state;
   // The overlay shows the goal chosen here: the counter follows the page (once at start, then on each choice).
@@ -1866,6 +1891,7 @@ async function onState(state) {
   }
   if (textsLang !== S.app.lang) await loadTexts(S.app.lang);
   newActivity(state);
+  setTimeout(askInvite, 0);
   // A push while a button is pressed or a list is open would replace them under the mouse (lost click, list closed):
   // the page is redrawn just after instead.
   if (ui.pressing || ui.selectOpen) { ui.renderLater = true; return; }

@@ -350,6 +350,7 @@ public static class Installer
             }
         }
         Registry.CurrentUser.DeleteSubKeyTree(UninstallKey, throwOnMissingSubKey: false);
+        Invite.Unregister(exe);
     }
 
     private static string? ReadLanguage(string dataDir)

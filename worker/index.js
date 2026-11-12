@@ -2,7 +2,8 @@
 // other path is served from the assets. /api/estimate?name=<Epic name> returns the matches of the season and of all
 // time from the player's PUBLIC Fortnite stats (fortnite-api.com, key stored as the FORTNITE_API_KEY secret), so the
 // website can estimate their chests without the app. No Epic login, nothing stored: answers are cached 15 minutes.
-// /api/friends/* and /api/skin/* serve the friends and squads of the app (worker/friends.js).
+// /api/friends/* and /api/skin/* serve the friends and squads of the app (worker/friends.js); /ami/<name> is a friend's
+// invite link (site/ami.html).
 
 import { friends, skin } from './friends.js';
 
@@ -70,6 +71,11 @@ export default {
       }
     }
     if (url.pathname.startsWith('/api/skin/') && request.method === 'GET') return skin(url, ctx);
+    if (url.pathname.startsWith('/ami/') && request.method === 'GET') {
+      // A friend's invite link (/ami/<Epic name>): one page for every name, it reads the name from the address.
+      const page = await env.ASSETS.fetch(new Request(new URL('/ami', url), request));
+      return new Response(page.body, { status: page.ok ? 200 : page.status, headers: page.headers });
+    }
     if (url.pathname.startsWith('/api/')) return reply(404, { error: 'not_found' });
     return env.ASSETS.fetch(request);
   },

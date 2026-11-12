@@ -133,7 +133,11 @@ public sealed partial class App
         CreateWatcher();
         Publish();
 
-        if (!_auto && !_afterUpdate && (_setupPending || _config.OpenUiOnStart))
+        if (Invite.NameFromArgs(_args) is { } invited)
+        {
+            OpenUi(Invite.Fragment(invited)); // opened from a friend's invite link: Friends tab, request ready
+        }
+        else if (!_auto && !_afterUpdate && (_setupPending || _config.OpenUiOnStart))
         {
             OpenUi();
         }
@@ -228,6 +232,7 @@ public sealed partial class App
             StartOverlay();
         }
         try { Installer.RefreshRegistration(); } catch (Exception ex) { ErrorLog.Write("Installed apps entry", ex); } // version shown after an update
+        try { if (AppInfo.ExePath is { } exe) Invite.Register(exe); } catch (Exception ex) { ErrorLog.Write("Invite links (fctracker://)", ex); }
         if (_config.StartWithFortnite)
         {
             FortniteWatch.Apply(true, _dataDir); // follows the exe if it was moved or updated, and restarts the standby
@@ -1131,11 +1136,13 @@ public sealed partial class App
         return OpenTarget(target) ? CommandResult.Done : CommandResult.Fail(target);
     }
 
-    private void OpenUi()
+    private void OpenUi() => OpenUi("");
+
+    private void OpenUi(string fragment)
     {
         if (_server != null)
         {
-            OpenTarget(_server.Url);
+            OpenTarget(_server.Url + fragment);
         }
     }
 
