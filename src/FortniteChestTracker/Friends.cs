@@ -80,6 +80,7 @@ public static class FriendsClient
         "squad_full" => L.T("l'escouade est pleine (4 joueurs)", "the squad is full (4 players)", "el escuadrón está lleno (4 jugadores)"),
         "too_many" => L.T("100 amis au maximum", "100 friends at most", "100 amigos como máximo"),
         "no_invite" or "no_request" => L.T("cette invitation n'existe plus", "this invitation no longer exists", "esta invitación ya no existe"),
+        "busy" => L.T("trop de demandes d'un coup : réessaie dans un moment", "too many requests at once: try again in a moment", "demasiadas solicitudes a la vez: inténtalo en un momento"),
         "offline" => L.T("serveur injoignable, réessaie dans un moment", "server unreachable, try again in a moment", "servidor inaccesible, inténtalo en un momento"),
         _ => error ?? "?",
     };
@@ -89,5 +90,96 @@ public static class FriendsClient
         var http = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"FortniteChestTracker/{AppInfo.VersionText}");
         return http;
+    }
+}
+
+/// <summary>
+/// WebSocket kept open with the friends server (/api/friends/live): a doorbell. The server sends "changed" when
+/// something the player sees changed (a friend's match, a request, the squad) and the app syncs at once, instead of
+/// asking every few seconds. Reconnects by itself (10 s … 5 min); a "ping" every 50 s keeps it open.
+/// </summary>
+public sealed class FriendsLive : IDisposable
+{
+    private readonly FriendsClient.Identity _me;
+    private readonly Action _changed;
+    private readonly CancellationTokenSource _stop = new();
+    private volatile bool _connected;
+
+    public FriendsLive(FriendsClient.Identity me, Action changed)
+    {
+        _me = me;
+        _changed = changed;
+        _ = Task.Run(RunAsync);
+    }
+
+    public string For => _me.Id;
+
+    /// <summary>Open right now: the app can sync rarely, the server rings when needed.</summary>
+    public bool Connected => _connected;
+
+    private async Task RunAsync()
+    {
+        var delay = TimeSpan.FromSeconds(10);
+        var url = new Uri(FriendsClient.BaseUrl.Replace("https://", "wss://").Replace("http://", "ws://") + "/api/friends/live");
+        while (!_stop.IsCancellationRequested)
+        {
+            using var ws = new System.Net.WebSockets.ClientWebSocket();
+            ws.Options.SetRequestHeader("x-fct-id", _me.Id);
+            ws.Options.SetRequestHeader("x-fct-key", _me.Key);
+            ws.Options.SetRequestHeader("User-Agent", $"FortniteChestTracker/{AppInfo.VersionText}");
+            try
+            {
+                using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
+                connectTimeout.CancelAfter(TimeSpan.FromSeconds(15));
+                await ws.ConnectAsync(url, connectTimeout.Token).ConfigureAwait(false);
+                _connected = true;
+                delay = TimeSpan.FromSeconds(10);
+                _changed(); // whatever happened while it was closed
+                using var pinger = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
+                _ = Task.Run(async () =>
+                {
+                    var ping = System.Text.Encoding.ASCII.GetBytes("ping");
+                    while (!pinger.IsCancellationRequested && ws.State == System.Net.WebSockets.WebSocketState.Open)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(50), pinger.Token).ConfigureAwait(false);
+                        await ws.SendAsync(ping, System.Net.WebSockets.WebSocketMessageType.Text, true, pinger.Token).ConfigureAwait(false);
+                    }
+                }, pinger.Token).ContinueWith(_ => { }, TaskScheduler.Default);
+                var buffer = new byte[256];
+                while (!_stop.IsCancellationRequested && ws.State == System.Net.WebSockets.WebSocketState.Open)
+                {
+                    var r = await ws.ReceiveAsync(buffer, _stop.Token).ConfigureAwait(false);
+                    if (r.MessageType == System.Net.WebSockets.WebSocketMessageType.Close)
+                    {
+                        break;
+                    }
+                    if (System.Text.Encoding.ASCII.GetString(buffer, 0, r.Count) == "changed")
+                    {
+                        _changed();
+                    }
+                }
+                pinger.Cancel();
+            }
+            catch
+            {
+                // offline, server restarted, unknown player (not registered yet)…: try again later
+            }
+            _connected = false;
+            try
+            {
+                await Task.Delay(delay, _stop.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            delay = TimeSpan.FromSeconds(Math.Min(300, delay.TotalSeconds * 2));
+        }
+    }
+
+    public void Dispose()
+    {
+        _stop.Cancel();
+        _connected = false;
     }
 }

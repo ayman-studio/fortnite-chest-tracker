@@ -6,6 +6,10 @@
 // Stored per player: Epic id and name, outfit, a summary of the season (chests, matches, treasure odds, treasures
 // found) and the matches of the last 3 days (chests, length, placement). Teammates are only kept when they have the app
 // too (to suggest them as friends). Turning sharing off in the app deletes all of it (POST /api/friends/forget).
+//
+// Live: each app keeps a WebSocket open (/api/friends/live, hibernated: free while idle). It only carries a doorbell:
+// "changed" when something the player sees changed (a friend's match, a request, the squad); the app then syncs.
+// Limits per IP and per player (requests, name lookups, new accounts) keep scripts from abusing the hub.
 
 import { DurableObject } from 'cloudflare:workers';
 
@@ -20,6 +24,16 @@ const MATES_KEPT = 48 * HOUR;     // teammates suggested as friends for 2 days
 const PLAYING_STALE = 3 * 60e3;   // "in a match" only while the app keeps saying so
 const MAX_FRIENDS = 100;
 const MAX_SQUAD = 4;
+const MAX_SOCKETS = 3;            // per player (several PCs, a restart before the old socket closed)
+
+// [limit, window ms] per bucket; the key is the IP or the player.
+const LIMITS = {
+  ip: [240, 60e3],          // every request of one IP (an app makes a few per minute)
+  live: [30, 60e3],         // WebSocket connections opened by one IP
+  register: [10, 3600e3],   // new players registered from one IP
+  lookupIp: [60, 3600e3],   // friend requests by name from one IP
+  lookup: [30, 3600e3],     // friend requests by name from one player
+};
 
 const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const int = (v, min, max) => (Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : null);
@@ -43,6 +57,10 @@ export class FriendsHub extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
+    this.hits = new Map();
+    this.touched = new Set();
+    // A ping from the app is answered without waking the hub (keeps the connection alive for free).
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
     this.sql.exec(`
       CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, key_hash TEXT NOT NULL, name TEXT NOT NULL, name_lc TEXT NOT NULL,
         skin TEXT, summary TEXT, playing INTEGER NOT NULL DEFAULT 0, seen INTEGER NOT NULL, created INTEGER NOT NULL);
@@ -68,16 +86,46 @@ export class FriendsHub extends DurableObject {
     return this.rows(query, ...args)[0] ?? null;
   }
 
+  // Throws "busy" when the bucket is over its limit for this key.
+  limit(bucket, key) {
+    const [max, window] = LIMITS[bucket];
+    const now = Date.now();
+    const k = bucket + '|' + key;
+    let h = this.hits.get(k);
+    if (!h || now - h.start > window) {
+      if (this.hits.size > 20000) {
+        for (const [hk, hv] of this.hits) if (now - hv.start > 3600e3) this.hits.delete(hk);
+      }
+      h = { start: now, n: 0 };
+      this.hits.set(k, h);
+    }
+    if (++h.n > max) throw new Fail(429, 'busy');
+  }
+
   async fetch(request) {
     const op = new URL(request.url).pathname.replace(/^\/api\/friends\//, '');
+    const ip = request.headers.get('x-fct-ip') || '?';
+    if (op === 'live') {
+      try {
+        this.limit('live', ip);
+        return await this.live(request);
+      } catch (e) {
+        if (e instanceof Fail) return reply(e.status, { error: e.code });
+        throw e;
+      }
+    }
     let body;
     try {
       body = await request.json();
     } catch {
       return reply(400, { error: 'json' });
     }
+    this.touched = new Set();
     try {
-      const me = await this.auth(body, op === 'sync');
+      this.limit('ip', ip);
+      if (op === 'friend/add' && typeof body.target !== 'string') this.limit('lookupIp', ip);
+      const me = await this.auth(body, op === 'sync', ip);
+      if (op === 'friend/add' && typeof body.target !== 'string') this.limit('lookup', me);
       this.cleanup();
       switch (op) {
         case 'sync': this.sync(me, body); break;
@@ -87,9 +135,10 @@ export class FriendsHub extends DurableObject {
         case 'squad/invite': this.invite(me, body); break;
         case 'squad/answer': this.answerInvite(me, body); break;
         case 'squad/leave': this.leave(me); break;
-        case 'forget': this.forget(me); return reply(200, { ok: true });
+        case 'forget': this.forget(me); this.ring(me); return reply(200, { ok: true });
         default: return reply(404, { error: 'not_found' });
       }
+      this.ring(me);
       return reply(200, this.state(me));
     } catch (e) {
       if (e instanceof Fail) return reply(e.status, { error: e.code });
@@ -98,7 +147,7 @@ export class FriendsHub extends DurableObject {
   }
 
   // The Epic id and its key. The first sync of an unknown id registers it (with a name).
-  async auth(body, mayRegister) {
+  async auth(body, mayRegister, ip = '?') {
     const id = typeof body.id === 'string' ? body.id.toLowerCase() : '';
     const key = typeof body.key === 'string' ? body.key.toLowerCase() : '';
     if (!EPIC_ID.test(id) || !KEY.test(key)) throw new Fail(400, 'id');
@@ -110,10 +159,59 @@ export class FriendsHub extends DurableObject {
     }
     const name = text(body.name, 40);
     if (!mayRegister || !name) throw new Fail(401, 'unknown');
+    this.limit('register', ip);
     const now = Date.now();
     this.sql.exec('INSERT INTO players (id, key_hash, name, name_lc, skin, seen, created) VALUES (?, ?, ?, ?, ?, ?, ?)',
       id, hash, name, name.toLowerCase(), skinOf(body.skin), now, now);
     return id;
+  }
+
+  // WebSocket of an app (auth in headers, the player must exist). Tagged with the player's id.
+  async live(request) {
+    if (request.headers.get('upgrade') !== 'websocket') throw new Fail(426, 'websocket');
+    const me = await this.auth({ id: request.headers.get('x-fct-id'), key: request.headers.get('x-fct-key') }, false);
+    const open = this.ctx.getWebSockets(me);
+    for (const old of open.slice(0, Math.max(0, open.length - MAX_SOCKETS + 1))) {
+      try { old.close(1000, 'replaced'); } catch { /* already closed */ }
+    }
+    const pair = new WebSocketPair();
+    this.ctx.acceptWebSocket(pair[1], [me]);
+    return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+
+  webSocketMessage(ws, message) {
+    if (message !== 'ping') ws.close(1003, 'unexpected');
+  }
+
+  webSocketClose(ws, code) {
+    try { ws.close(code === 1005 ? 1000 : code, 'bye'); } catch { /* closed */ }
+  }
+
+  // Players whose view changed during this request (rung once it is done, except the player who asked).
+  touch(...ids) {
+    for (const id of ids.flat()) if (id) this.touched.add(id);
+  }
+
+  // Everyone who sees this player: friends, squad mates and those invited to the squad.
+  watchers(me) {
+    const ids = new Set(this.friendsOf(me));
+    const m = this.one('SELECT squad FROM members WHERE id = ?', me);
+    if (m) {
+      for (const r of this.rows('SELECT id FROM members WHERE squad = ?', m.squad)) ids.add(r.id);
+      for (const r of this.rows('SELECT to_id FROM invites WHERE squad = ?', m.squad)) ids.add(r.to_id);
+    }
+    ids.delete(me);
+    return [...ids];
+  }
+
+  ring(me) {
+    for (const id of this.touched) {
+      if (id === me) continue;
+      for (const ws of this.ctx.getWebSockets(id)) {
+        try { ws.send('changed'); } catch { /* closing */ }
+      }
+    }
+    this.touched = new Set();
   }
 
   cleanup() {
@@ -140,6 +238,7 @@ export class FriendsHub extends DurableObject {
       summary = JSON.stringify(body.summary);
       if (summary.length > 8000) summary = null;
     }
+    const before = this.one('SELECT name, skin, summary, playing FROM players WHERE id = ?', me);
     this.sql.exec(`UPDATE players SET name = COALESCE(NULLIF(?, ''), name), name_lc = COALESCE(NULLIF(?, ''), name_lc),
       skin = COALESCE(?, skin), summary = COALESCE(?, summary), playing = ?, seen = ? WHERE id = ?`,
       name, name.toLowerCase(), skinOf(body.skin), summary, body.playing === true ? 1 : 0, now, me);
@@ -164,6 +263,11 @@ export class FriendsHub extends DurableObject {
     const membership = this.one('SELECT squad FROM members WHERE id = ?', me);
     if (membership && (matches.length || body.playing === true)) {
       this.sql.exec('UPDATE squads SET touched = ? WHERE id = ?', now, membership.squad);
+    }
+    // Friends only hear about what they see: a new match, "in a match", the summary, the name or the outfit.
+    const after = this.one('SELECT name, skin, summary, playing FROM players WHERE id = ?', me);
+    if (matches.length || !before || before.name !== after.name || before.skin !== after.skin || before.summary !== after.summary || before.playing !== after.playing) {
+      this.touch(this.watchers(me));
     }
   }
 
@@ -195,6 +299,7 @@ export class FriendsHub extends DurableObject {
     const mine = this.one('SELECT ok FROM friends WHERE a = ? AND b = ?', me, other);
     const theirs = this.one('SELECT ok FROM friends WHERE a = ? AND b = ?', other, me);
     if (mine?.ok || theirs?.ok || mine) return;
+    this.touch(other);
     if (theirs) {
       // they had asked already: asking back accepts
       this.sql.exec('UPDATE friends SET ok = 1, at = ? WHERE a = ? AND b = ?', Date.now(), other, me);
@@ -207,6 +312,7 @@ export class FriendsHub extends DurableObject {
   answerFriend(me, body) {
     const other = this.target(body, me);
     if (!this.one('SELECT 1 AS x FROM friends WHERE a = ? AND b = ? AND ok = 0', other, me)) throw new Fail(404, 'no_request');
+    this.touch(other);
     if (body.accept === true) {
       if (this.friendsOf(me).length >= MAX_FRIENDS) throw new Fail(400, 'too_many');
       this.sql.exec('UPDATE friends SET ok = 1, at = ? WHERE a = ? AND b = ?', Date.now(), other, me);
@@ -217,6 +323,7 @@ export class FriendsHub extends DurableObject {
 
   removeFriend(me, body) {
     const other = this.target(body, me);
+    this.touch(other);
     this.sql.exec('DELETE FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)', me, other, other, me);
     this.sql.exec('DELETE FROM invites WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)', me, other, other, me);
     this.sql.exec('DELETE FROM mates WHERE (id = ? AND mate = ?) OR (id = ? AND mate = ?)', me, other, other, me);
@@ -246,12 +353,14 @@ export class FriendsHub extends DurableObject {
     }
     if (this.one('SELECT COUNT(*) AS n FROM members WHERE squad = ?', squad).n >= MAX_SQUAD) throw new Fail(400, 'squad_full');
     this.sql.exec('INSERT OR REPLACE INTO invites (squad, from_id, to_id, at) VALUES (?, ?, ?, ?)', squad, me, other, now);
+    this.touch(other, this.watchers(me));
   }
 
   answerInvite(me, body) {
     const squad = typeof body.squad === 'string' ? body.squad : '';
     const invite = this.one('SELECT squad FROM invites WHERE squad = ? AND to_id = ?', squad, me);
     if (!invite) throw new Fail(404, 'no_invite');
+    this.touch(this.rows('SELECT id FROM members WHERE squad = ?', squad).map((r) => r.id));
     if (body.accept === true) this.join(me, squad);
     else this.sql.exec('DELETE FROM invites WHERE squad = ? AND to_id = ?', squad, me);
   }
@@ -264,11 +373,13 @@ export class FriendsHub extends DurableObject {
     this.sql.exec('INSERT OR REPLACE INTO members (id, squad, joined) VALUES (?, ?, ?)', me, squad, now);
     this.sql.exec('DELETE FROM invites WHERE to_id = ? AND squad = ?', me, squad);
     this.sql.exec('UPDATE squads SET touched = ? WHERE id = ?', now, squad);
+    this.touch(this.watchers(me));
   }
 
   leave(me) {
     const m = this.one('SELECT squad FROM members WHERE id = ?', me);
     if (!m) return;
+    this.touch(this.watchers(me));
     this.sql.exec('DELETE FROM members WHERE id = ?', me);
     this.sql.exec('DELETE FROM invites WHERE squad = ? AND from_id = ?', m.squad, me);
     const left = this.one('SELECT COUNT(*) AS n FROM members WHERE squad = ?', m.squad).n;
@@ -278,6 +389,8 @@ export class FriendsHub extends DurableObject {
   }
 
   forget(me) {
+    this.touch(this.watchers(me));
+    this.touch(this.rows('SELECT b AS id FROM friends WHERE a = ? UNION SELECT a AS id FROM friends WHERE b = ?', me, me).map((r) => r.id));
     this.leave(me);
     this.sql.exec('DELETE FROM invites WHERE to_id = ? OR from_id = ?', me, me);
     this.sql.exec('DELETE FROM friends WHERE a = ? OR b = ?', me, me);
@@ -352,12 +465,15 @@ const reply = (status, body) => new Response(JSON.stringify(body), { status, hea
 
 /** /api/friends/* (POST, JSON) → the single hub. */
 export async function friends(request, env) {
-  if (request.method !== 'POST') return reply(405, { error: 'method' });
+  const live = new URL(request.url).pathname === '/api/friends/live';
+  if (live ? request.method !== 'GET' : request.method !== 'POST') return reply(405, { error: 'method' });
   if (!env.HUB) return reply(503, { error: 'not_configured' });
   const length = Number(request.headers.get('content-length') || 0);
   if (length > 64 * 1024) return reply(413, { error: 'too_big' });
+  const headers = new Headers(request.headers);
+  headers.set('x-fct-ip', request.headers.get('cf-connecting-ip') || '?');
   const hub = env.HUB.get(env.HUB.idFromName('hub'));
-  return hub.fetch(request);
+  return hub.fetch(new Request(request, { headers }));
 }
 
 /** /api/skin/<outfit id>.png: the small icon of an outfit (fortnite-api.com), cached at the edge for a month. */

@@ -20,6 +20,7 @@ public sealed partial class App
     private readonly HashSet<string> _dismissedSuggestions = new();
     private string? _squadOverlayFor;         // squad id the squad overlay was shown for
     private int _friendsFailures;
+    private FriendsLive? _live;               // doorbell of the server (sync as soon as something changed)
     private volatile SquadView _squadDemo = SquadView.Empty; // example shown on the home page without a squad
 
     // Outfits of the example when the player has no friends yet (Epic's default outfits).
@@ -133,6 +134,8 @@ public sealed partial class App
         {
             _friendsStatus = _config.FriendsSharing ? "noprofile" : "off";
             _nextFriendsSync = DateTime.UtcNow.AddSeconds(30);
+            _live?.Dispose();
+            _live = null;
             if (_friends != null)
             {
                 _friends = null;
@@ -179,6 +182,12 @@ public sealed partial class App
                         _sentMatches.Add(m.SessionId);
                     }
                     _friendsFailures = 0;
+                    if (_live?.For != me.Id)
+                    {
+                        // registered now: the server can ring this player
+                        _live?.Dispose();
+                        _live = new FriendsLive(me, () => Post(() => _nextFriendsSync = DateTime.UtcNow));
+                    }
                     ApplyFriends(state);
                 }
                 else
@@ -199,6 +208,10 @@ public sealed partial class App
         if (_friendsStatus is "taken")
         {
             return 300;
+        }
+        if (_live?.Connected == true)
+        {
+            return 300; // the server rings when something changed; the player's own changes are sent at once
         }
         return InSquad || HasPendingInvites || _tracker.IsLive ? 10 : 60;
     }
@@ -539,6 +552,8 @@ public sealed partial class App
                 }
                 _friends = null;
                 _friendsStatus = "off";
+                _live?.Dispose();
+                _live = null;
                 _squadSuggestion = null;
                 _sentMatches.Clear();
                 _sentSummary = null;
