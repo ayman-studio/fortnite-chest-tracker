@@ -8,7 +8,7 @@ public class UpdaterTests
     private const string Digest = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     private static string Release(string tag = "v1.5.0", bool prerelease = false, bool draft = false, string assetName = AppInfo.ExeName,
-        string? digest = Digest, string url = "https://github.com/me/repo/releases/download/v1.5.0/" + AppInfo.ExeName, string[]? otherAssets = null)
+        string? digest = Digest, string url = "https://github.com/me/repo/releases/download/v1.5.0/" + AppInfo.ExeName, string[]? otherAssets = null, bool signed = true)
     {
         Dictionary<string, object?> Asset(string name, string link, long size) => new()
         {
@@ -18,6 +18,10 @@ public class UpdaterTests
             ["digest"] = digest,
         };
         var assets = (otherAssets ?? Array.Empty<string>()).Select(name => Asset(name, "https://github.com/me/repo/releases/download/v1.5.0/" + name, 999)).ToList();
+        if (signed)
+        {
+            assets.Add(Asset(assetName + ".sig", "https://github.com/me/repo/releases/download/v1.5.0/" + assetName + ".sig", 96));
+        }
         assets.Insert(0, Asset(assetName, url, 12345));
         if (digest == null)
         {
@@ -80,7 +84,7 @@ public class UpdaterTests
         Assert.EndsWith("/old.exe", legacy.AssetUrl);
 
         // Both in the release (listed in any order): the current name is the one downloaded.
-        var both = Updater.Parse(Release(assetName: Legacy.AssetName, otherAssets: new[] { AppInfo.ExeName }), Current);
+        var both = Updater.Parse(Release(assetName: Legacy.AssetName, otherAssets: new[] { AppInfo.ExeName, AppInfo.ExeName + ".sig" }), Current);
         Assert.NotNull(both);
         Assert.EndsWith("/" + AppInfo.ExeName, both.AssetUrl);
         Assert.Equal(999, both.Size);
@@ -129,5 +133,37 @@ public class UpdaterTests
         Assert.Equal(AppInfo.ProjectRepo, AppInfo.Repo); // links (GitHub, bug reports) still go to the project
         // A build run through its dll (tests, Debug) is not the published exe: no update, install or logon entry from it.
         Assert.Null(AppInfo.ExePath);
+    }
+
+    [Fact]
+    public void Release_without_signature_is_ignored()
+    {
+        Assert.Null(Updater.Parse(Release(signed: false), Current));
+        Assert.EndsWith(".exe.sig", Updater.Parse(Release(), Current)!.SignatureUrl);
+    }
+
+    [Fact]
+    public void Only_the_release_key_signature_is_accepted()
+    {
+        using var release = System.Security.Cryptography.ECDsa.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
+        using var other = System.Security.Cryptography.ECDsa.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
+        var pub = Convert.ToBase64String(release.ExportSubjectPublicKeyInfo());
+        var exe = System.Text.Encoding.UTF8.GetBytes("MZ fake exe");
+        var good = Convert.ToBase64String(release.SignData(exe, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.DSASignatureFormat.Rfc3279DerSequence));
+        var forged = Convert.ToBase64String(other.SignData(exe, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.DSASignatureFormat.Rfc3279DerSequence));
+        Assert.True(Updater.SignatureValid(exe, good, pub));
+        Assert.False(Updater.SignatureValid(exe, forged, pub));
+        Assert.False(Updater.SignatureValid(System.Text.Encoding.UTF8.GetBytes("MZ other exe"), good, pub));
+        Assert.False(Updater.SignatureValid(exe, "not base64!", pub));
+        Assert.False(Updater.SignatureValid(exe, good)); // a test key is not the release key
+    }
+
+    [Fact]
+    public void A_release_signed_by_the_release_job_is_accepted()
+    {
+        // FCT_SIG_TEST = folder with test.exe and test.exe.sig made like the release job (openssl dgst -sha256 -sign)
+        var dir = Environment.GetEnvironmentVariable("FCT_SIG_TEST");
+        Assert.SkipWhen(string.IsNullOrEmpty(dir), "FCT_SIG_TEST is not set");
+        Assert.True(Updater.SignatureValid(File.ReadAllBytes(Path.Combine(dir!, "test.exe")), File.ReadAllText(Path.Combine(dir!, "test.exe.sig"))));
     }
 }

@@ -3,15 +3,37 @@ using System.Text.Json;
 
 namespace FortniteChestTracker;
 
-public sealed record UpdateInfo(Version Version, string Tag, string AssetUrl, long Size, string Sha256, string PageUrl);
+/// <param name="SignatureUrl">The ".sig" file published with the exe: its signature by the release key (<see cref="Updater.ReleaseKey"/>).</param>
+public sealed record UpdateInfo(Version Version, string Tag, string AssetUrl, long Size, string Sha256, string PageUrl, string SignatureUrl = "");
 
 /// <summary>
 /// Checks the latest GitHub release and replaces the running exe with it. The running exe is renamed (Windows allows
 /// that), the new one takes its place and is started; the old file is deleted at the next launch.
 /// This is the only network access of the tool, and it can be turned off in the settings.
+/// An exe is only installed when it is signed with the release key: the private key lives only in the release job of
+/// GitHub Actions (secret UPDATE_SIGNING_KEY) and with the author; a release uploaded any other way (stolen GitHub
+/// token, hijacked build step) is refused, even with a correct SHA-256 (GitHub computes that for any file).
 /// </summary>
 public static class Updater
 {
+    /// <summary>Public key of the releases (ECDSA P-256, SubjectPublicKeyInfo, base64).</summary>
+    internal const string ReleaseKey = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkdN5a2OULwXBp2DEaOpZwPWBRSYDMKoU96WwMvZItWYrBdZV+Ft61EZY4veXWAOUtXPYZOGp3uBsq/MxZ1bSJQ==";
+
+    /// <summary>True when <paramref name="signature"/> (base64 of a DER signature, as made by openssl dgst -sign) signs <paramref name="data"/> with this public key.</summary>
+    internal static bool SignatureValid(byte[] data, string signature, string publicKey = ReleaseKey)
+    {
+        try
+        {
+            using var key = ECDsa.Create();
+            key.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicKey), out _);
+            return key.VerifyData(data, Convert.FromBase64String(signature.Trim()), HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     // FCT_UPDATE_API (tests) only counts in a local build: a published exe always asks its own repository.
     private static string? TestApi => AppInfo.UpdatesAvailable ? null : Environment.GetEnvironmentVariable("FCT_UPDATE_API");
 
@@ -89,9 +111,17 @@ public static class Updater
                 {
                     return null;
                 }
+                // A release without the signature of its exe is never offered (see ReleaseKey)
+                var sigName = asset.GetProperty("name").GetString() + ".sig";
+                var sig = assets.FirstOrDefault(a => string.Equals(a.GetProperty("name").GetString(), sigName, StringComparison.OrdinalIgnoreCase));
+                var sigUrl = sig.ValueKind == JsonValueKind.Object ? sig.GetProperty("browser_download_url").GetString() : null;
+                if (sigUrl == null || !sigUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
                 var pageUrl = root.TryGetProperty("html_url", out var page) ? page.GetString() : null;
                 return new UpdateInfo(version, tag, url, asset.GetProperty("size").GetInt64(), d[7..],
-                    pageUrl != null && pageUrl.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) ? pageUrl : AppInfo.RepoUrl);
+                    pageUrl != null && pageUrl.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) ? pageUrl : AppInfo.RepoUrl, sigUrl);
             }
             return null;
         }
@@ -115,11 +145,28 @@ public static class Updater
         var old = exe + ".old";
         try
         {
+            string signature;
             using (var http = NewClient(TimeSpan.FromMinutes(5)))
-            using (var source = http.GetStreamAsync(update.AssetUrl).GetAwaiter().GetResult())
-            using (var target = File.Create(download))
             {
-                source.CopyTo(target);
+                using (var source = http.GetStreamAsync(update.AssetUrl).GetAwaiter().GetResult())
+                using (var target = File.Create(download))
+                {
+                    // never more than the size announced (a bigger answer is not the release)
+                    var buffer = new byte[81920];
+                    long total = 0;
+                    int n;
+                    while ((n = source.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        total += n;
+                        if (total > update.Size)
+                        {
+                            throw new IOException(L.T("téléchargement trop gros", "download too big", "descarga demasiado grande"));
+                        }
+                        target.Write(buffer, 0, n);
+                    }
+                }
+                http.MaxResponseContentBufferSize = 4096;
+                signature = http.GetStringAsync(update.SignatureUrl).GetAwaiter().GetResult();
             }
 
             var info = new FileInfo(download);
@@ -139,6 +186,10 @@ public static class Updater
                 {
                     throw new IOException(L.T("empreinte SHA-256 incorrecte", "wrong SHA-256 checksum", "suma de comprobación SHA-256 incorrecta"));
                 }
+            }
+            if (!SignatureValid(File.ReadAllBytes(download), signature))
+            {
+                throw new IOException(L.T("signature de la mise à jour invalide : elle n'est pas installée", "invalid update signature: it is not installed", "firma de la actualización no válida: no se instala"));
             }
 
             // The standby process may run the current exe: stop it (it is restarted from the new exe).
