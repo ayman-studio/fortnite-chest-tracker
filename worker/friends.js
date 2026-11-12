@@ -1,0 +1,386 @@
+// Friends and squads of the app ("Potes" tab, squad overlay): one Durable Object with its own SQLite database holds the
+// players who share their chests, their friendships, the squads and the matches of the last days.
+//
+// No Epic login: an app is identified by the Epic account id read in its replays plus a random key it made the first
+// time (only its SHA-256 is stored). The first app to use an Epic id owns it; another PC joins with the same key.
+// Stored per player: Epic id and name, outfit, a summary of the season (chests, matches, treasure odds, treasures
+// found) and the matches of the last 3 days (chests, length, placement). Teammates are only kept when they have the app
+// too (to suggest them as friends). Turning sharing off in the app deletes all of it (POST /api/friends/forget).
+
+import { DurableObject } from 'cloudflare:workers';
+
+const EPIC_ID = /^[0-9a-f]{32}$/;
+const KEY = /^[0-9a-f]{64}$/;
+const SKIN = /^[A-Za-z0-9_-]{1,120}$/;
+const SESSION = /^[0-9A-Za-z_.:-]{1,80}$/;
+const HOUR = 3600e3;
+const SQUAD_IDLE = 6 * HOUR;      // a squad nobody played in for 6 h is closed
+const MATCHES_KEPT = 72 * HOUR;   // matches kept for "last match" and the squad session
+const MATES_KEPT = 48 * HOUR;     // teammates suggested as friends for 2 days
+const PLAYING_STALE = 3 * 60e3;   // "in a match" only while the app keeps saying so
+const MAX_FRIENDS = 100;
+const MAX_SQUAD = 4;
+
+const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const int = (v, min, max) => (Number.isFinite(v) ? Math.min(max, Math.max(min, Math.round(v))) : null);
+const skinOf = (v) => (typeof v === 'string' && SKIN.test(v) ? v : null);
+
+async function sha256(hex) {
+  const bytes = new TextEncoder().encode(hex);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+class Fail extends Error {
+  constructor(status, code) {
+    super(code);
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export class FriendsHub extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, key_hash TEXT NOT NULL, name TEXT NOT NULL, name_lc TEXT NOT NULL,
+        skin TEXT, summary TEXT, playing INTEGER NOT NULL DEFAULT 0, seen INTEGER NOT NULL, created INTEGER NOT NULL);
+      CREATE INDEX IF NOT EXISTS players_name ON players(name_lc);
+      CREATE TABLE IF NOT EXISTS friends (a TEXT NOT NULL, b TEXT NOT NULL, ok INTEGER NOT NULL DEFAULT 0, at INTEGER NOT NULL, PRIMARY KEY (a, b));
+      CREATE INDEX IF NOT EXISTS friends_b ON friends(b);
+      CREATE TABLE IF NOT EXISTS matches (id TEXT NOT NULL, sid TEXT NOT NULL, ended INTEGER NOT NULL, chests INTEGER NOT NULL,
+        dur INTEGER, place INTEGER, skin TEXT, PRIMARY KEY (id, sid));
+      CREATE INDEX IF NOT EXISTS matches_ended ON matches(ended);
+      CREATE TABLE IF NOT EXISTS mates (id TEXT NOT NULL, mate TEXT NOT NULL, seen INTEGER NOT NULL, PRIMARY KEY (id, mate));
+      CREATE TABLE IF NOT EXISTS squads (id TEXT PRIMARY KEY, since INTEGER NOT NULL, touched INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, squad TEXT NOT NULL, joined INTEGER NOT NULL);
+      CREATE INDEX IF NOT EXISTS members_squad ON members(squad);
+      CREATE TABLE IF NOT EXISTS invites (squad TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (squad, to_id));
+    `);
+  }
+
+  rows(query, ...args) {
+    return this.sql.exec(query, ...args).toArray();
+  }
+
+  one(query, ...args) {
+    return this.rows(query, ...args)[0] ?? null;
+  }
+
+  async fetch(request) {
+    const op = new URL(request.url).pathname.replace(/^\/api\/friends\//, '');
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return reply(400, { error: 'json' });
+    }
+    try {
+      const me = await this.auth(body, op === 'sync');
+      this.cleanup();
+      switch (op) {
+        case 'sync': this.sync(me, body); break;
+        case 'friend/add': this.addFriend(me, body); break;
+        case 'friend/answer': this.answerFriend(me, body); break;
+        case 'friend/remove': this.removeFriend(me, body); break;
+        case 'squad/invite': this.invite(me, body); break;
+        case 'squad/answer': this.answerInvite(me, body); break;
+        case 'squad/leave': this.leave(me); break;
+        case 'forget': this.forget(me); return reply(200, { ok: true });
+        default: return reply(404, { error: 'not_found' });
+      }
+      return reply(200, this.state(me));
+    } catch (e) {
+      if (e instanceof Fail) return reply(e.status, { error: e.code });
+      throw e;
+    }
+  }
+
+  // The Epic id and its key. The first sync of an unknown id registers it (with a name).
+  async auth(body, mayRegister) {
+    const id = typeof body.id === 'string' ? body.id.toLowerCase() : '';
+    const key = typeof body.key === 'string' ? body.key.toLowerCase() : '';
+    if (!EPIC_ID.test(id) || !KEY.test(key)) throw new Fail(400, 'id');
+    const hash = await sha256(key);
+    const player = this.one('SELECT id, key_hash FROM players WHERE id = ?', id);
+    if (player) {
+      if (player.key_hash !== hash) throw new Fail(409, 'taken');
+      return id;
+    }
+    const name = text(body.name, 40);
+    if (!mayRegister || !name) throw new Fail(401, 'unknown');
+    const now = Date.now();
+    this.sql.exec('INSERT INTO players (id, key_hash, name, name_lc, skin, seen, created) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      id, hash, name, name.toLowerCase(), skinOf(body.skin), now, now);
+    return id;
+  }
+
+  cleanup() {
+    const now = Date.now();
+    this.sql.exec('DELETE FROM matches WHERE ended < ?', now - MATCHES_KEPT);
+    this.sql.exec('DELETE FROM mates WHERE seen < ?', now - MATES_KEPT);
+    const idle = this.rows('SELECT id FROM squads WHERE touched < ?', now - SQUAD_IDLE);
+    for (const s of idle) this.dropSquad(s.id);
+  }
+
+  dropSquad(squad) {
+    this.sql.exec('DELETE FROM members WHERE squad = ?', squad);
+    this.sql.exec('DELETE FROM invites WHERE squad = ?', squad);
+    this.sql.exec('DELETE FROM squads WHERE id = ?', squad);
+  }
+
+  // ---- Updates from the app ------------------------------------------------------------------------------
+
+  sync(me, body) {
+    const now = Date.now();
+    const name = text(body.name, 40);
+    let summary = null;
+    if (body.summary && typeof body.summary === 'object') {
+      summary = JSON.stringify(body.summary);
+      if (summary.length > 8000) summary = null;
+    }
+    this.sql.exec(`UPDATE players SET name = COALESCE(NULLIF(?, ''), name), name_lc = COALESCE(NULLIF(?, ''), name_lc),
+      skin = COALESCE(?, skin), summary = COALESCE(?, summary), playing = ?, seen = ? WHERE id = ?`,
+      name, name.toLowerCase(), skinOf(body.skin), summary, body.playing === true ? 1 : 0, now, me);
+
+    const matches = Array.isArray(body.matches) ? body.matches.slice(-30) : [];
+    for (const m of matches) {
+      const sid = typeof m?.sid === 'string' && SESSION.test(m.sid) ? m.sid : null;
+      const ended = Number.isFinite(m?.ended) && m.ended > now - MATCHES_KEPT && m.ended < now + 60e3 ? Math.round(m.ended) : null;
+      const chests = int(m?.chests, 0, 500);
+      if (!sid || ended == null || chests == null) continue;
+      this.sql.exec('INSERT OR REPLACE INTO matches (id, sid, ended, chests, dur, place, skin) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        me, sid, ended, chests, int(m.dur, 0, 7200), int(m.place, 1, 200), skinOf(m.skin));
+      // Teammates are kept only when they have the app (suggested as friends), never the others.
+      const mates = Array.isArray(m.mates) ? m.mates.slice(0, 8) : [];
+      for (const mate of mates) {
+        const mid = typeof mate === 'string' ? mate.toLowerCase() : '';
+        if (EPIC_ID.test(mid) && mid !== me && this.one('SELECT 1 AS x FROM players WHERE id = ?', mid)) {
+          this.sql.exec('INSERT OR REPLACE INTO mates (id, mate, seen) VALUES (?, ?, ?)', me, mid, Math.min(ended, now));
+        }
+      }
+    }
+    const membership = this.one('SELECT squad FROM members WHERE id = ?', me);
+    if (membership && (matches.length || body.playing === true)) {
+      this.sql.exec('UPDATE squads SET touched = ? WHERE id = ?', now, membership.squad);
+    }
+  }
+
+  target(body, me) {
+    const id = typeof body.target === 'string' ? body.target.toLowerCase() : '';
+    if (EPIC_ID.test(id)) {
+      if (id === me) throw new Fail(400, 'self');
+      if (!this.one('SELECT 1 AS x FROM players WHERE id = ?', id)) throw new Fail(404, 'not_found');
+      return id;
+    }
+    const name = text(body.name, 40).toLowerCase();
+    if (name.length < 3) throw new Fail(400, 'name');
+    const found = this.one('SELECT id FROM players WHERE name_lc = ? ORDER BY seen DESC', name);
+    if (!found) throw new Fail(404, 'not_found');
+    if (found.id === me) throw new Fail(400, 'self');
+    return found.id;
+  }
+
+  friendsOf(me) {
+    return this.rows('SELECT b AS id FROM friends WHERE a = ? AND ok = 1 UNION SELECT a AS id FROM friends WHERE b = ? AND ok = 1', me, me).map((r) => r.id);
+  }
+
+  areFriends(a, b) {
+    return !!this.one('SELECT 1 AS x FROM friends WHERE ((a = ? AND b = ?) OR (a = ? AND b = ?)) AND ok = 1', a, b, b, a);
+  }
+
+  addFriend(me, body) {
+    const other = this.target(body, me);
+    const mine = this.one('SELECT ok FROM friends WHERE a = ? AND b = ?', me, other);
+    const theirs = this.one('SELECT ok FROM friends WHERE a = ? AND b = ?', other, me);
+    if (mine?.ok || theirs?.ok || mine) return;
+    if (theirs) {
+      // they had asked already: asking back accepts
+      this.sql.exec('UPDATE friends SET ok = 1, at = ? WHERE a = ? AND b = ?', Date.now(), other, me);
+      return;
+    }
+    if (this.friendsOf(me).length >= MAX_FRIENDS) throw new Fail(400, 'too_many');
+    this.sql.exec('INSERT INTO friends (a, b, ok, at) VALUES (?, ?, 0, ?)', me, other, Date.now());
+  }
+
+  answerFriend(me, body) {
+    const other = this.target(body, me);
+    if (!this.one('SELECT 1 AS x FROM friends WHERE a = ? AND b = ? AND ok = 0', other, me)) throw new Fail(404, 'no_request');
+    if (body.accept === true) {
+      if (this.friendsOf(me).length >= MAX_FRIENDS) throw new Fail(400, 'too_many');
+      this.sql.exec('UPDATE friends SET ok = 1, at = ? WHERE a = ? AND b = ?', Date.now(), other, me);
+    } else {
+      this.sql.exec('DELETE FROM friends WHERE a = ? AND b = ?', other, me);
+    }
+  }
+
+  removeFriend(me, body) {
+    const other = this.target(body, me);
+    this.sql.exec('DELETE FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)', me, other, other, me);
+    this.sql.exec('DELETE FROM invites WHERE (from_id = ? AND to_id = ?) OR (from_id = ? AND to_id = ?)', me, other, other, me);
+    this.sql.exec('DELETE FROM mates WHERE (id = ? AND mate = ?) OR (id = ? AND mate = ?)', me, other, other, me);
+  }
+
+  invite(me, body) {
+    const other = this.target(body, me);
+    if (!this.areFriends(me, other)) throw new Fail(403, 'not_friends');
+    const now = Date.now();
+    const mine = this.one('SELECT squad FROM members WHERE id = ?', me);
+    // They invited me already: inviting them back means joining them.
+    const theirInvite = this.one('SELECT squad FROM invites WHERE from_id = ? AND to_id = ?', other, me);
+    if (theirInvite && theirInvite.squad !== mine?.squad) {
+      this.join(me, theirInvite.squad);
+      return;
+    }
+    let squad = mine?.squad;
+    if (squad && this.one('SELECT 1 AS x FROM members WHERE id = ? AND squad = ?', other, squad)) return;
+    // Started from the last match played together: that match counts in the squad session.
+    const since = int(body.since, now - 3 * HOUR, now) ?? now;
+    if (!squad) {
+      squad = crypto.randomUUID();
+      this.sql.exec('INSERT INTO squads (id, since, touched) VALUES (?, ?, ?)', squad, since, now);
+      this.sql.exec('INSERT OR REPLACE INTO members (id, squad, joined) VALUES (?, ?, ?)', me, squad, now);
+    } else {
+      this.sql.exec('UPDATE squads SET since = MIN(since, ?), touched = ? WHERE id = ?', since, now, squad);
+    }
+    if (this.one('SELECT COUNT(*) AS n FROM members WHERE squad = ?', squad).n >= MAX_SQUAD) throw new Fail(400, 'squad_full');
+    this.sql.exec('INSERT OR REPLACE INTO invites (squad, from_id, to_id, at) VALUES (?, ?, ?, ?)', squad, me, other, now);
+  }
+
+  answerInvite(me, body) {
+    const squad = typeof body.squad === 'string' ? body.squad : '';
+    const invite = this.one('SELECT squad FROM invites WHERE squad = ? AND to_id = ?', squad, me);
+    if (!invite) throw new Fail(404, 'no_invite');
+    if (body.accept === true) this.join(me, squad);
+    else this.sql.exec('DELETE FROM invites WHERE squad = ? AND to_id = ?', squad, me);
+  }
+
+  join(me, squad) {
+    if (!this.one('SELECT 1 AS x FROM squads WHERE id = ?', squad)) throw new Fail(404, 'no_invite');
+    if (this.one('SELECT COUNT(*) AS n FROM members WHERE squad = ?', squad).n >= MAX_SQUAD) throw new Fail(400, 'squad_full');
+    this.leave(me);
+    const now = Date.now();
+    this.sql.exec('INSERT OR REPLACE INTO members (id, squad, joined) VALUES (?, ?, ?)', me, squad, now);
+    this.sql.exec('DELETE FROM invites WHERE to_id = ? AND squad = ?', me, squad);
+    this.sql.exec('UPDATE squads SET touched = ? WHERE id = ?', now, squad);
+  }
+
+  leave(me) {
+    const m = this.one('SELECT squad FROM members WHERE id = ?', me);
+    if (!m) return;
+    this.sql.exec('DELETE FROM members WHERE id = ?', me);
+    this.sql.exec('DELETE FROM invites WHERE squad = ? AND from_id = ?', m.squad, me);
+    const left = this.one('SELECT COUNT(*) AS n FROM members WHERE squad = ?', m.squad).n;
+    const pending = this.one('SELECT COUNT(*) AS n FROM invites WHERE squad = ?', m.squad).n;
+    // a squad of one with nobody invited is no squad
+    if (left === 0 || (left === 1 && pending === 0)) this.dropSquad(m.squad);
+  }
+
+  forget(me) {
+    this.leave(me);
+    this.sql.exec('DELETE FROM invites WHERE to_id = ? OR from_id = ?', me, me);
+    this.sql.exec('DELETE FROM friends WHERE a = ? OR b = ?', me, me);
+    this.sql.exec('DELETE FROM mates WHERE id = ? OR mate = ?', me, me);
+    this.sql.exec('DELETE FROM matches WHERE id = ?', me);
+    this.sql.exec('DELETE FROM players WHERE id = ?', me);
+  }
+
+  // ---- What the app shows -----------------------------------------------------------------------------------
+
+  player(id) {
+    const p = this.one('SELECT id, name, skin, summary, playing, seen FROM players WHERE id = ?', id);
+    if (!p) return null;
+    let summary = null;
+    try { summary = p.summary ? JSON.parse(p.summary) : null; } catch { /* old or broken: none */ }
+    const now = Date.now();
+    return { id: p.id, name: p.name, skin: p.skin, playing: !!p.playing && now - p.seen < PLAYING_STALE, seen: p.seen, summary };
+  }
+
+  lastMatch(id, since = 0) {
+    const m = this.one('SELECT sid, ended, chests, dur, place, skin FROM matches WHERE id = ? AND ended >= ? ORDER BY ended DESC LIMIT 1', id, since);
+    return m ? { sid: m.sid, ended: m.ended, chests: m.chests, dur: m.dur, place: m.place, skin: m.skin } : null;
+  }
+
+  state(me) {
+    const now = Date.now();
+    const friends = this.friendsOf(me).map((id) => {
+      const p = this.player(id);
+      return p && { ...p, last: this.lastMatch(id) };
+    }).filter(Boolean);
+    const incoming = this.rows('SELECT a AS id, at FROM friends WHERE b = ? AND ok = 0 ORDER BY at DESC', me)
+      .map((r) => ({ ...this.player(r.id), at: r.at })).filter((p) => p.id)
+      .map(({ id, name, skin, at }) => ({ id, name, skin, at }));
+    const outgoing = this.rows('SELECT b AS id, at FROM friends WHERE a = ? AND ok = 0 ORDER BY at DESC', me)
+      .map((r) => ({ ...this.player(r.id), at: r.at })).filter((p) => p.id)
+      .map(({ id, name, skin, at }) => ({ id, name, skin, at }));
+    const related = new Set([...friends.map((f) => f.id), ...incoming.map((f) => f.id), ...outgoing.map((f) => f.id)]);
+    const suggest = this.rows('SELECT mate, MAX(seen) AS seen FROM mates WHERE id = ? GROUP BY mate ORDER BY seen DESC LIMIT 20', me)
+      .filter((r) => !related.has(r.mate))
+      .map((r) => this.player(r.mate)).filter(Boolean).slice(0, 8)
+      .map(({ id, name, skin }) => ({ id, name, skin }));
+
+    let squad = null;
+    const membership = this.one('SELECT squad FROM members WHERE id = ?', me);
+    if (membership) {
+      const s = this.one('SELECT id, since FROM squads WHERE id = ?', membership.squad);
+      if (s) {
+        const members = this.rows('SELECT id, joined FROM members WHERE squad = ? ORDER BY joined', s.id).map((m) => {
+          const p = this.player(m.id);
+          if (!p) return null;
+          const session = this.one('SELECT COUNT(*) AS n, COALESCE(SUM(chests), 0) AS chests FROM matches WHERE id = ? AND ended >= ?', m.id, s.since);
+          return { id: p.id, name: p.name, skin: p.skin, playing: p.playing, last: this.lastMatch(m.id, s.since), sessionChests: session.chests, sessionMatches: session.n };
+        }).filter(Boolean);
+        const invited = this.rows('SELECT to_id FROM invites WHERE squad = ?', s.id).map((r) => this.player(r.to_id)).filter(Boolean)
+          .map(({ id, name, skin }) => ({ id, name, skin }));
+        squad = { id: s.id, since: s.since, members, invited };
+      }
+    }
+    const invites = this.rows('SELECT squad, from_id, at FROM invites WHERE to_id = ? AND squad != ? ORDER BY at DESC', me, membership?.squad ?? '')
+      .map((r) => {
+        const from = this.player(r.from_id);
+        if (!from) return null;
+        const members = this.rows('SELECT id FROM members WHERE squad = ?', r.squad).map((m) => this.player(m.id)?.name).filter(Boolean);
+        return { squad: r.squad, from: { id: from.id, name: from.name, skin: from.skin }, members, at: r.at };
+      }).filter(Boolean);
+    return { me, now, friends, incoming, outgoing, suggest, squad, invites };
+  }
+}
+
+const HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
+const reply = (status, body) => new Response(JSON.stringify(body), { status, headers: HEADERS });
+
+/** /api/friends/* (POST, JSON) → the single hub. */
+export async function friends(request, env) {
+  if (request.method !== 'POST') return reply(405, { error: 'method' });
+  if (!env.HUB) return reply(503, { error: 'not_configured' });
+  const length = Number(request.headers.get('content-length') || 0);
+  if (length > 64 * 1024) return reply(413, { error: 'too_big' });
+  const hub = env.HUB.get(env.HUB.idFromName('hub'));
+  return hub.fetch(request);
+}
+
+/** /api/skin/<outfit id>.png: the small icon of an outfit (fortnite-api.com), cached at the edge for a month. */
+export async function skin(url, ctx) {
+  const m = url.pathname.match(/^\/api\/skin\/([A-Za-z0-9_-]{1,120})\.png$/);
+  if (!m) return new Response('not found', { status: 404 });
+  const id = m[1].toLowerCase();
+  const cacheKey = new Request(`https://cache.fortnite-chest-tracker.com/skin/${id}.png`);
+  const cache = caches.default;
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+  let res;
+  try {
+    const up = await fetch(`https://fortnite-api.com/images/cosmetics/br/${id}/smallicon.png`, { headers: { 'User-Agent': 'fortnite-chest-tracker.com' } });
+    const type = up.headers.get('content-type') || '';
+    if (up.ok && type.startsWith('image/png')) {
+      res = new Response(await up.arrayBuffer(), { status: 200, headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=2592000', 'x-content-type-options': 'nosniff' } });
+    } else {
+      res = new Response('not found', { status: 404, headers: { 'cache-control': 'public, max-age=86400' } });
+    }
+  } catch {
+    return new Response('unavailable', { status: 502 });
+  }
+  ctx.waitUntil(cache.put(cacheKey, res.clone()));
+  return res;
+}

@@ -1,5 +1,5 @@
 // Cloudflare Workers: the landing site built by `bash site/build.sh dist`, plus a small Worker for /api/* only
-// (the online estimate: worker/index.js). _headers and _redirects in site/ are copied into dist/ and applied by Cloudflare.
+// (the online estimate, the friends and squads of the app: worker/index.js, worker/friends.js). _headers and _redirects in site/ are copied into dist/ and applied by Cloudflare.
 // Secret to add in the dashboard (Settings → Variables and secrets): FORTNITE_API_KEY = a fortnite-api.com key.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
@@ -16,5 +16,8 @@
     // unknown paths get 404.html with a real 404 status
     "not_found_handling": "404-page"
   },
-  "observability": { "enabled": false }
+  "observability": { "enabled": false },
+  // Friends and squads of the app (worker/friends.js): one Durable Object with its own SQLite database, created on deploy.
+  "durable_objects": { "bindings": [{ "name": "HUB", "class_name": "FriendsHub" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["FriendsHub"] }]
 }

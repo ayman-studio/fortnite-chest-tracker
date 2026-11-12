@@ -117,7 +117,7 @@ Fortnite only keeps your latest replays. The **Older matches** section estimates
 |:---:|---|
 | ✅ | Reads the `.replay` files Fortnite writes after each match, **read-only**. |
 | ❌ | Never touches the game: no memory reading, no injection, no file modified. |
-| ❌ | No login, no Epic account, no telemetry. Only network use: checking GitHub for updates (can be turned off). |
+| ❌ | No login, no Epic account, no telemetry. Network use: updates (GitHub), the season calendar, and the Friends tab: your Epic name, outfit and chests, seen only by the friends you accept (one switch turns it off and deletes them from the server). |
 | ✅ | Runs at low priority, sleeps between matches, slows its 3D scene down while you play. |
 
 ---

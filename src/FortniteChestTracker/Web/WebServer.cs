@@ -41,6 +41,12 @@ public sealed class WebServer : IDisposable
     /// <summary>The overlay as a PNG (GET /hud.png, shown as a preview by the page). Null = none.</summary>
     public Func<byte[]?>? HudPng { get; init; }
 
+    /// <summary>The squad overlay as a PNG (preview in the Friends tab).</summary>
+    public Func<byte[]?>? SquadPng { get; init; }
+
+    /// <summary>File of an outfit icon (null while it is being downloaded).</summary>
+    public Func<string?, string?>? SkinFile { get; init; }
+
     /// <summary>The history as a JSON file (GET /export?t=token, a download for a backup or another PC).</summary>
     public Func<byte[]>? ExportData { get; init; }
 
@@ -284,6 +290,32 @@ public sealed class WebServer : IDisposable
                     res.ContentLength64 = png.Length;
                     await res.OutputStream.WriteAsync(png);
                     res.Close();
+                    return;
+                }
+                case ("GET", "/squad.png"):
+                {
+                    var png = SquadPng?.Invoke();
+                    if (png == null)
+                    {
+                        await Text(res, 404, "text/plain", "Not found");
+                        return;
+                    }
+                    res.ContentType = "image/png";
+                    res.Headers["Cache-Control"] = "private, max-age=600"; // the page asks /squad.png?v=<what is drawn>
+                    res.ContentLength64 = png.Length;
+                    await res.OutputStream.WriteAsync(png);
+                    res.Close();
+                    return;
+                }
+                case ("GET", _) when path.StartsWith("/skin/", StringComparison.Ordinal) && path.EndsWith(".png", StringComparison.Ordinal):
+                {
+                    var file = SkinFile?.Invoke(path[6..^4]);
+                    if (file == null || !File.Exists(file))
+                    {
+                        await Text(res, 404, "text/plain", "Not found");
+                        return;
+                    }
+                    await Binary(req, res, await File.ReadAllBytesAsync(file), "image/png");
                     return;
                 }
                 case ("GET", "/api/state"):

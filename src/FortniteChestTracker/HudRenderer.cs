@@ -78,7 +78,7 @@ internal sealed class HudFrame
 /// embedded), nothing to install. One instance per thread.
 /// </summary>
 [SupportedOSPlatform("windows")]
-internal sealed class HudRenderer : IDisposable
+internal sealed partial class HudRenderer : IDisposable
 {
     // Colours of the page (night blue, lime, aqua, coral).
     private static readonly Col Navy = Col.Hex(0x071036), Deep = Col.Hex(0x0b1a4a), Panel = Col.Hex(0x12266c), Lime = Col.Hex(0xc6ff3d),
@@ -846,7 +846,13 @@ internal sealed class Img
         }
         using var ms = new MemoryStream();
         stream.CopyTo(ms);
-        if (Png.Decode(ms.ToArray()) is not { } png)
+        return FromPng(ms.ToArray());
+    }
+
+    /// <summary>A PNG file (8-bit RGB / RGBA) as a picture, null when it cannot be read.</summary>
+    public static Img? FromPng(byte[] bytes)
+    {
+        if (Png.Decode(bytes) is not { } png)
         {
             return null;
         }
@@ -915,7 +921,8 @@ internal sealed class Canvas
     }
 
     /// <summary>Draws a picture scaled into a rectangle (each pixel averages the source pixels it covers).</summary>
-    public void Draw(Img img, float x, float y, float w, float h, float alpha = 1)
+    /// <param name="clip">Optional shape (placed at x, y): the picture only shows inside it (rounded icons).</param>
+    public void Draw(Img img, float x, float y, float w, float h, float alpha = 1, Mask? clip = null)
     {
         var W = _f.Width;
         var H = _f.Height;
@@ -945,6 +952,11 @@ internal sealed class Canvas
                     }
                 }
                 var inv = alpha / (n * n);
+                if (clip != null)
+                {
+                    int cx = px - x0, cy = py - y0;
+                    inv *= cx >= 0 && cy >= 0 && cx < clip.W && cy < clip.H ? clip.A[cy * clip.W + cx] : 0;
+                }
                 a *= inv;
                 if (a <= 0)
                 {

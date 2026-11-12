@@ -76,6 +76,20 @@ public sealed class MatchRecord
 
     /// <summary>Times (replay seconds) of the chests opened by teammates near the player; null = solo or unknown.</summary>
     public List<float>? SquadChests { get; set; }
+
+    /// <summary>Outfit worn by the player (cosmetic id, e.g. "CID_028_Athena_Commando_F" or "Character_BoneWasp"); null = unknown.</summary>
+    public string? Skin { get; set; }
+
+    /// <summary>Real teammates of the match (bots left out): Epic id, name, outfit. Null = solo or unknown.</summary>
+    public List<MateRecord>? Mates { get; set; }
+}
+
+/// <summary>A teammate seen in a replay (used to suggest friends who have the app).</summary>
+public sealed class MateRecord
+{
+    public string EpicId { get; set; } = "";
+    public string? Name { get; set; }
+    public string? Skin { get; set; }
 }
 
 public sealed class Config
@@ -158,6 +172,22 @@ public sealed class Config
     public bool OverlayStats { get; set; } = true;
     public bool OverlayLast { get; set; } = true;
     public bool OverlaySite { get; set; } = true;
+
+    /// <summary>Share the chests with the friends who have the app (Friends tab, squads). On by default since 1.3.</summary>
+    public bool FriendsSharing { get; set; } = true;
+
+    /// <summary>Secret key of this PC per Epic account id (identifies the player on the friends server).</summary>
+    public Dictionary<string, string> FriendKeys { get; set; } = new();
+
+    /// <summary>The "your chests are shared with your friends" message was seen.</summary>
+    public bool FriendsNoticeSeen { get; set; }
+
+    /// <summary>Squad overlay: shown while in a squad, where it was put, locked, and its numbers ("last" match or "session").</summary>
+    public bool ShowSquadOverlay { get; set; } = true;
+    public int? SquadOverlayX { get; set; }
+    public int? SquadOverlayY { get; set; }
+    public bool SquadOverlayLocked { get; set; }
+    public string SquadOverlayPeriod { get; set; } = "last";
 }
 
 public sealed class TrackerData

@@ -2,6 +2,11 @@
 // other path is served from the assets. /api/estimate?name=<Epic name> returns the matches of the season and of all
 // time from the player's PUBLIC Fortnite stats (fortnite-api.com, key stored as the FORTNITE_API_KEY secret), so the
 // website can estimate their chests without the app. No Epic login, nothing stored: answers are cached 15 minutes.
+// /api/friends/* and /api/skin/* serve the friends and squads of the app (worker/friends.js).
+
+import { friends, skin } from './friends.js';
+
+export { FriendsHub } from './friends.js';
 
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=900', 'x-content-type-options': 'nosniff' };
 const reply = (status, body) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
@@ -57,6 +62,14 @@ export default {
         return reply(502, { error: 'unavailable' });
       }
     }
+    if (url.pathname.startsWith('/api/friends/')) {
+      try {
+        return await friends(request, env);
+      } catch {
+        return reply(502, { error: 'unavailable' });
+      }
+    }
+    if (url.pathname.startsWith('/api/skin/') && request.method === 'GET') return skin(url, ctx);
     if (url.pathname.startsWith('/api/')) return reply(404, { error: 'not_found' });
     return env.ASSETS.fetch(request);
   },

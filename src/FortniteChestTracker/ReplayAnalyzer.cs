@@ -158,7 +158,8 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
                 ? p : "Treasure|Prize|Magpie|Inventory|Quest|Reward|Hunt|PlayerController|PlayerState|Notif", RegexOptions.IgnoreCase);
             NetGuidCache.KeepOnCleanup = true;
         }
-        RawProbe.Filter = path => path.Contains("FortAbilitySystemComponent", StringComparison.Ordinal) || debugFilter?.IsMatch(path) == true;
+        RawProbe.Filter = path => path.Contains("FortAbilitySystemComponent", StringComparison.Ordinal) || path.Contains("CosmeticDownloads", StringComparison.Ordinal)
+            || debugFilter?.IsMatch(path) == true;
         RawProbe.Sink = (channel, group, field, data, bits) =>
         {
             // FortAbilitySystemComponent_ClassNetCache (unnamed fields) or FortAbilitySystemComponentAthena_ClassNetCache
@@ -167,6 +168,11 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
                 && field is "?" or "ActivatableAbilities" && _treasureHandlerGuids.Count > 0)
             {
                 ReadAbilityGrants(channel, data, bits);
+            }
+            // Outfit of each player: the cosmetics their game may have to download ("…/Characters/CID_….CID_…").
+            if (field == "IADSupportedSlots" && group.Contains("CosmeticDownloads", StringComparison.Ordinal))
+            {
+                ReadOutfit(channel, data, bits);
             }
             if (debugFilter?.IsMatch(group + "." + field) == true)
             {
@@ -251,7 +257,43 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
     }
 
     /// <summary>Debug 4: prints undecoded payloads with any readable text / object reference they contain.</summary>
-    private void ProbeSink(uint channel, string group, string field, byte[] data, int bits)
+    // Player state actor -> outfit id (a real outfit wins over the default one used while it downloads).
+    private readonly Dictionary<uint, string> _outfits = new();
+
+    private void ReadOutfit(uint channel, byte[] data, int bits)
+    {
+        try
+        {
+            if (Channels[channel]?.ActorId is not uint actor)
+            {
+                return;
+            }
+            foreach (var text in AsciiRuns(data, bits))
+            {
+                var at = text.IndexOf("/Characters/", StringComparison.OrdinalIgnoreCase);
+                if (at < 0 || SkinId(text.Split(' ')[0]) is not { } id)
+                {
+                    continue;
+                }
+                var isDefault = text.Contains("DefaultCosmetics", StringComparison.OrdinalIgnoreCase);
+                if (!_outfits.ContainsKey(actor) || !isDefault)
+                {
+                    _outfits[actor] = id;
+                }
+                if (!isDefault)
+                {
+                    return;
+                }
+            }
+        }
+        catch
+        {
+            // an outfit is a nice-to-have: never stops the count
+        }
+    }
+
+    /// <summary>Runs of printable ASCII (5+ characters) found at any bit offset of a raw payload.</summary>
+    private static HashSet<string> AsciiRuns(byte[] data, int bits)
     {
         var strings = new HashSet<string>();
         for (var shift = 0; shift < 8; shift++)
@@ -272,6 +314,12 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
             }
             if (sb.Length >= 5) strings.Add(sb.ToString().Trim());
         }
+        return strings;
+    }
+
+    private void ProbeSink(uint channel, string group, string field, byte[] data, int bits)
+    {
+        var strings = AsciiRuns(data, bits);
 
         // Single object reference (packed int netguid)?
         var guidText = "";
@@ -621,6 +669,11 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
             : new HashSet<int>();
         var matePawns = _pawnToPlayerState.Where(kv => _playerStateToPlayerId.TryGetValue(kv.Value, out var pid) && mateIds.Contains(pid))
             .Select(kv => kv.Key).ToHashSet();
+        var mates = mateIds.Count == 0 ? null : players
+            .Where(p => p.Id is int id && mateIds.Contains(id) && p.IsBot != true && !string.IsNullOrEmpty(p.EpicId))
+            .Select(p => new MateRecord { EpicId = p.EpicId!, Name = p.PlayerName, Skin = OutfitOf(p) })
+            .GroupBy(m => m.EpicId).Select(g => g.First())
+            .ToList();
         var squadChests = mateIds.Count == 0 ? null : _searches
             .Where(s => s.SearcherPawn is uint p && matePawns.Contains(p) && (!s.Stale || StableKey(s.ActorKey)) && ChestKinds.IsChest(ChestKinds.Classify(s.Label)))
             .Select(s => MathF.Round(s.Time, 1))
@@ -850,7 +903,29 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
             Chests = chests,
             TreasureFinds = finds,
             SquadChests = squadChests,
+            Skin = target != null ? OutfitOf(target) : null,
+            Mates = mates is { Count: > 0 } ? mates : null,
         };
+    }
+
+    private string? OutfitOf(PlayerData p) =>
+        _playerStateToPlayerId.Where(kv => kv.Value == p.Id).Select(kv => _outfits.GetValueOrDefault(kv.Key)).FirstOrDefault(o => o != null)
+        ?? SkinId(p.Cosmetics?.Character);
+
+    /// <summary>Cosmetic id of an outfit from its asset path ("/Game/…/CID_028_Athena_Commando_F.CID_028_Athena_Commando_F" → "CID_028_Athena_Commando_F").</summary>
+    public static string? SkinId(string? asset)
+    {
+        if (string.IsNullOrWhiteSpace(asset))
+        {
+            return null;
+        }
+        var id = asset.Trim();
+        var dot = id.LastIndexOf('.');
+        if (dot >= 0) id = id[(dot + 1)..];
+        var slash = id.LastIndexOf('/');
+        if (slash >= 0) id = id[(slash + 1)..];
+        id = id.TrimEnd('\'', '"');
+        return id.Length is > 0 and <= 120 && id.All(c => char.IsAsciiLetterOrDigit(c) || c == '_' || c == '-') ? id : null;
     }
 }
 

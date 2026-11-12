@@ -33,7 +33,26 @@ public sealed record UiState(
 {
     /// <summary>Calendar of the treasure hunt.</summary>
     public UiSeason? Season { get; init; }
+
+    /// <summary>Friends and squad (Friends tab).</summary>
+    public UiFriends? Friends { get; init; }
 }
+
+/// <summary>
+/// Friends tab: the server's state for the player (friends with their summaries, requests, suggestions, squad, squad
+/// invites, as sent by worker/friends.js) and what the app adds (the player's own summary, the squad suggestion
+/// after a match, the squad overlay).
+/// </summary>
+/// <param name="Status">"off" (sharing off), "noprofile" (no Epic account seen yet), "connecting", "ok", "offline", "taken".</param>
+/// <param name="Key">Secret key of this PC, to link another PC to the same Epic account.</param>
+public sealed record UiFriends(bool Sharing, string Status, string? MeId, string? MeName, string? MeSkin, System.Text.Json.JsonElement? Data,
+    object? MeSummary, UiSquadSuggestion? Suggestion, UiSquadOverlay Overlay, int SkinsVersion, string? Key, string Server);
+
+/// <summary>Friends played with in the last match who are not in the squad yet.</summary>
+public sealed record UiSquadSuggestion(string Sid, IReadOnlyList<string> Names);
+
+/// <param name="Hud">Hash of what the squad overlay draws (the page reloads /squad.png when it changes).</param>
+public sealed record UiSquadOverlay(bool Enabled, bool Running, bool Visible, bool Locked, string Period, string Hud);
 
 /// <summary>
 /// Treasure hunt of the season: chests opened since it started, treasures found since then (gizmos apart from the

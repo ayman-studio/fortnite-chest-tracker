@@ -15,7 +15,7 @@ namespace FortniteChestTracker;
 /// ones (opening a folder, showing / locking the overlay).
 /// </summary>
 [SupportedOSPlatform("windows")]
-public sealed class App
+public sealed partial class App
 {
     private sealed record Snapshot(long Version, string Json);
 
@@ -92,12 +92,17 @@ public sealed class App
 
         Activity.Changed += () => _wake.Set();
         NativeOverlay.StateChanged += () => _wake.Set();
+        SquadOverlay.StateChanged += () => _wake.Set();
+        SkinCache.Init(_store.Folder, FriendsClient.BaseUrl);
+        SkinCache.Downloaded += () => Post(UpdateSquadOverlay);
         _tracker.Changed += Publish; // raised by Scan, on this thread: lets the page follow a long batch
         Publish(); // a first state before the server answers anything
 
         _server = new WebServer(() => { var s = _state; return (s.Version, s.Json); }, RunCommandAsync, UiTexts.Json)
         {
             HudPng = HudPng,
+            SquadPng = () => HudRenderer.RenderSquadPng(SquadOverlay.View, 2f),
+            SkinFile = SkinCache.PathOf,
             ExportData = () => File.Exists(_store.DataPath) ? File.ReadAllBytes(_store.DataPath) : System.Text.Encoding.UTF8.GetBytes("{}"),
             ImportData = ImportHistoryAsync,
         };
@@ -149,10 +154,12 @@ public sealed class App
             if (!_setupPending)
             {
                 SeasonTick();
+                FriendsTick();
             }
             Publish();
 
-            var wait = _setupPending ? TimeSpan.FromMinutes(1) : _nextScan - DateTime.UtcNow;
+            var next = _nextFriendsSync < _nextScan && !_friendsBusy ? _nextFriendsSync : _nextScan;
+            var wait = _setupPending ? TimeSpan.FromMinutes(1) : next - DateTime.UtcNow;
             if (wait > TimeSpan.Zero && !_quit)
             {
                 _wake.WaitOne(wait > TimeSpan.FromMinutes(1) ? TimeSpan.FromMinutes(1) : wait);
@@ -245,6 +252,10 @@ public sealed class App
             if (added > 0 || liveChanged)
             {
                 UpdateOverlay();
+            }
+            if (added > 0)
+            {
+                OnMatchesAdded();
             }
             _hasReplays = added > 0 || _tracker.ReplayFiles().Any();
         }
@@ -517,6 +528,8 @@ public sealed class App
                 if (Bool(args, "visible") is { } visible) NativeOverlay.SetVisible(visible);
                 if (Bool(args, "locked") is { } locked) NativeOverlay.SetLocked(locked);
                 return CommandResult.Done;
+            case var n when IsFriendsNetworkCommand(n):
+                return await FriendsCommandAsync(name, args);
         }
 
         var tcs = new TaskCompletionSource<CommandResult>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -688,6 +701,14 @@ public sealed class App
 
             case "keep-open":
                 KeepOpen();
+                return CommandResult.Done;
+
+            case "friends/settings":
+                return FriendsSettings(args);
+
+            case "friends/notice-ok":
+                _config.FriendsNoticeSeen = true;
+                SaveConfig();
                 return CommandResult.Done;
 
             case "install":
@@ -1305,6 +1326,7 @@ public sealed class App
             Milestones.Of(view).Select(m => new UiMilestone(m.Key, m.Value, m.Reached, m.Next)).ToList())
         {
             Season = SeasonState(view),
+            Friends = FriendsState(),
         };
     }
 
@@ -1426,6 +1448,7 @@ public sealed class App
                     $"Nueva versión {u.Version.ToString(3)} disponible (tienes la {AppInfo.VersionText}). Tu historial se conserva."),
                 L.T("Installer", "Install", "Instalar"), "update/install"));
         }
+        FriendsNotices(list);
         if (_profileChoiceNeeded && profiles > 1)
         {
             list.Add(new UiNotice("profiles", "info",

@@ -117,7 +117,7 @@ Fortnite solo guarda tus últimas repeticiones. La sección **Partidas antiguas*
 |:---:|---|
 | ✅ | Lee los archivos `.replay` que Fortnite escribe tras cada partida, **solo lectura**. |
 | ❌ | Nunca toca el juego: ni lectura de memoria, ni inyección, ni archivos modificados. |
-| ❌ | Sin inicio de sesión, sin cuenta de Epic, sin telemetría. Único acceso a la red: buscar actualizaciones en GitHub (desactivable). |
+| ❌ | Sin inicio de sesión, sin cuenta de Epic, sin telemetría. Acceso a la red: actualizaciones (GitHub), el calendario de la temporada y la pestaña Amigos: tu nombre de Epic, tu skin y tus cofres, solo para los amigos que aceptes (un botón lo desactiva y lo borra del servidor). |
 | ✅ | Funciona con prioridad baja, duerme entre partidas y ralentiza su escena 3D mientras juegas. |
 
 ---

@@ -9,7 +9,7 @@ const TOKEN = document.querySelector('meta[name="fct-token"]').content;
 let S = null;          // latest state
 let T = {};            // texts of the interface, in the counter's language
 let textsLang = null;
-const PAGES = ['home', 'matches', 'stats', 'treasures', 'settings'];
+const PAGES = ['home', 'matches', 'stats', 'treasures', 'friends', 'settings'];
 const OLD_PAGES = { estimate: 'estimate', overlay: 'overlay', journal: 'journal' }; // pages that moved into the settings
 // Preferences of the page, kept by the browser. Versions 1.0.x stored them under another prefix: moved over once.
 for (const key of ['page', 'goal', 'sub', 'range']) {
@@ -34,6 +34,8 @@ const ui = {
   setup: null,          // wizard answers
   lastActivity: null,
   prevTotal: null,
+  lbPeriod: ['last', 'session', 'season'].includes(localStorage.getItem('fct-lb')) ? localStorage.getItem('fct-lb') : 'session', // friends leaderboard
+  friendOpen: null,     // friend whose details are open
 };
 
 // ---- Helpers -------------------------------------------------------------------------------------
@@ -148,6 +150,7 @@ const ICONS = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
   alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
   check: '<path d="m5 12 5 5 9-10"/>',
+  friends: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
   users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/>',
   download: '<path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/>',
   upload: '<path d="M12 20V9m-5 5 5-5 5 5M5 4h14"/>',
@@ -278,10 +281,12 @@ function greeting() {
   return h >= 5 && h < 12 ? t('greetMorning') : h >= 12 && h < 18 ? t('greetAfternoon') : t('greetEvening');
 }
 
-// Top bar: logo, the five tabs (icon + name), then the counter's status and the two global actions.
+// Top bar: logo, the six tabs (icon + name; Friends shows how many requests / invites wait), then the counter's status and the two global actions.
 function topbar() {
   const st = status();
-  const tab = (k, i) => `<button class="tab${ui.page === k ? ' on' : ''}" data-nav="${k}" title="${esc(t('page_' + k))} (${i + 1})">${icon(k)}<span>${esc(t('page_' + k))}</span></button>`;
+  const waiting = S.friends?.data ? S.friends.data.incoming.length + S.friends.data.invites.length : 0;
+  const badge = (k) => (k === 'friends' && waiting ? `<span class="count">${nf(waiting)}</span>` : '');
+  const tab = (k, i) => `<button class="tab${ui.page === k ? ' on' : ''}" data-nav="${k}" title="${esc(t('page_' + k))} (${i + 1})">${icon(k)}<span>${esc(t('page_' + k))}</span>${badge(k)}</button>`;
   const profiles = S.profiles.length > 1
     ? `<select id="profile" data-change="profile" aria-label="${esc(t('profile'))}">${S.profiles.map((p) => `<option value="${esc(p.key)}"${p.current ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>`
     : '';
@@ -329,7 +334,7 @@ function banners() {
 
 function page() {
   if (ui.page === 'settings') return ({ general: settings, overlay, estimate, journal }[ui.sub] || settings)();
-  return ({ home, matches, stats, treasures }[ui.page] || home)();
+  return ({ home, matches, stats, treasures, friends: friendsPage }[ui.page] || home)();
 }
 
 // ---- Components -----------------------------------------------------------------------------------
@@ -742,6 +747,174 @@ function treasures() {
     ? `<div class="fit" data-fit="treasures" data-row="56">${rows}</div>${pager('treasures', S.treasures.length)}`
     : empty(t('noTreasures'), t('treasureLegend')), { hint: count(S.treasures.length, 'treasure') });
   return `<div class="page treasures-page" style="grid-template-rows:max-content max-content minmax(340px,1fr)">${seasonCard()}${oddsCard()}${list}</div>`;
+}
+
+// ---- Friends ("Potes"): squad, leaderboard, friends ------------------------------------------------------------
+// Everything comes from the friends server through the counter (S.friends.data). The numbers of a friend arrive a few
+// seconds after the end of each of their matches (replays can only be read once a match is over).
+const FR_EMPTY = { friends: [], incoming: [], outgoing: [], suggest: [], invites: [], squad: null };
+
+// Outfit icon (downloaded by the counter); the initial shows under it while it is missing.
+function skinBox(skin, name, cls = '') {
+  const letter = esc(String(name || '?').slice(0, 1).toUpperCase());
+  const img = skin ? `<img src="/skin/${encodeURIComponent(skin)}.png?v=${S.friends.skinsVersion}" alt="" loading="lazy" draggable="false">` : '';
+  return `<span class="skin ${cls}"><b>${letter}</b>${img}</span>`;
+}
+
+function ago(ms) {
+  if (!ms) return '';
+  const min = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  if (min < 2) return t('agoNow');
+  if (min < 60) return t('agoMin', nf(min));
+  if (min < 48 * 60) return t('agoHour', nf(Math.round(min / 60)));
+  return t('agoDay', nf(Math.round(min / 1440)));
+}
+
+// A friend's session only means something while their app ran lately (it is the session of their own counter).
+const SESSION_FRESH = 6 * 3600e3;
+
+function boardRows(F, D) {
+  const me = F.meSummary || {};
+  const rows = [{ me: true, id: F.meId, name: F.meName, skin: F.meSkin, playing: S.live.inProgress, summary: me, last: me.last, seen: Date.now() }]
+    .concat(D.friends.map((f) => ({ id: f.id, name: f.name, skin: f.skin, playing: f.playing, summary: f.summary || {}, last: f.last || f.summary?.last, seen: f.seen })));
+  const p = ui.lbPeriod;
+  rows.forEach((r) => {
+    if (p === 'last') { r.value = r.last?.chests ?? null; r.sub = r.last ? ago(r.last.ended) : ''; }
+    else if (p === 'session') {
+      const s = r.summary.session;
+      r.value = s && s.matches > 0 && Date.now() - r.seen < SESSION_FRESH ? s.chests : null;
+      r.sub = r.value != null ? count(s.matches, 'match') : '';
+    } else {
+      const s = r.summary.season;
+      r.value = s ? s.chests : null;
+      r.sub = s && s.matches ? `${count(s.matches, 'match')} · ${t('perMatch', nf1(s.chests / s.matches))}` : '';
+    }
+  });
+  return rows.sort((a, b) => (b.value ?? -1) - (a.value ?? -1) || String(a.name).localeCompare(String(b.name)));
+}
+
+function boardCard(F, D) {
+  const seg = `<div class="seg" role="group" aria-label="${esc(t('boardTitle'))}">${[['last', t('lbLast')], ['session', t('lbSession')], ['season', t('lbSeason')]]
+    .map(([k, label]) => `<button class="${ui.lbPeriod === k ? 'on' : ''}" data-lbperiod="${k}">${esc(label)}</button>`).join('')}</div>`;
+  const rows = boardRows(F, D);
+  const best = rows[0]?.value ?? 0;
+  const p = pageOf('board', rows.length);
+  const list = rows.slice(p.start, p.end).map((r, i) => {
+    const rank = p.start + i + 1;
+    const lead = r.value != null && r.value === best && best > 0;
+    return `<div class="list-row board-row${r.me ? ' me' : ''}"><span class="rank${lead ? ' lead' : ''}">${lead ? icon('star') : nf(rank)}</span>${skinBox(r.skin, r.name, 'sm')}
+      <div class="main-t"><b>${esc(r.name)}${r.me ? ` <span class="you">${esc(t('you'))}</span>` : ''}</b><span>${r.playing ? `<i class="dot live"></i>${esc(t('inMatch'))}` : esc(r.sub)}</span></div>
+      <span class="board-val num${r.value == null ? ' none' : ''}">${r.value == null ? '—' : nf(r.value)}</span></div>`;
+  }).join('');
+  const body = D.friends.length
+    ? `<div class="fit" data-fit="board" data-row="56">${list}</div>${pager('board', rows.length)}`
+    : empty(t('boardEmpty'), t('boardEmptyText'));
+  return card('s8 board-card', t('boardTitle'), body, { actions: seg });
+}
+
+function squadMemberTile(m, best) {
+  const me = m.id === S.friends.meId;
+  const playing = me ? S.live.inProgress : m.playing;
+  const period = S.friends.overlay.period;
+  const waiting = playing && period === 'last';
+  const value = period === 'session' ? (m.sessionMatches > 0 ? m.sessionChests : null) : m.last?.chests ?? null;
+  const lead = !waiting && value != null && value === best && best > 0;
+  return `<div class="sq-member${lead ? ' lead' : ''}${me ? ' me' : ''}"><div class="sq-pic">${skinBox(m.skin, m.name, 'lg')}${lead ? `<span class="crown">${icon('star')}</span>` : ''}
+    ${playing ? `<span class="sq-playing"><i class="dot live"></i>${esc(t('inMatch'))}</span>` : ''}</div>
+    <div class="sq-num num">${waiting ? '…' : value == null ? '—' : nf(value)}</div><div class="sq-name">${esc(m.name)}</div></div>`;
+}
+
+function squadCard(F, D) {
+  const sq = D.squad;
+  const ov = F.overlay;
+  const seg = `<div class="seg" role="group" aria-label="${esc(t('squadPeriod'))}">${[['last', t('lbLast')], ['session', t('lbSession')]]
+    .map(([k, label]) => `<button class="${ov.period === k ? 'on' : ''}" data-sqperiod="${k}">${esc(label)}</button>`).join('')}</div>`;
+  const invites = D.invites.map((i) => `<div class="list-row">${skinBox(i.from.skin, i.from.name, 'sm')}<div class="main-t"><b>${esc(t('squadInviteFrom', i.from.name))}</b><span>${esc(i.members.length ? t('squadWith', i.members.join(', ')) : ago(i.at))}</span></div>
+    ${button(esc(t('join')), `data-sq="answer" data-squad="${esc(i.squad)}" data-accept="1"`, 'btn-sm btn-primary')}${button(esc(t('decline')), `data-sq="answer" data-squad="${esc(i.squad)}" data-accept="0"`, 'btn-sm btn-ghost')}</div>`).join('');
+
+  if (!sq) {
+    const friends = D.friends.slice().sort((a, b) => (b.playing - a.playing) || (b.seen - a.seen)).slice(0, 6);
+    const chips = friends.map((f) => `<button class="sq-chip" data-fr="invite" data-id="${esc(f.id)}" title="${esc(t('squadInviteHint'))}">${skinBox(f.skin, f.name, 'xs')}<span>${esc(f.name)}</span>${icon('users')}</button>`).join('');
+    const body = `${invites}<p class="muted sq-intro">${esc(t('squadIntro'))}</p>
+      ${friends.length ? `<div class="sq-chips">${chips}</div>` : `<p class="faint small">${esc(t('squadNoFriends'))}</p>`}`;
+    return card('s8 squad-card', t('squadTitle'), body, { hint: t('squadOff') });
+  }
+  const period = ov.period;
+  const values = sq.members.map((m) => {
+    const playing = m.id === F.meId ? S.live.inProgress : m.playing;
+    if (playing && period === 'last') return 0;
+    return period === 'session' ? (m.sessionMatches > 0 ? m.sessionChests : 0) : m.last?.chests ?? 0;
+  });
+  const best = Math.max(0, ...values);
+  const others = D.friends.filter((f) => !sq.members.some((m) => m.id === f.id) && !sq.invited.some((m) => m.id === f.id));
+  const invite = others.length && sq.members.length + sq.invited.length < 4
+    ? `<div class="row sq-invite"><select id="sq-invite-who" aria-label="${esc(t('squadInvite'))}">${others.map((f) => `<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('')}</select>${button(`${icon('users')}${esc(t('squadInvite'))}`, 'data-act="squad-invite"', 'btn-sm')}</div>`
+    : '<span></span>';
+  const pending = sq.invited.length ? `<div class="faint small sq-pending">${esc(t('squadPending', sq.invited.map((m) => m.name).join(', ')))}</div>` : '';
+  const actions = `${seg}${button(esc(t('squadLeave')), 'data-sq="leave"', 'btn-sm btn-ghost')}`;
+  const body = `${invites}<div class="sq-members">${sq.members.map((m) => squadMemberTile(m, best)).join('')}</div>
+    ${pending}<div class="row between sq-foot">${invite}<span class="faint small">${esc(t('squadAfterMatch'))}</span></div>`;
+  return card('s8 squad-card on', t('squadTitle'), body, { hint: t('squadSince', time(new Date(sq.since).toISOString())), actions });
+}
+
+function friendDetail(f) {
+  const s = f.summary || {};
+  const season = s.season || {};
+  const odds = s.odds || {};
+  const goal = huntTarget(S.hunt);
+  const key = goal && odds[goal.key] != null ? goal.key : 'odds_pirate';
+  const treasures = s.treasures || [];
+  const last = f.last || s.last;
+  const stat = (label, value) => `<div><span>${esc(label)}</span><b>${esc(value)}</b></div>`;
+  return `<div class="fr-detail">
+    <div class="fr-stats">${stat(t('frSeason'), season.chests != null ? count(season.chests, 'chest') : '—')}${stat(t('frMatches'), season.matches ? `${nf(season.matches)} · ${t('perMatch', nf1(season.chests / season.matches))}` : '—')}
+      ${stat(t('frOdds', t('short_' + key)), odds[key] != null ? pctx(odds[key]) : '—')}${stat(t('frLast'), last ? `${count(last.chests, 'chest')} · ${ago(last.ended)}` : '—')}</div>
+    <div class="fr-treasures">${treasures.length ? treasures.slice(0, 4).map((x) => `<span class="badge ${x.g ? 'b-gold' : 'b-violet'}">${icon('star')}${esc(x.n)}</span>`).join('') : `<span class="faint small">${esc(t('frNoTreasure'))}</span>`}</div>
+    <div class="row" style="gap:8px">${button(`${icon('users')}${esc(t('squadInvite'))}`, `data-fr="invite" data-id="${esc(f.id)}"`, 'btn-sm')}${button(esc(t('frRemove')), `data-fr="remove" data-id="${esc(f.id)}" data-name="${esc(f.name)}"`, 'btn-sm btn-ghost')}</div></div>`;
+}
+
+function friendsSide(F, D) {
+  const add = `<div class="row fr-add"><input type="text" id="friend-name" data-draft value="${esc(draft('friend-name'))}" placeholder="${esc(t('frAddPlaceholder'))}" maxlength="40" data-enter="friend-add" autocomplete="off">
+    ${button(esc(t('frAdd')), 'id="friend-add" data-act="friend-add"', 'btn-sm btn-primary')}</div>`;
+  const section = (title, html) => (html ? `<div class="section-title">${esc(title)}</div>${html}` : '');
+  const incoming = D.incoming.map((p) => `<div class="list-row">${skinBox(p.skin, p.name, 'sm')}<div class="main-t"><b>${esc(p.name)}</b><span>${esc(t('frWants'))}</span></div>
+    ${button(icon('check'), `data-fr="answer" data-id="${esc(p.id)}" data-accept="1" title="${esc(t('accept'))}" aria-label="${esc(t('accept'))}"`, 'btn-sm btn-primary btn-icon')}${button('✕', `data-fr="answer" data-id="${esc(p.id)}" data-accept="0" title="${esc(t('decline'))}" aria-label="${esc(t('decline'))}"`, 'btn-sm btn-ghost btn-icon')}</div>`).join('');
+  const suggest = D.suggest.map((p) => `<div class="list-row">${skinBox(p.skin, p.name, 'sm')}<div class="main-t"><b>${esc(p.name)}</b><span>${esc(t('frPlayedWith'))}</span></div>
+    ${button(esc(t('frAdd')), `data-fr="add" data-id="${esc(p.id)}"`, 'btn-sm')}</div>`).join('');
+  const friends = D.friends.slice().sort((a, b) => (b.playing - a.playing) || String(a.name).localeCompare(String(b.name))).map((f) => {
+    const open = ui.friendOpen === f.id;
+    const sub = f.playing ? `<i class="dot live"></i>${esc(t('inMatch'))}` : esc(f.summary?.season ? t('frSeasonShort', nf(f.summary.season.chests)) : ago(f.seen));
+    return `<div class="fr-item${open ? ' open' : ''}"><button class="list-row fr-row" data-friend="${esc(f.id)}" aria-expanded="${open}">${skinBox(f.skin, f.name, 'sm')}<div class="main-t"><b>${esc(f.name)}</b><span>${sub}</span></div>${icon(open ? 'up' : 'down')}</button>${open ? friendDetail(f) : ''}</div>`;
+  }).join('');
+  const outgoing = D.outgoing.map((p) => `<div class="list-row">${skinBox(p.skin, p.name, 'sm')}<div class="main-t"><b>${esc(p.name)}</b><span>${esc(t('frWaiting'))}</span></div>
+    ${button(esc(t('cancel')), `data-fr="remove" data-id="${esc(p.id)}"`, 'btn-sm btn-ghost')}</div>`).join('');
+  const status = F.status === 'offline' ? `<p class="ko small">${esc(t('frOffline'))}</p>` : F.status === 'taken' ? `<p class="ko small">${esc(t('frTaken'))}</p>` : '';
+  const link = `<details class="fr-link"${F.status === 'taken' ? ' open' : ''}><summary>${icon('key')}${esc(t('frLinkTitle'))}</summary>
+    <p class="faint small">${esc(t('frLinkText'))}</p>
+    <div class="row"><input type="text" id="fr-key" readonly value="${esc(F.key || '')}" style="flex:1;font-size:11px">${button(`${icon('copy')}${esc(t('copy'))}`, 'data-copy="fr-key"', 'btn-sm')}</div>
+    <div class="row" style="margin-top:8px"><input type="text" id="fr-key-new" data-draft value="${esc(draft('fr-key-new'))}" placeholder="${esc(t('frLinkPaste'))}" style="flex:1;font-size:11px" autocomplete="off">${button(esc(t('frLinkSave')), 'data-act="friend-link"', 'btn-sm')}</div></details>`;
+  const ov = F.overlay;
+  const sw = (id, checked, label, hint, disabled) => `<div class="setting fr-set"><div class="what"><b>${esc(label)}</b>${hint ? `<span>${esc(hint)}</span>` : ''}</div><label class="switch"><input type="checkbox" id="${id}" data-change="${id}"${checked ? ' checked' : ''}${disabled ? ' disabled' : ''}><span></span></label></div>`;
+  const overlay = `${sw('sq-overlay', ov.enabled, t('squadOverlay'), t('squadOverlayHint'))}${sw('sq-locked', ov.locked, t('overlayLock'), '', !ov.running)}`;
+  const share = `<div class="setting fr-set"><div class="what"><b>${esc(t('frSharing'))}</b><span>${esc(t('frSharingHint'))}</span></div><label class="switch"><input type="checkbox" id="fr-sharing" data-change="fr-sharing" checked><span></span></label></div>`;
+  const body = `<div class="fr-side">${status}${add}${section(t('frRequests'), incoming)}${section(t('frSuggest'), suggest)}
+    ${section(t('frList', nf(D.friends.length)), friends || `<p class="faint small">${esc(t('frNone'))}</p>`)}${section(t('frSent'), outgoing)}
+    <div class="section-title">${esc(t('settings'))}</div>${overlay}${share}${link}</div>`;
+  return card('s4 friends-card', t('frTitle'), body);
+}
+
+function friendsPage() {
+  const F = S.friends;
+  if (!F) return '';
+  if (F.status === 'off') {
+    return `<div class="page" style="grid-template-rows:max-content">${card('s12', t('frTitle'), `<p class="muted">${esc(t('frOffText'))}</p>
+      <div class="row">${button(esc(t('frTurnOn')), 'data-act="friends-on"', 'btn-primary')}</div>`)}</div>`;
+  }
+  if (F.status === 'noprofile') {
+    return `<div class="page" style="grid-template-rows:max-content">${card('s12', t('frTitle'), empty(t('frNoProfile'), t('frNoProfileText')))}</div>`;
+  }
+  const D = F.data || FR_EMPTY;
+  return `<div class="page friends-page" style="grid-template-rows:max-content minmax(0,1fr)">${squadCard(F, D)}${friendsSide(F, D)}${boardCard(F, D)}</div>`;
 }
 
 // Preview of the in-game overlay: the very picture the counter draws for the game window (and OBS)
@@ -1206,7 +1379,7 @@ document.addEventListener('click', async (e) => {
   if (e.target.matches && e.target.matches('[data-share-backdrop]')) { closeShare(); return; }
   const pickGoal = e.target.closest && e.target.closest('[data-share-goal]');
   if (pickGoal) { shareGoal(pickGoal.dataset.shareGoal); return; }
-  const el = e.target.closest('[data-cmd],[data-act],[data-open],[data-nav],[data-sub],[data-range],[data-ovstyle],[data-corner],[data-goal],[data-rename],[data-page],[data-select],[data-goto],[data-notice],[data-copy],[data-prize],[data-setup],[data-setup-choice]');
+  const el = e.target.closest('[data-cmd],[data-act],[data-open],[data-nav],[data-sub],[data-range],[data-ovstyle],[data-corner],[data-goal],[data-rename],[data-page],[data-select],[data-goto],[data-notice],[data-copy],[data-prize],[data-setup],[data-setup-choice],[data-fr],[data-sq],[data-lbperiod],[data-sqperiod],[data-friend]');
   if (!el || el.disabled) return;
   if (el.dataset.nav) { go(el.dataset.nav); return; }
   if (el.dataset.goal) { ui.goal = el.dataset.goal; localStorage.setItem('fct-goal', ui.goal); ui.sceneInstant = true; cmd('goal', { key: ui.goal }); render(); return; }
@@ -1217,6 +1390,33 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (el.dataset.corner) { cmd('settings', { overlayCorner: Number(el.dataset.corner) }); return; }
+  if (el.dataset.lbperiod) { ui.lbPeriod = el.dataset.lbperiod; localStorage.setItem('fct-lb', ui.lbPeriod); ui.pageIndex.board = 0; render(); return; }
+  if (el.dataset.sqperiod) {
+    if (S.friends.overlay.period !== el.dataset.sqperiod) { S.friends.overlay.period = el.dataset.sqperiod; render(); cmd('friends/settings', { period: el.dataset.sqperiod }); }
+    return;
+  }
+  if (el.dataset.friend) { ui.friendOpen = ui.friendOpen === el.dataset.friend ? null : el.dataset.friend; render(); return; }
+  if (el.dataset.fr) {
+    const a = el.dataset.fr;
+    const id = el.dataset.id;
+    if (a === 'remove' && el.dataset.name && !confirm(t('frRemoveConfirm', el.dataset.name))) return;
+    el.disabled = true;
+    const r = a === 'answer' ? await cmd('friends/answer', { target: id, accept: el.dataset.accept === '1' })
+      : a === 'remove' ? await cmd('friends/remove', { target: id })
+      : a === 'invite' ? await cmd('squad/invite', { target: id })
+      : await cmd('friends/add', { target: id });
+    el.disabled = false;
+    if (r.ok && a === 'invite') toast('success', t('squadInviteSent'));
+    if (r.ok && a === 'add') toast('success', t('frRequestSent'));
+    return;
+  }
+  if (el.dataset.sq) {
+    el.disabled = true;
+    if (el.dataset.sq === 'leave') await cmd('squad/leave');
+    else await cmd('squad/answer', { squad: el.dataset.squad, accept: el.dataset.accept === '1' });
+    el.disabled = false;
+    return;
+  }
   if (el.dataset.range) { ui.range = Number(el.dataset.range); localStorage.setItem('fct-range', ui.range); render(); return; }
   if (el.dataset.page) {
     const [key, dir] = el.dataset.page.split(':');
@@ -1243,6 +1443,7 @@ document.addEventListener('click', async (e) => {
   if (el.dataset.notice) {
     const a = el.dataset.notice;
     if (a === 'ui:settings') go('settings');
+    else if (a === 'ui:friends') go('friends');
     else if (a === 'ui:profile') { const p = $('#profile'); if (p) { p.focus(); try { p.showPicker(); } catch { /* not allowed */ } } }
     else cmd(a);
     return;
@@ -1313,6 +1514,28 @@ document.addEventListener('click', async (e) => {
       if (confirm(t('estClearConfirm'))) { await cmd('estimate/clear'); clearDrafts('est-'); }
       break;
     case 'notice-next': ui.notice = (ui.notice || 0) + 1; render(); break;
+    case 'friend-add': {
+      const v = $('#friend-name').value.trim();
+      if (!v) break;
+      el.disabled = true;
+      const r = await cmd('friends/add', { name: v });
+      el.disabled = false;
+      if (r.ok) { delete ui.draft['friend-name']; $('#friend-name').value = ''; toast('success', t('frRequestSent')); }
+      break;
+    }
+    case 'friend-link': {
+      const v = $('#fr-key-new').value.trim();
+      if (!v) break;
+      const r = await cmd('friends/link', { key: v });
+      if (r.ok) { delete ui.draft['fr-key-new']; toast('success', t('saved')); }
+      break;
+    }
+    case 'friends-on': await cmd('friends/settings', { sharing: true }); break;
+    case 'squad-invite': {
+      const who = $('#sq-invite-who')?.value;
+      if (who) { const r = await cmd('squad/invite', { target: who }); if (r.ok) toast('success', t('squadInviteSent')); }
+      break;
+    }
     case 'share': openShare(); break;
     case 'token-activate': await cmd('token/activate'); break;
     case 'token-reset': await cmd('token/reset'); break;
@@ -1354,6 +1577,12 @@ document.addEventListener('change', async (e) => {
     case 'ov-hide-match': cmd('settings', { hideInMatch: v }); break;
     case 'ov-part': cmd('settings', { ['part' + el.dataset.part[0].toUpperCase() + el.dataset.part.slice(1)]: v }); break;
     case 'set-scene': await cmd('settings', { scene3d: v }); updateScene(); break;
+    case 'fr-sharing':
+      if (!v && !confirm(t('frSharingOffConfirm'))) { el.checked = true; break; }
+      cmd('friends/settings', { sharing: v });
+      break;
+    case 'sq-overlay': cmd('friends/settings', { overlay: v }); break;
+    case 'sq-locked': cmd('friends/settings', { overlayLocked: v }); break;
     case 'import-file': {
       const file = el.files && el.files[0];
       if (!file) break;
@@ -1372,7 +1601,7 @@ document.addEventListener('change', async (e) => {
 
 document.addEventListener('keydown', (e) => {
   const typing = e.target.matches && e.target.matches('input, select, textarea');
-  if (!typing && !e.ctrlKey && !e.altKey && !e.metaKey && /^[1-5]$/.test(e.key) && S && !S.setup && !ui.share) { go(PAGES[Number(e.key) - 1]); return; }
+  if (!typing && !e.ctrlKey && !e.altKey && !e.metaKey && /^[1-6]$/.test(e.key) && S && !S.setup && !ui.share) { go(PAGES[Number(e.key) - 1]); return; }
   if (e.key === 'Escape' && ui.share) { closeShare(); return; }
   if (e.key === 'Escape' && ui.editPrize) { ui.editPrize = null; render(); return; }
   if (e.key === 'Enter' && e.target.dataset && e.target.dataset.enter) {

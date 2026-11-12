@@ -754,3 +754,70 @@ label.btn { cursor: url("/cursors/hand.png") 8 2, pointer; }
 /* Home: the cards over the animated island get no backdrop blur (it would be recomputed at every frame of the
    island): a slightly denser panel instead, it looks the same over the sky */
 .home-page .hud, .home-page .ov-dock, .main:has(.home-page) .banner { backdrop-filter: none; background: rgba(10, 24, 82, .9); }
+
+/* ---- Friends tab ("Potes"): squad, leaderboard, friends ---------------------------------------------------------- */
+.friends-page .friends-card { grid-row: span 2; }
+.friends-card .card-b { overflow: auto; margin-right: -8px; padding-right: 8px; }
+.skin { position: relative; display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; overflow: hidden; border-radius: 10px;
+  background: linear-gradient(160deg, #2a4aa8, #0b1a4a); box-shadow: inset 0 0 0 1px var(--line); }
+.skin b { font: 18px/1 var(--display); color: var(--text-3); }
+.skin img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.skin.xs { width: 24px; height: 24px; border-radius: 7px; }
+.skin.xs b { font-size: 12px; }
+.skin.lg { width: 76px; height: 76px; border-radius: 16px; box-shadow: 0 10px 24px rgba(4, 10, 40, .45), inset 0 0 0 1px var(--line); }
+.skin.lg b { font-size: 38px; }
+.squad-card .card-b { gap: 12px; }
+.sq-intro { margin: 0; font-size: 14px; max-width: 640px; }
+.sq-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sq-chip { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px 0 6px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel-2); color: var(--text); font: 600 13px var(--font); cursor: pointer; }
+.sq-chip:hover { border-color: var(--lime); }
+.sq-chip svg { width: 14px; height: 14px; color: var(--lime); }
+.sq-members { display: flex; gap: 22px; flex-wrap: wrap; }
+.sq-member { display: flex; flex-direction: column; align-items: center; width: 110px; }
+.sq-pic { position: relative; }
+.sq-member.me .skin.lg { box-shadow: 0 10px 24px rgba(4, 10, 40, .45), 0 0 0 3px var(--aqua); }
+.sq-member.lead .skin.lg { box-shadow: 0 10px 24px rgba(4, 10, 40, .45), 0 0 0 3px var(--lime), 0 0 22px rgba(198, 255, 61, .35); }
+.sq-member .crown { position: absolute; top: -9px; right: -9px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--mythic, #ffbf3a); color: var(--lime-ink); box-shadow: 0 4px 10px rgba(4, 10, 40, .5); }
+.sq-member .crown svg { width: 16px; height: 16px; fill: currentColor; }
+.sq-playing { position: absolute; left: 50%; bottom: -10px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 5px; height: 20px;
+  padding: 0 8px; border-radius: 6px; background: var(--coral); color: #fff; font: 11px/1 var(--display); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.sq-playing .dot { width: 6px; height: 6px; background: #fff; box-shadow: none; }
+.sq-num { margin-top: 14px; font: 36px/1 var(--display); }
+.sq-member.lead .sq-num { color: var(--lime); }
+.sq-name { max-width: 100%; margin-top: 4px; overflow: hidden; font-size: 12.5px; font-weight: 600; color: var(--text-2); text-overflow: ellipsis; white-space: nowrap; }
+.sq-member.me .sq-name { color: var(--aqua); }
+.sq-foot { margin-top: auto; }
+.sq-invite select { height: 32px; }
+.board-row .rank { width: 26px; flex: none; text-align: center; font: 18px/1 var(--display); color: var(--text-3); }
+.board-row .rank.lead { color: var(--mythic, #ffbf3a); }
+.board-row .rank svg { width: 18px; height: 18px; fill: currentColor; }
+.board-row.me .main-t b { color: var(--aqua); }
+.list-row .main-t b .you { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 5px; background: rgba(62, 230, 255, .14); font-size: 11px; color: var(--aqua); vertical-align: 1px; }
+.board-row .main-t span .dot, .fr-row .main-t span .dot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; vertical-align: 1px; }
+.board-val { font: 28px/1 var(--display); }
+.board-val.none { color: var(--text-3); }
+.fr-add input { flex: 1; min-width: 0; }
+.fr-item { border-bottom: 1px solid var(--line); }
+.fr-item:last-child { border-bottom: 0; }
+.fr-row { width: 100%; padding: 0; border: 0; border-bottom: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.fr-row > svg { width: 16px; height: 16px; flex: none; color: var(--text-3); }
+.fr-detail { display: flex; flex-direction: column; gap: 10px; padding: 0 0 14px 48px; }
+.fr-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+.fr-stats span { display: block; font-size: 11.5px; color: var(--text-3); }
+.fr-stats b { font-size: 13.5px; font-weight: 700; }
+.fr-treasures { display: flex; flex-wrap: wrap; gap: 6px; }
+.fr-set { padding: 10px 0; }
+.board-card .list-row { height: 50px; }
+.fr-link summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.fr-link summary svg { width: 16px; height: 16px; }
+.fr-link p { margin: 8px 0; }
+@media (max-height: 820px) {
+  .skin.lg { width: 60px; height: 60px; border-radius: 13px; }
+  .skin.lg b { font-size: 28px; }
+  .sq-num { margin-top: 12px; font-size: 28px; }
+  .squad-card .card-h { margin-bottom: 10px; }
+  .friends-page .list-row, .board-card .list-row { height: 44px; }
+  .board-val { font-size: 24px; }
+}
