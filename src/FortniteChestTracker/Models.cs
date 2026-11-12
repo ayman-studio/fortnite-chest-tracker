@@ -243,6 +243,7 @@ public sealed class Store
 
     public string DataPath => Path.Combine(Folder, "data.json");
     public string OverlayPath => Path.Combine(Folder, "overlay.html");
+    public string SquadOverlayPath => Path.Combine(Folder, "overlay-friends.html");
     public string PrizeNamesPath => Path.Combine(Folder, "treasures.json");
     public string ErrorLogPath => Path.Combine(Folder, "errors.log");
 

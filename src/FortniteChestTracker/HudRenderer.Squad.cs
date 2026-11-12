@@ -77,6 +77,12 @@ internal sealed partial class HudRenderer
                 Outline(cv, star, ix + icon - ss + S(8), top - S(8), S(2));
                 cv.FillV(star, ix + icon - ss + S(8), top - S(8), Col.Hex(0xfff2a8), Amber);
             }
+            if (m.Treasure)
+            {
+                var found = L.T("TRÉSOR !", "TREASURE!", "¡TESORO!");
+                var fw = TagWidth(fTag, HudMode.InProgress, found, S);
+                Tag(cv, fTag, HudMode.InProgress, found, x + (colW - fw) / 2, top + icon - tagH / 2 - (m.Playing ? tagH + S(3) : 0), fw, S);
+            }
             if (m.Playing)
             {
                 var playing = L.T("EN PARTIE", "IN A MATCH", "EN PARTIDA");

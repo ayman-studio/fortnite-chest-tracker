@@ -8,7 +8,11 @@ namespace FortniteChestTracker;
 /// <param name="Playing">In a match right now: their chests arrive when it ends.</param>
 /// <param name="Me">The player of this PC.</param>
 /// <param name="Fresh">Their number just changed (glow animation).</param>
-public sealed record SquadMember(string Name, string? Skin, int? Chests, bool Playing, bool Me, bool Fresh = false);
+public sealed record SquadMember(string Name, string? Skin, int? Chests, bool Playing, bool Me, bool Fresh = false)
+{
+    /// <summary>Got a weekly reward (golden chest) in the last 15 minutes: "TREASURE!" on their tile.</summary>
+    public bool Treasure { get; init; }
+}
 
 /// <summary>What the squad overlay shows: each member's outfit above their chests of the last match or of the session.</summary>
 /// <param name="Period">"last" (last match) or "session" (since the squad was formed).</param>
@@ -17,7 +21,7 @@ public sealed record SquadView(string Period, IReadOnlyList<SquadMember> Members
     public static SquadView Empty { get; } = new("last", Array.Empty<SquadMember>());
 
     /// <summary>Changes whenever something drawn changes (picture cache of the page).</summary>
-    public string Key => Period + "|" + L.Code + "|" + string.Join(";", Members.Select(m => $"{m.Name}/{m.Skin}/{m.Chests}/{m.Playing}/{m.Me}/{SkinCache.Image(m.Skin) != null}"));
+    public string Key => Period + "|" + L.Code + "|" + string.Join(";", Members.Select(m => $"{m.Name}/{m.Skin}/{m.Chests}/{m.Playing}/{m.Me}/{m.Treasure}/{SkinCache.Image(m.Skin) != null}"));
 }
 
 /// <summary>

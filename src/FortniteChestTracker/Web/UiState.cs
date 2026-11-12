@@ -58,6 +58,9 @@ public sealed record UiSquadOverlay(bool Enabled, bool Running, bool Visible, bo
     /// <summary>Size and opacity of the squad overlay (percent), its own, apart from the main overlay's.</summary>
     public int Size { get; init; } = 100;
     public int Opacity { get; init; } = 100;
+
+    /// <summary>overlay-friends.html, for an OBS browser source.</summary>
+    public string ObsPath { get; init; } = "";
 }
 
 /// <summary>

@@ -938,6 +938,8 @@ function squadOverlayPage(F) {
   const src = live ? `/squad.png?v=${esc(ov.hud)}` : `/squad.png?demo=1&v=${esc(ov.demo)}`;
   const preview = card('s5', t('overlayPreview'), `<div class="ov-stage"><img class="hud-img" src="${src}" srcset="${src} 2x" alt="" draggable="false"></div>
     ${live ? '' : `<p class="faint small sq-example">${esc(t('squadExample'))}</p>`}
+    <div class="section-title">${esc(t('obs'))}</div><div class="row"><input type="text" id="sq-obs-path" readonly value="${esc(ov.obsPath || '')}" style="flex:1;font-size:12px">${button(`${icon('copy')}${esc(t('copy'))}`, 'data-copy="sq-obs-path"')}</div>
+    <p class="faint small" style="margin:6px 0 0">${esc(t('squadObsHint'))}</p>
     ${inSquad ? '' : `<div class="row" style="margin-top:12px">${button(`${icon('users')}${esc(t('friendsDockGo'))}`, 'data-frsub="friends"', 'btn-sm btn-primary')}</div>`}`);
   return `<div class="page" style="grid-template-rows:minmax(0,1fr)">${controls}${preview}</div>`;
 }

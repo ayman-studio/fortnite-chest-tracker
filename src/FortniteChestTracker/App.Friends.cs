@@ -119,6 +119,7 @@ public sealed partial class App
     /// <summary>Called by the main loop: syncs when it is time (or soon after a match started / ended).</summary>
     private void FriendsTick()
     {
+        CheckSessionEnd();
         var playing = _tracker.IsLive;
         if (playing != _lastPlaying)
         {
@@ -292,6 +293,11 @@ public sealed partial class App
                 }
             }
         }
+        if (squadBefore is { } ended && (squadNow == null || Str(squadNow.Value, "id") != Str(ended, "id")))
+        {
+            SquadRecap(ended); // the squad closed (left, timed out): its recap, if not given yet
+        }
+        AnnounceFriendRewards(before, state);
         CheckSquadSuggestion();
         UpdateSquadOverlay();
     }
@@ -355,7 +361,16 @@ public sealed partial class App
     {
         var squad = _config.FriendsSharing ? SquadOf(_friends) : null;
         var members = squad is { } sq ? Items(sq, "members").ToList() : new List<JsonElement>();
-        if (squad == null || members.Count < 2 || !_config.ShowSquadOverlay)
+        var treasures = RecentRewards();
+        SquadView? built = null;
+        if (squad != null && members.Count >= 2)
+        {
+            var p = _config.SquadOverlayPeriod == "session" ? "session" : "last";
+            built = new SquadView(p, members.Select(m => SquadMemberOf(m, p) with { Treasure = treasures.Contains(Str(m, "id") ?? "") })
+                .OrderByDescending(m => m.Chests ?? -1).ThenBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList());
+        }
+        ObsPage.WriteSquad(_store, built ?? SquadView.Empty); // OBS shows the squad even when the game overlay is off
+        if (built == null || !_config.ShowSquadOverlay)
         {
             if (SquadOverlay.IsRunning && SquadOverlay.IsVisible)
             {
@@ -365,24 +380,8 @@ public sealed partial class App
             SquadOverlay.Update(SquadView.Empty);
             return;
         }
-        var period = _config.SquadOverlayPeriod == "session" ? "session" : "last";
-        var list = members.Select(m =>
-        {
-            var id = Str(m, "id");
-            var me = id == _syncedFor;
-            int? chests = period == "session"
-                ? (m.TryGetProperty("sessionMatches", out var sm) && sm.TryGetInt32(out var smn) && smn > 0 && m.TryGetProperty("sessionChests", out var sc) && sc.TryGetInt32(out var scn) ? scn : null)
-                : (m.TryGetProperty("last", out var l) && l.ValueKind == JsonValueKind.Object && l.TryGetProperty("chests", out var lc) && lc.TryGetInt32(out var lcn) ? lcn : null);
-            var playing = me ? _tracker.IsLive : m.TryGetProperty("playing", out var p) && p.ValueKind == JsonValueKind.True;
-            var skin = Str(m, "skin");
-            SkinCache.Want(skin);
-            return new SquadMember(Str(m, "name") ?? "?", skin, chests, playing, me);
-        })
-        .OrderByDescending(m => m.Chests ?? -1).ThenBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
-        .ToList();
-        var view = new SquadView(period, list);
-
-        var squadId = Str(squad.Value, "id");
+        var view = built;
+        var squadId = Str(squad!.Value, "id");
         if (!SquadOverlay.IsRunning)
         {
             SquadOverlay.SetAppearance(_config.SquadOverlaySize, _config.SquadOverlayOpacity);
@@ -400,6 +399,110 @@ public sealed partial class App
             SquadOverlay.SetVisible(true, quiet: true);
         }
         SquadOverlay.Update(view);
+    }
+
+    /// <summary>A member of the squad as the overlay shows them, for "last" match or "session".</summary>
+    private SquadMember SquadMemberOf(JsonElement m, string period)
+    {
+        var me = Str(m, "id") == _syncedFor;
+        int? chests = period == "session"
+            ? (m.TryGetProperty("sessionMatches", out var sm) && sm.TryGetInt32(out var smn) && smn > 0 && m.TryGetProperty("sessionChests", out var sc) && sc.TryGetInt32(out var scn) ? scn : null)
+            : (m.TryGetProperty("last", out var l) && l.ValueKind == JsonValueKind.Object && l.TryGetProperty("chests", out var lc) && lc.TryGetInt32(out var lcn) ? lcn : null);
+        var playing = me ? _tracker.IsLive : m.TryGetProperty("playing", out var p) && p.ValueKind == JsonValueKind.True;
+        var skin = Str(m, "skin");
+        SkinCache.Want(skin);
+        return new SquadMember(Str(m, "name") ?? "?", skin, chests, playing, me);
+    }
+
+    /// <summary>Golden chests (weekly rewards) of a friend's summary: (name, when in ms).</summary>
+    private static IEnumerable<(string Name, long At)> Rewards(JsonElement friend) =>
+        friend.TryGetProperty("summary", out var s) && s.ValueKind == JsonValueKind.Object && s.TryGetProperty("treasures", out var t) && t.ValueKind == JsonValueKind.Array
+            ? t.EnumerateArray().Where(x => x.TryGetProperty("g", out var g) && g.ValueKind == JsonValueKind.True && x.TryGetProperty("t", out var at) && at.TryGetInt64(out _))
+                .Select(x => (Str(x, "n") ?? "?", x.GetProperty("t").GetInt64()))
+            : Enumerable.Empty<(string, long)>();
+
+    /// <summary>Players (Epic ids) who got a weekly reward in the last 15 minutes: the player and their friends.</summary>
+    private HashSet<string> RecentRewards()
+    {
+        var since = Ms(DateTime.UtcNow.AddMinutes(-15));
+        var ids = Items(_friends, "friends").Where(f => Rewards(f).Any(r => r.At >= since)).Select(f => Str(f, "id") ?? "").ToHashSet();
+        var mine = Profiles.View(_data, _config).Matches
+            .SelectMany(m => m.TreasureFinds.Where(f => f.FromGoldenChest).Select(f => Ms(Hunt.StartOf(m).AddSeconds(f.ObtainedAtSeconds ?? 0))));
+        if (_syncedFor != null && mine.Any(at => at >= since))
+        {
+            ids.Add(_syncedFor);
+        }
+        return ids;
+    }
+
+    /// <summary>A friend got a weekly reward since the previous state: notification (only for recent ones, never at start).</summary>
+    private void AnnounceFriendRewards(JsonElement? before, JsonElement now)
+    {
+        if (before == null)
+        {
+            return;
+        }
+        var known = Items(before, "friends").ToDictionary(f => Str(f, "id") ?? "", f => Rewards(f).Select(r => r.At).DefaultIfEmpty(0).Max());
+        var recent = Ms(DateTime.UtcNow.AddHours(-2));
+        foreach (var f in Items(now, "friends"))
+        {
+            if (!known.TryGetValue(Str(f, "id") ?? "", out var last))
+            {
+                continue; // a new friend: their old treasures are no news
+            }
+            foreach (var (prize, at) in Rewards(f).Where(r => r.At > last && r.At >= recent))
+            {
+                var name = Str(f, "name") ?? "?";
+                Activity.Treasure(L.T($"★★ {name} a trouvé un trésor : {prize} !", $"★★ {name} found a treasure: {prize}!", $"★★ ¡{name} encontró un tesoro: {prize}!"));
+                NativeTray.Notify(L.T($"{name} a trouvé un trésor !", $"{name} found a treasure!", $"¡{name} encontró un tesoro!"), prize);
+            }
+        }
+    }
+
+    // ---- End of the evening: who opened the most chests in the squad ------------------------------------------
+
+    private string? _recapDoneFor;            // squad id whose recap was given
+    private bool _fortniteWasRunning;
+    private DateTime _nextFortniteCheck;
+
+    /// <summary>When Fortnite closes during a squad: the ranking of the session, once per squad.</summary>
+    private void CheckSessionEnd()
+    {
+        if (DateTime.UtcNow < _nextFortniteCheck)
+        {
+            return;
+        }
+        _nextFortniteCheck = DateTime.UtcNow.AddSeconds(20);
+        var running = FortniteWatch.IsFortniteRunning();
+        if (_fortniteWasRunning && !running && SquadOf(_friends) is { } squad)
+        {
+            SquadRecap(squad);
+        }
+        _fortniteWasRunning = running;
+    }
+
+    private void SquadRecap(JsonElement squad)
+    {
+        var id = Str(squad, "id");
+        if (id == null || id == _recapDoneFor)
+        {
+            return;
+        }
+        var ranking = Items(squad, "members")
+            .Select(m => (Name: Str(m, "id") == _syncedFor ? L.T("toi", "you", "tú") : Str(m, "name") ?? "?",
+                Chests: m.TryGetProperty("sessionChests", out var c) && c.TryGetInt32(out var n) ? n : 0,
+                Matches: m.TryGetProperty("sessionMatches", out var sm) && sm.TryGetInt32(out var smn) ? smn : 0))
+            .Where(m => m.Matches > 0).OrderByDescending(m => m.Chests).ToList();
+        if (ranking.Count < 2)
+        {
+            return; // nobody to compare with
+        }
+        _recapDoneFor = id;
+        var line = string.Join(" · ", ranking.Select((m, i) => $"{i + 1}. {m.Name} {L.N(m.Chests)}"));
+        var winner = ranking[0];
+        var title = L.T($"Bilan : {winner.Name} gagne la session !", $"Recap: {winner.Name} wins the session!", $"Resumen: ¡{winner.Name} gana la sesión!");
+        Activity.Success($"{title} {line}");
+        NativeTray.Notify(title, L.T($"Coffres de la session : {line}", $"Session chests: {line}", $"Cofres de la sesión: {line}"));
     }
 
     /// <summary>First time: to the right of the main overlay's usual place, so they do not overlap.</summary>
@@ -632,6 +735,7 @@ public sealed partial class App
             {
                 Size = _config.SquadOverlaySize,
                 Opacity = _config.SquadOverlayOpacity,
+                ObsPath = _store.SquadOverlayPath,
             },
             SkinCache.Version, me?.Key, FriendsClient.BaseUrl);
     }
