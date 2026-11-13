@@ -377,7 +377,7 @@ public sealed partial class App
     {
         var data = Profiles.View(_data, _config);
         var estimated = _config.Estimate is { Include: true } ? Estimates.Compute(_config.Estimate, data.Matches)?.Estimated ?? 0 : 0;
-        var view = HudModel.Build(data, _config, _tracker.LiveMatch, _tracker.IsLive, estimated);
+        var view = HudModel.Build(data, _config, _tracker.LiveMatch, _tracker.IsLive, estimated, Estimates.ForHunt(_config.Estimate, data.Matches));
         _hud = view;
         ObsPage.Write(_store, view);
         if (NativeOverlay.IsRunning)
@@ -1361,14 +1361,17 @@ public sealed partial class App
         // Golden chest prizes carry their prize id: those are the weekly rewards; the rest are gizmos.
         var rewards = finds.Count(f => f.FromGoldenChest);
         var gizmos = finds.Count - rewards;
-        var chests = matches.Sum(m => m.ChestsOpened);
+        // The season's matches without replay (the hunt starts with the season): in the chests and the chances, once
+        // each (no Treasure Hours known); not in the luck figures (what they gave is unknown).
+        var estimated = Estimates.ForHunt(_config.Estimate, view.Matches);
+        var chests = matches.Sum(m => m.ChestsOpened) + estimated;
         var gizmoOdds = TreasureOdds.All.First(o => o.Key == "odds_gizmo");
         var gizmosExpected = TreasureOdds.ExpectedFor(gizmoOdds, matches, since);
         var rewardsExpected = TreasureOdds.ExpectedRewardsFor(matches, since);
         var odds = TreasureOdds.All.Select(o => new UiOdds(o.Key, o.Odds, o.HourBoost, TreasureOdds.ExpectedFor(o, matches, since))
         {
-            Weighted = Hunt.Weighted(matches, o.Key),
-            SquadWeighted = Hunt.Weighted(matches, o.Key) + Hunt.SquadWeighted(matches, o.Key),
+            Weighted = Hunt.Weighted(matches, o.Key) + estimated,
+            SquadWeighted = Hunt.Weighted(matches, o.Key) + estimated + Hunt.SquadWeighted(matches, o.Key),
         }).ToList();
         var boosted = Hunt.DuringTreasureHours(matches);
         var squad = matches.Sum(m => m.SquadChests?.Count ?? 0);
@@ -1378,11 +1381,11 @@ public sealed partial class App
             // same generic treasure): one luck figure for all the treasures, against everything expected.
             var expected = gizmosExpected + rewardsExpected;
             return new UiHunt(since, chests, matches.Count, gizmos, rewards, odds, expected, 0,
-                TreasureOdds.LuckPercent(finds.Count, expected), null, Combined: true) { RankedChests = ranked, BoostedChests = boosted, SquadChests = squad };
+                TreasureOdds.LuckPercent(finds.Count, expected), null, Combined: true) { RankedChests = ranked, BoostedChests = boosted, SquadChests = squad, Estimated = estimated };
         }
         return new UiHunt(since, chests, matches.Count, gizmos, rewards, odds,
             gizmosExpected, rewardsExpected, TreasureOdds.LuckPercent(gizmos, gizmosExpected), TreasureOdds.LuckPercent(rewards, rewardsExpected))
-            { RankedChests = ranked, BoostedChests = boosted, SquadChests = squad };
+            { RankedChests = ranked, BoostedChests = boosted, SquadChests = squad, Estimated = estimated };
     }
 
     private List<UiNotice> Notices(bool demosExists, int profiles)

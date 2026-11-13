@@ -73,6 +73,14 @@ public static class Estimates
             Math.Max(0, estimated - margin), estimated + margin, tracked.Count + untracked, minutes);
     }
 
+    /// <summary>
+    /// Chests of the current season's matches without replay that count for the treasure hunt: the hunt starts with
+    /// the season, so all of them do (when the player added them to the total and they are of the current season).
+    /// No Treasure Hours boost is known for them: they count once each.
+    /// </summary>
+    public static int ForHunt(EstimateSettings? settings, IReadOnlyList<MatchRecord> tracked) =>
+        settings is { Include: true } && Compute(settings, tracked) is { } r && r.Season == CurrentSeason(tracked) ? r.Estimated : 0;
+
     /// <summary>Season of a replay: the major game version ("++Fortnite+Release-43.10" gives "43"), null when unknown.</summary>
     public static string? SeasonOf(string? gameVersion)
     {

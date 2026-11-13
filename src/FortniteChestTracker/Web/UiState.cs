@@ -76,6 +76,9 @@ public sealed record UiSquadOverlay(bool Enabled, bool Running, bool Visible, bo
 public sealed record UiHunt(DateTime Since, int Chests, int Matches, int Gizmos, int Rewards, IReadOnlyList<UiOdds> Odds,
     double GizmosExpected = 0, double RewardsExpected = 0, int? GizmoLuck = null, int? RewardLuck = null, bool Combined = false)
 {
+    /// <summary>Chests of the season's matches without replay included in <see cref="Chests"/> and the chances (shown "≈").</summary>
+    public int Estimated { get; init; }
+
     /// <summary>Chests of Ranked matches since the start of the hunt: no treasure-hunt rewards there, left out of the chances.</summary>
     public int RankedChests { get; init; }
 

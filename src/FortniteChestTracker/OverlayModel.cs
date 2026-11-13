@@ -93,7 +93,8 @@ public static class HudModel
     /// <param name="live">Figures of the match in progress, when the replay could be read (null otherwise).</param>
     /// <param name="inProgress">A match is being recorded (even if its figures are not readable yet).</param>
     /// <param name="estimated">Chests estimated for the matches without replay, added to the total ("≈") when the player chose it.</param>
-    public static HudView Build(TrackerData d, Config config, MatchRecord? live, bool inProgress, int estimated = 0)
+    /// <param name="huntEstimated">Those of them that count for the treasure hunt (see <see cref="Estimates.ForHunt"/>).</param>
+    public static HudView Build(TrackerData d, Config config, MatchRecord? live, bool inProgress, int estimated = 0, int huntEstimated = 0)
     {
         var liveChests = live?.ChestsOpened ?? 0;
         var total = d.Matches.Sum(m => m.ChestsOpened) + liveChests + estimated;
@@ -107,9 +108,9 @@ public static class HudModel
         {
             hunt.Add(live);
         }
-        var huntChests = hunt.Sum(m => m.ChestsOpened);
+        var huntChests = hunt.Sum(m => m.ChestsOpened) + huntEstimated;
         var goalKey = TreasureOdds.All.Any(o => o.Key == config.Goal) ? config.Goal! : config.Goal == "auto" ? Goal("auto", huntChests).Key : DefaultGoal;
-        var weighted = Hunt.Weighted(hunt, goalKey);
+        var weighted = Hunt.Weighted(hunt, goalKey) + huntEstimated;
 
         var last = d.Matches.OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc).FirstOrDefault();
         var (mode, chests) = live != null ? (HudMode.Live, (int?)live.ChestsOpened)

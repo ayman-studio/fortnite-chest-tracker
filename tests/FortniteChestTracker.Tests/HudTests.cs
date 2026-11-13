@@ -85,6 +85,17 @@ public class HudTests
     }
 
     [Fact]
+    public void The_season_s_matches_without_replay_count_for_the_goal()
+    {
+        var config = new Config { TokenSinceUtc = new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc), Goal = "odds_pirate" };
+        var data = new TrackerData();
+        data.Matches.Add(Match(10, new DateTime(2026, 11, 3, 12, 0, 0, DateTimeKind.Utc)));
+        var view = HudModel.Build(data, config, null, false, estimated: 700, huntEstimated: 700);
+        Assert.Equal(710, view.Goal!.Chests);
+        Assert.Equal(TreasureOdds.Chance(710, 137_500), view.Goal.Chance, 9);
+    }
+
+    [Fact]
     public void Percent_like_the_page()
     {
         L.Set("en");

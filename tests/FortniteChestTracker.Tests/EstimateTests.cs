@@ -100,4 +100,19 @@ public class EstimateTests
         Assert.True(config.Estimate!.IsLegacy);
         Assert.Equal("x", config.Estimate.Player);
     }
+
+    [Fact]
+    public void The_hunt_counts_the_estimate_of_the_current_season_only_when_added_to_the_total()
+    {
+        var tracked = Tracked("43.10", 5, 30);
+        var included = Season("43", 15, 3);
+        included.Include = true;
+        Assert.Equal(10 * 30, Estimates.ForHunt(included, tracked));
+
+        var notIncluded = Season("43", 15, 3);
+        Assert.Equal(0, Estimates.ForHunt(notIncluded, tracked));
+
+        var newSeason = tracked.Concat(Tracked("44.00", 1, 30).Select(m => { m.MatchStartUtc = m.MatchStartUtc!.Value.AddDays(30); return m; })).ToList();
+        Assert.Equal(0, Estimates.ForHunt(included, newSeason)); // numbers of the previous season: not in the new hunt
+    }
 }

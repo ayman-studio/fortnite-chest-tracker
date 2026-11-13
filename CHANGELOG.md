@@ -5,6 +5,9 @@
 **Older matches (without replay)**
 - The time played of the season is the one fortnite.gg gives (30 h stays 30 h), no longer the replays' time plus an
   estimate (a replay runs until you leave the match, so it counts more than Fortnite does: that gave 36 h).
+- The season's chests without replay now count for the treasure hunt too (the hunt starts with the season): the
+  chances of each treasure, the "chests since" line, the goal of the overlay and the friends' odds include them ("≈").
+  The luck figures stay on the replays only (what those matches gave is unknown).
 
 ## 1.3.3 (2026-11-13)
 

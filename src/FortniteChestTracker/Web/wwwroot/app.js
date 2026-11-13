@@ -72,6 +72,8 @@ const dropChance = (n, odds) => 1 - Math.pow(1 - 1 / odds, n);
 const chanceOf = (h, o) => dropChance(o.weighted ?? h.chests, o.odds);
 // With the teammates' chests seen in the replays (treasures are shared with the team)
 const squadOf = (o) => dropChance(o.squadWeighted ?? 0, o.odds);
+// Drops expected: from the replays (as the luck figures), plus the season's chests without replay (pirate token: once)
+const expectedOf = (h, o) => (o.key === 'odds_pirate' ? chanceOf(h, o) : (o.expected ?? (h.chests - (h.estimated || 0)) / o.odds) + (h.estimated || 0) / o.odds);
 // Percentages that stay readable when tiny: 18 %, 2.4 %, 0.29 %, 0.025 %.
 const pctx = (p) => {
   const o = p >= 0.1 ? { maximumFractionDigits: 0 } : p >= 0.01 ? { maximumFractionDigits: 1 } : { maximumSignificantDigits: 2 };
@@ -507,7 +509,7 @@ function home() {
     <div class="row" style="align-items:baseline;gap:12px"><div class="hud-big num accent">${esc(pctx(chanceOf(h, target)))}</div><div class="hud-note">${esc(t('huntChance'))}</div></div>
     ${h.squadChests ? `<div class="hud-squad">${icon('users')}<span>${esc(t('squadChance'))} <b>${esc(pctx(squadOf(target)))}</b></span><span class="faint">${esc(t('squadNear'))}</span></div>` : ''}
     <div class="dig"><i style="width:${Math.max(1.5, Math.min(1, h.chests / target.odds) * 100).toFixed(1)}%"></i></div>
-    <div class="hud-foot">${esc(t('tokenDug', nf(h.chests), nf(target.odds), since))}${seasonChip()}</div>
+    <div class="hud-foot">${esc(t('tokenDug', (h.estimated ? '≈' : '') + nf(h.chests), nf(target.odds), since))}${seasonChip()}</div>
     <div class="goals" role="group" aria-label="${esc(t('goalPick'))}">${chips}</div></section>`;
 
   let last;
@@ -725,12 +727,12 @@ function oddsCard() {
   const since = date(h.since, { day: 'numeric', month: 'long' });
   const rows = h.odds.map((o) => `<tr><td>${esc(t(o.key))}</td><td class="r num">${nf(o.odds)}</td>
     <td class="r">${o.hourBoost ? `<span class="badge b-gold">×${esc(nf1(o.hourBoost).replace(/[.,]0$/, ''))}</span>` : '<span class="faint">—</span>'}</td>
-    <td class="r strong">${esc(pctx(chanceOf(h, o)))}</td>${h.squadChests ? `<td class="r">${esc(pctx(squadOf(o)))}</td>` : ''}<td class="r num">${esc(nfx(o.expected ?? h.chests / o.odds))}</td></tr>`).join('');
+    <td class="r strong">${esc(pctx(chanceOf(h, o)))}</td>${h.squadChests ? `<td class="r">${esc(pctx(squadOf(o)))}</td>` : ''}<td class="r num">${esc(nfx(expectedOf(h, o)))}</td></tr>`).join('');
   const luck = `<div class="luck-col"><div class="luck-h">${esc(t('luckTitle'))}</div>
     ${h.combined ? luckMeter('star', t(single(h.gizmos) ? 'foundTreasuresOne' : 'foundTreasuresMany', nf(h.gizmos), nf1(h.gizmosExpected)), h.gizmoLuck) + `<p class="faint small" style="margin:0">${esc(t('luckCombinedHint'))}</p>`
       : luckMeter('star', t(single(h.gizmos) ? 'foundGizmosOne' : 'foundGizmosMany', nf(h.gizmos), nf1(h.gizmosExpected)), h.gizmoLuck)
         + luckMeter('treasures', t(single(h.rewards) ? 'foundRewardsOne' : 'foundRewardsMany', nf(h.rewards), nf1(h.rewardsExpected)), h.rewardLuck)}</div>`;
-  const note = [t('oddsNote', nf(h.chests), since), h.rankedChests ? t('oddsRanked', nf(h.rankedChests)) : '', h.boostedChests ? t('oddsBoosted', nf(h.boostedChests)) : '', h.squadChests ? t('oddsSquadNote', nf(h.squadChests)) : ''].filter(Boolean).join(' ');
+  const note = [t('oddsNote', (h.estimated ? '≈' : '') + nf(h.chests), since), h.rankedChests ? t('oddsRanked', nf(h.rankedChests)) : '', h.boostedChests ? t('oddsBoosted', nf(h.boostedChests)) : '', h.squadChests ? t('oddsSquadNote', nf(h.squadChests)) : ''].filter(Boolean).join(' ');
   return card('s12 odds-card', t('oddsTitle'), `<div class="odds-grid"><table class="tbl static compact" title="${esc(note)}"><colgroup><col><col style="width:16%"><col style="width:16%"><col style="width:16%">${h.squadChests ? '<col style="width:13%">' : ''}<col style="width:12%"></colgroup>
     <thead><tr><th>${esc(t('treasure'))}</th><th class="r">${esc(t('oddsPer'))}</th><th class="r">${esc(t('oddsHours'))}</th><th class="r">${esc(t('oddsChance'))}</th>${h.squadChests ? `<th class="r" title="${esc(t('squadNear'))}">${esc(t('oddsSquad'))}</th>` : ''}<th class="r">${esc(t('oddsExpected'))}</th></tr></thead>
     <tbody>${rows}</tbody></table>${luck}</div>
