@@ -510,6 +510,7 @@ input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 6px rgba(1
 .foot-links a { display: inline-flex; align-items: center; gap: 9px; color: var(--text-2); }
 .foot-links .i { width: 16px; height: 16px; color: var(--text-3); transition: color .2s; }
 .foot-links a:hover .i { color: var(--lime); }
+.foot-links .i.ix { fill: currentColor; stroke: none; width: 14px; height: 14px; margin: 0 1px; }
 /* Credits and legal notice: a small window opened from the footer */
 .foot-legal-btn { display: inline-flex; align-items: center; gap: 9px; padding: 0; border: 0; background: none; color: var(--text-2); font: inherit; }
 .foot-legal-btn:hover { color: var(--text); }

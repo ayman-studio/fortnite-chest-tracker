@@ -6,7 +6,7 @@
 - Chests are counted a few seconds after each match ends (Fortnite keeps the replay locked until then), not live during the match.
 - Needs "Record Replays" turned on in Fortnite (Settings → Game → Replays).
 - One exe, no account, no ads. Code under MIT; the downloadable exe is distributed under GPL-3.0 because it includes a GPL replay decompressor.
-- Made by Ayman Studio (https://x.com/ayman_studioo).
+- Made by Ayman Studio (https://x.com/ayman_studioo). News and Treasure Hour reminders on X: https://x.com/chest_tracker
 
 ## Pages
 

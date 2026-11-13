@@ -87,6 +87,7 @@ function seo(L, T, version) {
     downloadUrl: `https://github.com/${REPO}/releases/latest`, isAccessibleForFree: true,
     license: 'https://www.gnu.org/licenses/gpl-3.0.html', // the exe, because of the GPL replay decompressor
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+    sameAs: ['https://x.com/chest_tracker', `https://github.com/${REPO}`],
     author: { '@id': author['@id'] }, publisher: { '@id': author['@id'] },
     ...(version ? { softwareVersion: version } : {}),
   };
@@ -115,6 +116,7 @@ function seo(L, T, version) {
     '<meta property="og:image:height" content="630">',
     `<meta property="og:image:alt" content="${attr(T.og_alt)}">`,
     '<meta name="twitter:card" content="summary_large_image">',
+    '<meta name="twitter:site" content="@chest_tracker">',
     `<meta name="twitter:title" content="${attr(T.meta_title)}">`,
     `<meta name="twitter:description" content="${attr(T.meta_desc)}">`,
     `<meta name="twitter:image" content="${og}">`,

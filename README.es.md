@@ -5,6 +5,7 @@
 <p align="center">
   <a href="https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest"><img src="https://img.shields.io/badge/Descargar%20para%20Windows-c6ff3d?style=for-the-badge&logo=windows&logoColor=0b1a4a" alt="Descargar para Windows" height="38"></a>
   <a href="https://fortnite-chest-tracker.com/"><img src="https://img.shields.io/badge/Sitio%20web-12266c?style=for-the-badge&logo=googlechrome&logoColor=c6ff3d" alt="Sitio web" height="38"></a>
+  <a href="https://x.com/chest_tracker"><img src="https://img.shields.io/badge/%40chest__tracker-000000?style=for-the-badge&logo=x&logoColor=white" alt="X @chest_tracker" height="38"></a>
 </p>
 
 <p align="center">

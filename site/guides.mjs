@@ -478,6 +478,7 @@ ${LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${BASE + g.path[
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@chest_tracker">
 <meta name="twitter:title" content="${attr(P.h1)}">
 <meta name="twitter:description" content="${attr(P.desc)}">
 <meta name="twitter:image" content="${og}">
@@ -523,6 +524,7 @@ ${LANGS.map((l) => `<link rel="alternate" hreflang="${l}" href="${BASE + g.path[
   <div class="wrap g-foot">
     <p>${esc(U.fan)}</p>
     <p>${esc(U.by)} <b>Ayman Studio</b> · <a href="https://x.com/ayman_studioo" rel="me noopener">@ayman_studioo</a>${version ? ` · v${esc(version)}` : ''}</p>
+    <p><a href="https://x.com/chest_tracker" rel="me noopener">X · @chest_tracker</a></p>
     <p class="foot-idea">${U.idea}</p>
   </div>
 </footer>

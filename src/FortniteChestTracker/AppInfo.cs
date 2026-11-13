@@ -19,6 +19,9 @@ public static class AppInfo
     /// <summary>The author, credited in About (link opened by the "author" command).</summary>
     public const string AuthorUrl = "https://x.com/ayman_studioo";
 
+    /// <summary>The app's own X account (news, Treasure Hour reminders), linked in About (opened by the "x" command).</summary>
+    public const string XUrl = "https://x.com/chest_tracker";
+
     /// <summary>
     /// GitHub repository ("owner/name") whose releases update this exe, set at build time with
     /// <c>-p:TrackerRepo=owner/name</c> (the GitHub workflow passes its own repository). Null for a local build:

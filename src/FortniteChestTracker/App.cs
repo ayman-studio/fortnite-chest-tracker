@@ -1136,6 +1136,7 @@ public sealed partial class App
             "repo" => AppInfo.RepoUrl,
             "issues" => AppInfo.IssuesUrl,
             "author" => AppInfo.AuthorUrl,
+            "x" => AppInfo.XUrl,
             "release" => _update?.PageUrl,
             "fortnitegg" => EstimatePlayer() is { Length: > 0 } who ? Estimates.FortniteGgUrl(who) : "https://fortnite.gg/stats",
             "fortniteapi" => "https://dash.fortnite-api.com/account",
