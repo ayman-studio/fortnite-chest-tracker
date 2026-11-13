@@ -106,7 +106,7 @@ El botón **Compartir** crea esta imagen con tus estadísticas y la isla, con el
 
 ## Las partidas más antiguas que tus repeticiones
 
-Fortnite solo guarda tus últimas repeticiones. La sección **Partidas antiguas** estima el resto: toma tus partidas jugadas de fortnite.gg (o automáticamente con una clave gratuita de [fortnite-api.com](https://dash.fortnite-api.com/account)), y la app multiplica las partidas que faltan por **tu propia** media por modo, con un rango. Puedes sumarlo al total, mostrado con «≈».
+Fortnite solo guarda tus últimas repeticiones. La sección **Partidas antiguas** estima las partidas de la temporada sin repetición: copia tus partidas y horas de juego de la temporada desde fortnite.gg, y la app multiplica las partidas que faltan por **tu propia** media, con un rango. Puedes sumarlo al total, mostrado con «≈».
 
 <p align="center"><img src="docs/estimate-es.png" alt="Estimación de las partidas antiguas" width="760"></p>
 

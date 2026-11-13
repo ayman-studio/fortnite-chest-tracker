@@ -1,139 +1,76 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace FortniteChestTracker;
 
 /// <summary>
-/// Matches played that the replays do not cover (before replays were turned on, or deleted by Fortnite), entered by
-/// the player (copied from fortnite.gg) or fetched from fortnite-api.com with the player's own key. Saved in config.json.
+/// Matches of the current season that the replays do not cover (before replays were turned on, or deleted by
+/// Fortnite): the season's total matches and time played, copied by the player from fortnite.gg (the site only shows
+/// the current season, and refuses automated access). Saved in config.json.
 /// </summary>
 public sealed class EstimateSettings
 {
-    /// <summary>"manual" (typed in) or "api" (fortnite-api.com).</summary>
-    public string Source { get; set; } = "manual";
-
-    /// <summary>
-    /// Major game version of the season the numbers cover ("43" for Release-43.x), null = the whole account. Numbers
-    /// copied from fortnite.gg are of the current season only (the site shows nothing else): only the replays of that
-    /// season are then subtracted.
-    /// </summary>
+    /// <summary>Major game version of the season the numbers cover ("43" for Release-43.x), set when they are saved.</summary>
     public string? Season { get; set; }
 
-    /// <summary>Matches played per mode: "solo", "duo", "trio", "squad", "other"; or only "total".</summary>
-    public Dictionary<string, int> Matches { get; set; } = new();
+    /// <summary>Matches played this season, all modes (the counted ones included).</summary>
+    public int Played { get; set; }
 
     /// <summary>
-    /// Minutes played in the matches entered (replays included), from fortnite-api.com or typed in; null = unknown.
-    /// Only their average per match is used: Epic counts less time per match than the replays do (about 10 min
-    /// against 12.5 on the same account, likely the time alive), so the counted matches keep their replay time.
+    /// Minutes played this season (the counted matches included). Only their average per match is used: Epic counts
+    /// less time per match than the replays do (about 10 min against 12.5 on the same account, likely the time alive),
+    /// so the counted matches keep their replay time.
     /// </summary>
-    public int? Minutes { get; set; }
+    public int Minutes { get; set; }
 
     /// <summary>Epic name the numbers belong to.</summary>
     public string? Player { get; set; }
 
     public DateTime? UpdatedUtc { get; set; }
 
-    /// <summary>Add the estimate to the total shown (interface and overlay), marked "≈".</summary>
+    /// <summary>Add the estimate to the total shown (interface, overlay, friends' season), marked "≈".</summary>
     public bool Include { get; set; }
 
-    /// <summary>The player's own fortnite-api.com key (optional; only sent to fortnite-api.com).</summary>
-    public string? ApiKey { get; set; }
+    /// <summary>Numbers saved before 1.3.2 (per mode, all time, fortnite-api.com): not of a season, dropped.</summary>
+    public bool IsLegacy => Season == null && UpdatedUtc != null;
 }
 
-/// <summary>Result of the estimate for one mode (or for all of them).</summary>
-public sealed record EstimatePart(string Bucket, int Played, int Tracked, int Untracked, double Average, int Estimated);
-
+/// <param name="Played">Matches played in the season (fortnite.gg).</param>
+/// <param name="Tracked">Matches of that season counted from the replays.</param>
+/// <param name="Average">Chests per match used for the matches without replay.</param>
 /// <param name="Low">Low end of a 95 % range (uncertainty on the average only).</param>
-/// <param name="Matches">Matches in total: the counted ones + the ones without replay.</param>
-/// <param name="Minutes">Minutes played in total: the counted matches + the ones without replay.</param>
-/// <param name="MinutesFromEpic">The minutes come from Epic's stats (else the average length of the counted matches).</param>
-public sealed record EstimateResult(int Played, int Tracked, int Untracked, int Estimated, int Low, int High, IReadOnlyList<EstimatePart> Parts,
-    int Matches = 0, int Minutes = 0, bool MinutesFromEpic = false);
+/// <param name="Matches">Matches in total: every counted one + the ones without replay.</param>
+/// <param name="Minutes">Minutes played in total: every counted match + the ones without replay.</param>
+public sealed record EstimateResult(string Season, int Played, int Tracked, int Untracked, double Average, int Estimated, int Low, int High,
+    int Matches, int Minutes);
 
 public static class Estimates
 {
-    public static readonly string[] Buckets = { "solo", "duo", "trio", "squad", "other" };
-
-    /// <summary>Mode family of a playlist, as Epic's stats split them.</summary>
-    public static string Bucket(string? playlist)
-    {
-        var p = (playlist ?? "").ToLowerInvariant();
-        return p.Contains("solo") ? "solo"
-            : p.Contains("duo") ? "duo"
-            : p.Contains("trio") ? "trio"
-            : p.Contains("squad") || p.Contains("quad") ? "squad"
-            : "other";
-    }
-
     /// <summary>
-    /// Chests of the matches the replays do not cover = (matches played − matches counted) × average chests per match,
-    /// mode by mode when the numbers are per mode (the average of the mode when at least 5 matches were counted in it,
-    /// else the overall one). Null when nothing usable was entered.
+    /// Chests of the season's matches without replay = (matches played − matches of that season counted) × average
+    /// chests per match (of that season's replays when there are at least 5, else of all of them). Null when nothing
+    /// usable was entered.
     /// </summary>
     public static EstimateResult? Compute(EstimateSettings? settings, IReadOnlyList<MatchRecord> tracked)
     {
-        if (settings == null || settings.Matches.Count == 0 || tracked.Count == 0)
+        if (settings is not { Season: { } season, Played: > 0, Minutes: > 0 } || tracked.Count == 0)
         {
             return null;
         }
-        // Season numbers (fortnite.gg): compared with the replays of that season only.
-        var everything = tracked;
-        if (settings.Season is { } season)
-        {
-            tracked = tracked.Where(m => SeasonOf(m.GameVersion) == season).ToList();
-        }
-        // Average chests per match: of the matches compared when there are enough, else of all the replays.
-        var basis = tracked.Count >= 5 ? tracked : everything;
-        var all = basis.Select(m => (double)m.ChestsOpened).ToList();
-        var mean = all.Average();
-        var sd = Math.Sqrt(all.Sum(x => (x - mean) * (x - mean)) / Math.Max(1, all.Count - 1));
+        var ofSeason = tracked.Where(m => SeasonOf(m.GameVersion) == season).ToList();
+        var basis = ofSeason.Count >= 5 ? ofSeason : tracked;
+        var chests = basis.Select(m => (double)m.ChestsOpened).ToList();
+        var mean = chests.Average();
+        var sd = Math.Sqrt(chests.Sum(x => (x - mean) * (x - mean)) / Math.Max(1, chests.Count - 1));
 
-        var parts = new List<EstimatePart>();
-        if (settings.Matches.TryGetValue("total", out var total) && Buckets.All(b => !settings.Matches.ContainsKey(b)))
-        {
-            var untracked = Math.Max(0, total - tracked.Count);
-            parts.Add(new EstimatePart("total", total, tracked.Count, untracked, Math.Round(mean, 1), (int)Math.Round(untracked * mean)));
-        }
-        else
-        {
-            var byBucket = tracked.GroupBy(m => Bucket(m.Playlist)).ToDictionary(g => g.Key, g => g.ToList());
-            var byBucketAll = everything.GroupBy(m => Bucket(m.Playlist)).ToDictionary(g => g.Key, g => g.ToList());
-            foreach (var bucket in Buckets)
-            {
-                if (!settings.Matches.TryGetValue(bucket, out var played) || played <= 0)
-                {
-                    continue;
-                }
-                var mine = byBucket.TryGetValue(bucket, out var list) ? list : new List<MatchRecord>();
-                var avg = mine.Count >= 5 ? mine.Average(m => m.ChestsOpened)
-                    : byBucketAll.TryGetValue(bucket, out var allOfMode) && allOfMode.Count >= 5 ? allOfMode.Average(m => m.ChestsOpened) : mean;
-                var untracked = Math.Max(0, played - mine.Count);
-                parts.Add(new EstimatePart(bucket, played, mine.Count, untracked, Math.Round(avg, 1), (int)Math.Round(untracked * avg)));
-            }
-        }
-        if (parts.Count == 0)
-        {
-            return null;
-        }
-        var totalUntracked = parts.Sum(p => p.Untracked);
-        var estimated = parts.Sum(p => p.Estimated);
-        var margin = (int)Math.Round(1.96 * sd / Math.Sqrt(all.Count) * totalUntracked);
+        var untracked = Math.Max(0, settings.Played - ofSeason.Count);
+        var estimated = (int)Math.Round(untracked * mean);
+        var margin = (int)Math.Round(1.96 * sd / Math.Sqrt(chests.Count) * untracked);
 
-        // Time played: the counted matches with their replay time, the ones without replay at Epic's average minutes
-        // per match when known, else at the average length of the counted ones.
-        var trackedMinutes = everything.Sum(m => m.DurationSeconds ?? 0) / 60;
-        var timed = everything.Where(m => m.DurationSeconds > 0).ToList();
-        var entered = settings.Matches.Values.Where(v => v > 0).Sum() - (settings.Matches.ContainsKey("total") && settings.Matches.Count > 1 ? settings.Matches["total"] : 0);
-        var fromEpic = settings.Minutes is > 0 && entered > 0;
-        double? perMatch = fromEpic ? (double)settings.Minutes!.Value / entered
-            : timed.Count > 0 ? timed.Average(m => m.DurationSeconds!.Value) / 60.0 : null;
-        var minutes = trackedMinutes + (perMatch is { } pm ? (int)Math.Round(totalUntracked * pm) : 0);
+        // Time: the counted matches with their replay time, the ones without replay at fortnite.gg's minutes per match.
+        var minutes = tracked.Sum(m => m.DurationSeconds ?? 0) / 60 + (int)Math.Round(untracked * (double)settings.Minutes / settings.Played);
 
-        return new EstimateResult(parts.Sum(p => p.Played), parts.Sum(p => p.Tracked), totalUntracked, estimated,
-            Math.Max(0, estimated - margin), estimated + margin, parts, everything.Count + totalUntracked, minutes, fromEpic);
+        return new EstimateResult(season, settings.Played, ofSeason.Count, untracked, Math.Round(mean, 1), estimated,
+            Math.Max(0, estimated - margin), estimated + margin, tracked.Count + untracked, minutes);
     }
 
     /// <summary>Season of a replay: the major game version ("++Fortnite+Release-43.10" gives "43"), null when unknown.</summary>
@@ -148,93 +85,6 @@ public static class Estimates
         tracked.Where(m => SeasonOf(m.GameVersion) != null).OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc)
             .Select(m => SeasonOf(m.GameVersion)).FirstOrDefault();
 
-    /// <summary>The player's page on fortnite.gg (opened in the browser: the site does not allow automated access).</summary>
-    public static string FortniteGgUrl(string player) => "https://fortnite.gg/stats/br?player=" + Uri.EscapeDataString(player);
-
-    /// <summary>
-    /// Lifetime matches per mode and minutes played from fortnite-api.com (the player's own key, Authorization
-    /// header). Returns them, or an error message for the player.
-    /// </summary>
-    public static async Task<(Dictionary<string, int>? Matches, int? Minutes, string? Error)> FetchAsync(string player, string apiKey, HttpMessageHandler? handler = null)
-    {
-        try
-        {
-            using var http = handler != null ? new HttpClient(handler) : new HttpClient();
-            http.Timeout = TimeSpan.FromSeconds(15);
-            http.DefaultRequestHeaders.UserAgent.ParseAdd($"FortniteChestTracker/{AppInfo.VersionText}");
-            using var req = new HttpRequestMessage(HttpMethod.Get, "https://fortnite-api.com/v2/stats/br/v2?timeWindow=lifetime&name=" + Uri.EscapeDataString(player));
-            req.Headers.TryAddWithoutValidation("Authorization", apiKey.Trim());
-            using var res = await http.SendAsync(req);
-            var body = await res.Content.ReadAsStringAsync();
-            if (res.StatusCode != HttpStatusCode.OK)
-            {
-                var message = TryMessage(body);
-                return (null, null, res.StatusCode switch
-                {
-                    HttpStatusCode.Unauthorized => L.T("clé fortnite-api.com refusée", "fortnite-api.com key refused", "clave de fortnite-api.com rechazada"),
-                    HttpStatusCode.Forbidden => L.T("statistiques privées : dans Fortnite, rends tes statistiques publiques", "private stats: make your stats public in Fortnite", "estadísticas privadas: hazlas públicas en Fortnite"),
-                    HttpStatusCode.NotFound => L.T($"joueur « {player} » introuvable", $"player \"{player}\" not found", $"jugador «{player}» no encontrado"),
-                    _ => $"HTTP {(int)res.StatusCode}",
-                } + (message != null ? $" ({message})" : ""));
-            }
-            var matches = Parse(body);
-            return matches.Count > 0 ? (matches, ParseMinutes(body), null) : (null, null, L.T("réponse sans nombre de parties", "answer without match counts", "respuesta sin número de partidas"));
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            return (null, null, L.T("fortnite-api.com injoignable", "fortnite-api.com unreachable", "no se puede acceder a fortnite-api.com") + $" ({ex.Message})");
-        }
-    }
-
-    /// <summary>data.stats.all.{solo,duo,trio,squad,ltm}.matches (null modes skipped); data.stats.all.overall.matches as a fallback.</summary>
-    internal static Dictionary<string, int> Parse(string json)
-    {
-        var result = new Dictionary<string, int>();
-        using var doc = JsonDocument.Parse(json);
-        if (!doc.RootElement.TryGetProperty("data", out var data) || !data.TryGetProperty("stats", out var stats)
-            || !stats.TryGetProperty("all", out var all) || all.ValueKind != JsonValueKind.Object)
-        {
-            return result;
-        }
-        int? Matches(string mode) => all.TryGetProperty(mode, out var m) && m.ValueKind == JsonValueKind.Object
-            && m.TryGetProperty("matches", out var n) && n.TryGetInt32(out var v) ? v : null;
-
-        foreach (var (mode, bucket) in new[] { ("solo", "solo"), ("duo", "duo"), ("trio", "trio"), ("squad", "squad"), ("ltm", "other") })
-        {
-            if (Matches(mode) is { } v && v > 0)
-            {
-                result[bucket] = v;
-            }
-        }
-        // The overall count also covers modes not listed (trios are sent as null): keep the difference as "other".
-        if (Matches("overall") is { } overall && overall > result.Values.Sum())
-        {
-            result["other"] = (result.TryGetValue("other", out var o) ? o : 0) + overall - result.Values.Sum();
-        }
-        return result;
-    }
-
-    /// <summary>data.stats.all.overall.minutesPlayed (lifetime, all modes), null when missing or 0.</summary>
-    internal static int? ParseMinutes(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
-            && data.TryGetProperty("stats", out var stats) && stats.ValueKind == JsonValueKind.Object
-            && stats.TryGetProperty("all", out var all) && all.ValueKind == JsonValueKind.Object
-            && all.TryGetProperty("overall", out var overall) && overall.ValueKind == JsonValueKind.Object
-            && overall.TryGetProperty("minutesPlayed", out var n) && n.TryGetInt32(out var v) && v > 0 ? v : null;
-    }
-
-    private static string? TryMessage(string body)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(body);
-            return doc.RootElement.TryGetProperty("error", out var e) && e.ValueKind == JsonValueKind.String ? e.GetString() : null;
-        }
-        catch
-        {
-            return null;
-        }
-    }
+    /// <summary>The player's page on fortnite.gg, all modes (opened in the browser: the site refuses automated access).</summary>
+    public static string FortniteGgUrl(string player) => "https://fortnite.gg/stats?player=" + Uri.EscapeDataString(player);
 }

@@ -106,7 +106,7 @@ The **Share** button makes this picture from your stats and the island, with the
 
 ## Matches older than your replays
 
-Fortnite only keeps your latest replays. The **Older matches** section estimates the rest: take your matches played from fortnite.gg (or fetch them with a free [fortnite-api.com](https://dash.fortnite-api.com/account) key), and the app multiplies the missing matches by **your own** average per mode, with a range. You can add it to the total, shown with "≈".
+Fortnite only keeps your latest replays. The **Older matches** section estimates this season's matches without replay: copy your matches and hours played this season from fortnite.gg, and the app multiplies the missing matches by **your own** average, with a range. You can add it to the total, shown with "≈".
 
 <p align="center"><img src="docs/estimate-en.png" alt="Older matches estimate" width="760"></p>
 

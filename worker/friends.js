@@ -48,10 +48,10 @@ const num = (v, min, max) => (Number.isFinite(v) ? Math.min(max, Math.max(min, v
 // What friends see of a player, rebuilt from known fields only (the app's summary, see FriendsSummary in the app).
 function cleanSummary(s) {
   if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
-  const counts = (o) => (o && typeof o === 'object' ? { chests: num(o.chests, 0, 1e7), matches: num(o.matches, 0, 1e6), best: num(o.best, 0, 1000) } : undefined);
-  // total: est = includes the older matches the player added as an estimate (shown "≈")
-  const total = counts(s.total);
-  if (total && s.total.est === true) total.est = true;
+  // est: includes the season's matches without replay the player added as an estimate (shown "≈")
+  const counts = (o) => (o && typeof o === 'object'
+    ? { chests: num(o.chests, 0, 1e7), matches: num(o.matches, 0, 1e6), best: num(o.best, 0, 1000), ...(o.est === true ? { est: true } : {}) }
+    : undefined);
   const odds = {};
   if (s.odds && typeof s.odds === 'object') {
     for (const [k, v] of Object.entries(s.odds).slice(0, 16)) if (/^odds_[a-z]{2,20}$/.test(k) && Number.isFinite(v)) odds[k] = Math.min(1, Math.max(0, v));
@@ -60,7 +60,7 @@ function cleanSummary(s) {
     .map((t) => ({ n: cleanName(String(t.n ?? '')).slice(0, 80) || '?', g: t.g === true, t: num(t.t, 0, 4e12) })) : [];
   const last = s.last && typeof s.last === 'object'
     ? { chests: num(s.last.chests, 0, 1000), ended: num(s.last.ended, 0, 4e12), dur: num(s.last.dur, 0, 7200), place: num(s.last.place, 1, 200) } : null;
-  return { v: 1, season: counts(s.season), session: counts(s.session), total, odds, treasures, last };
+  return { v: 1, season: counts(s.season), session: counts(s.session), total: counts(s.total), odds, treasures, last };
 }
 
 // Public Fortnite stats of an account (by id or by name): its real id and name, null when private or unknown.

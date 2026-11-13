@@ -34,7 +34,7 @@ const ui = {
   setup: null,          // wizard answers
   lastActivity: null,
   prevTotal: null,
-  lbPeriod: ['last', 'session', 'season', 'total'].includes(localStorage.getItem('fct-lb')) ? localStorage.getItem('fct-lb') : 'session', // friends leaderboard
+  lbPeriod: ['last', 'session', 'season'].includes(localStorage.getItem('fct-lb')) ? localStorage.getItem('fct-lb') : 'session', // friends leaderboard
   friendOpen: null,     // friend whose details are open
   inviteSeen: null,     // invite (from a fctracker:// link) already brought to the front
   frSub: localStorage.getItem('fct-frsub') === 'squadov' ? 'squadov' : 'friends', // section of the Friends tab
@@ -610,24 +610,15 @@ function lootCard(cls) {
 
 function estimate() {
   const e = S.estimate;
-  const val = (k) => draft('est-' + k, (k === 'hours' ? e.hours : e.matches[k]) ?? '');
-  // numbers copied from fortnite.gg are of this season (the default); typed totals of the whole account: "all"
-  const scope = draft('est-scope', e.configured && e.source === 'manual' && !e.seasonOnly ? 'all' : 'season');
-  const field = (k, label) => `<label class="field">${esc(label)}<input type="number" min="0" id="est-${k}" data-draft value="${esc(val(k))}" data-enter="est-save" placeholder="0"></label>`;
+  const field = (k, label, value) => `<label class="field">${esc(label)}<input type="number" min="0" id="est-${k}" data-draft value="${esc(draft('est-' + k, value ?? ''))}" data-enter="est-save" placeholder="0"></label>`;
   const form = card('s5 est-card', t('estTitle'), `<p class="faint est-intro">${esc(t('estIntro'))}</p>
     <div class="steps-list" title="${esc(t('estIntro'))}">
       <div class="step"><div class="n">1</div><div><h4>${esc(t('estStep1'))}</h4><p>${esc(t('estStep1Hint'))}</p>
         <div class="row"><input type="text" id="est-player" data-draft value="${esc(draft('est-player', e.player ?? ''))}" placeholder="${esc(t('epicName'))}" style="flex:1">
         ${button(`${icon('link')}${esc(t('openFortniteGg'))}`, 'data-act="open-gg"')}</div></div></div>
       <div class="step"><div class="n">2</div><div><h4>${esc(t('estStep2'))}</h4><p>${esc(t('estStep2Hint'))}</p>
-        <div class="form-grid">${field('solo', 'Solo')}${field('duo', t('modeDuo'))}${field('trio', t('modeTrio'))}${field('squad', t('modeSquad'))}${field('other', t('modeOther'))}${field('total', t('modeTotal'))}</div>
-        <div class="form-grid est-hours">${field('hours', t('estHours'))}<label class="field">${esc(t('estScope'))}<select id="est-scope" data-draft>${[['season', t('estScopeSeason')], ['all', t('estScopeAll')]]
-          .map(([k, label]) => `<option value="${k}"${scope === k ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label></div>
+        <div class="form-grid est-fields">${field('played', t('estMatches'), e.outdated ? null : e.played)}${field('hours', t('estHours'), e.outdated ? null : e.hours)}</div>
         <div class="est-go">${button(esc(t('estCompute')), 'id="est-save" data-act="est-save"', 'btn-primary')}</div></div></div>
-      <div class="step"><div class="n">${icon('key')}</div><div><h4>${esc(t('estAuto'))}</h4><p>${esc(t('estAutoHint'))} <a href="#" data-open="fortniteapi">${esc(t('getKey'))}</a></p>
-        <div class="row"><input type="password" id="est-key" data-draft value="${esc(draft('est-key', ''))}" placeholder="${esc(e.hasApiKey ? t('keySaved') : 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')}" style="flex:1" autocomplete="off" data-enter="est-fetch">
-        ${button(esc(e.fetching ? t('fetching') : t('fetch')), `id="est-fetch" data-act="est-fetch"${e.fetching ? ' disabled' : ''}`)}</div>
-        ${e.error ? `<div class="err">${esc(e.error)}</div>` : ''}</div></div>
     </div>`);
 
   let result;
@@ -635,16 +626,15 @@ function estimate() {
     result = card('s7', t('estResult'), empty(t('estNone'), t('estNoneHint')));
   } else {
     const fact = (ic, k, v) => `<div class="fact"><div class="k">${icon(ic)}${esc(k)}</div><div class="v num">${v}</div></div>`;
-    const rows = e.parts.map((p) => `<tr><td>${esc(p.mode)}</td><td class="r">${nf(p.played)}</td><td class="r">${nf(p.tracked)}</td><td class="r">${nf1(p.average)}</td><td class="r strong">${nf(p.estimated)}</td></tr>`).join('');
     result = card('s7 est-card', t('estResult'), `
+      ${e.outdated ? `<div class="banner warning est-outdated"><div class="ic t-gold">${icon('alert')}</div><div class="txt">${esc(t('estOutdated'))}</div></div>` : ''}
       <div class="est-hero"><div class="big num">≈${nf(e.estimated)}</div><span class="badge b-gold" style="margin-bottom:8px">${esc(t('estRange', nf(e.low), nf(e.high)))}</span></div>
       <div class="faint" style="margin-top:6px">${esc(t('estChestsLabel', count(e.untracked, 'match')))}</div>
-      <div class="facts est-facts">${fact('matches', t('estPlayed'), nf(e.played))}${fact('check', t('estTracked'), nf(e.tracked))}${fact('chest', t('estGrandTotal'), '≈' + nf(e.totalWithEstimate))}${e.minutesWithEstimate ? fact('clock', t('estTime'), '≈' + hoursText(e.minutesWithEstimate / 60)) : ''}</div>
-      <div class="est-table"><table class="tbl static"><thead><tr><th>${esc(t('mode'))}</th><th class="r">${esc(t('estPlayedShort'))}</th><th class="r">${esc(t('estTrackedShort'))}</th><th class="r">${esc(t('average'))}</th><th class="r">${esc(t('estEstimatedShort'))}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="facts est-facts">${fact('matches', t('estPlayed'), nf(e.played))}${fact('check', t('estTracked'), nf(e.tracked))}${fact('chest', t('estGrandTotal'), '≈' + nf(e.totalWithEstimate))}${fact('clock', t('estTime'), '≈' + hoursText(e.minutesWithEstimate / 60))}</div>
       <div class="divider"></div>
       <div class="setting" style="padding:0 0 12px"><div class="what"><b>${esc(t('estInclude'))}</b><span>${esc(t('estIncludeHint'))}</span></div><label class="switch"><input type="checkbox" id="est-include" data-change="est-include"${e.include ? ' checked' : ''}><span></span></label></div>
-      <div class="row between"><span class="faint small">${esc(t('estSource', e.source === 'api' ? 'fortnite-api.com' : e.seasonOnly ? `fortnite.gg (${t('lbSeason').toLowerCase()})` : 'fortnite.gg', e.player ?? '—', e.updatedUtc ? dateTime(e.updatedUtc) : '—'))}</span>${button(esc(t('estClear')), 'data-act="est-clear"', 'btn-sm btn-ghost btn-danger')}</div>
-      <p class="faint small est-method">${esc(t(e.seasonOnly ? 'estSeasonOnly' : 'estMethod'))}${e.minutesFromEpic ? '' : ' ' + esc(t('estTimeAverage'))}</p>`);
+      <div class="row between"><span class="faint small">${esc(t('estSource', e.player ?? '—', e.updatedUtc ? dateTime(e.updatedUtc) : '—'))}</span>${button(esc(t('estClear')), 'data-act="est-clear"', 'btn-sm btn-ghost btn-danger')}</div>
+      <p class="faint small est-method">${esc(t('estMethod', nf1(e.average)))}</p>`);
   }
   return `<div class="page" style="grid-template-rows:minmax(0,1fr)">${form}${result}</div>`;
 }
@@ -810,17 +800,17 @@ function boardRows(F, D) {
       r.value = s && s.matches > 0 && Date.now() - r.seen < SESSION_FRESH ? s.chests : null;
       r.sub = r.value != null ? count(s.matches, 'match') : '';
     } else {
-      // total: with the older matches when the player added them (estimate, "≈")
-      const s = p === 'total' ? r.summary.total : r.summary.season;
+      // with the season's matches without replay when the player added them (estimate, "≈")
+      const s = r.summary.season;
       r.value = s ? s.chests : null;
-      r.approx = p === 'total' && !!s?.est;
+      r.approx = !!s?.est;
       r.sub = s && s.matches ? `${r.approx ? '≈' : ''}${count(s.matches, 'match')} · ${t('perMatch', nf1(s.chests / s.matches))}` : '';
     }
   });
   return rows.sort((a, b) => (b.value ?? -1) - (a.value ?? -1) || String(a.name).localeCompare(String(b.name)));
 }
 
-const LB_PERIODS = () => [['last', t('lbLast')], ['session', t('lbSession')], ['season', t('lbSeason')], ['total', t('lbTotal')]];
+const LB_PERIODS = () => [['last', t('lbLast')], ['session', t('lbSession')], ['season', t('lbSeason')]];
 
 function boardCard(F, D) {
   const seg = `<div class="seg" role="group" aria-label="${esc(t('boardTitle'))}">${LB_PERIODS()
@@ -1381,7 +1371,7 @@ async function makeSquadCard(period) {
   g.fillStyle = '#ffffff';
   g.font = font(76);
   g.fillText(t('shareSquadTitle').toUpperCase(), 70, 130);
-  const label = { last: t('lbLast'), session: t('lbSession'), season: t('lbSeason'), total: t('lbTotal') }[period];
+  const label = { last: t('lbLast'), session: t('lbSession'), season: t('lbSeason') }[period];
   g.font = font(34);
   g.fillStyle = '#c6ff3d';
   g.fillText(`${label} · ${date(new Date().toISOString(), { day: 'numeric', month: 'long' })}`.toUpperCase(), 72, 182);
@@ -1482,7 +1472,7 @@ function openShare() {
 
 function openSquadShare() {
   if (ui.share) return;
-  const period = ['last', 'session', 'season', 'total'].includes(ui.lbPeriod) ? ui.lbPeriod : 'session';
+  const period = ['last', 'session', 'season'].includes(ui.lbPeriod) ? ui.lbPeriod : 'session';
   if (squadShareRows(period).length < 2) { toast('info', t('shareSquadEmpty')); return; }
   ui.share = { squad: true, period };
   buildShare();
@@ -1591,15 +1581,6 @@ function go(pageName) {
   ui.page = pageName;
   localStorage.setItem('fct-page', pageName);
   render();
-}
-
-function estimateMatches() {
-  const m = {};
-  ['solo', 'duo', 'trio', 'squad', 'other', 'total'].forEach((k) => {
-    const v = parseInt(($(`#est-${k}`)?.value || '').trim(), 10);
-    if (v > 0) m[k] = v;
-  });
-  return m;
 }
 
 function clearDrafts(prefix) {
@@ -1741,14 +1722,9 @@ document.addEventListener('click', async (e) => {
       break;
     }
     case 'est-save': {
-      const hours = parseInt(($('#est-hours')?.value || '').trim(), 10);
-      const r = await cmd('estimate/save', { player: $('#est-player').value.trim(), matches: estimateMatches(), hours: hours > 0 ? hours : null, scope: $('#est-scope')?.value || 'season' });
+      const n = (id) => parseInt(($(id)?.value || '').trim(), 10) || 0;
+      const r = await cmd('estimate/save', { player: $('#est-player').value.trim(), played: n('#est-played'), hours: n('#est-hours') });
       if (r.ok) clearDrafts('est-');
-      break;
-    }
-    case 'est-fetch': {
-      const r = await cmd('estimate/fetch', { player: $('#est-player').value.trim(), apiKey: $('#est-key').value.trim() });
-      if (r.ok) { delete ui.draft['est-key']; delete ui.draft['est-player']; }
       break;
     }
     case 'est-clear':

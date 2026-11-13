@@ -338,7 +338,8 @@ input:focus, select:focus { outline: none; border-color: var(--lime); }
 .est-intro { margin: 0 0 20px; font-size: 13px; }
 .est-go { margin-top: 12px; }
 .est-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 20px; }
-.est-hours { margin-top: 12px; }
+.est-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.est-outdated { margin-bottom: 12px; }
 .est-table { flex: none; margin-top: 16px; }
 .est-method { margin: 12px 0 0; }
 /* Every row of the estimate stays (the table no longer shrinks); when the window is too short for a card anyway,

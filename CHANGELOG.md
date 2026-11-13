@@ -3,15 +3,14 @@
 ## Unreleased
 
 **Older matches (without replay)**
-- Once the older matches are added to the total, the time played and the match count include them too (home page and
-  share picture, marked "≈"), not only the chests: 21 000 chests no longer show next to 88 matches. The time comes
-  from Epic's stats with a fortnite-api.com key, from the hours played typed in (new optional field), or else from the
-  average length of the counted matches.
-- Friends: new "Total" tab in the "who opens the most chests" leaderboard (and the squad picture), with the older
-  matches of the players who added them ("≈"). "Season" stays counted from the replays only.
-- Numbers copied from fortnite.gg are of the current season only (the site shows nothing else): the form now says
-  what they cover ("This season" by default, or "All time"), and a season is compared with the replays of that
-  season only (same game version), no longer with every replay.
+- Now only for the current season: copy your matches and hours played this season from fortnite.gg (all modes, both
+  needed). They are compared with the replays of the same season (same game version), and the time of the matches
+  without replay comes from fortnite.gg's minutes per match. The per-mode fields and the fortnite-api.com key are gone,
+  and numbers saved by earlier versions (per mode, all time) are cleared: enter this season's again.
+- Once added to the total, the time played and the match count include them too (home page and share picture, "≈"),
+  not only the chests. When a new season starts, the page asks for the new season's numbers.
+- Friends: the "Season" leaderboard (and the squad picture) adds the season's matches without replay of the players
+  who added them, shown "≈".
 
 ## 1.3.1 (2026-11-13)
 

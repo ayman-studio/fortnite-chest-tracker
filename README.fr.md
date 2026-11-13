@@ -106,7 +106,7 @@ Le bouton **Partager** crée cette image à partir de tes stats et de l'île, av
 
 ## Les parties plus anciennes que tes replays
 
-Fortnite ne garde que tes derniers replays. La section **Anciennes parties** estime le reste : récupère tes parties jouées sur fortnite.gg (ou automatiquement avec une clé gratuite [fortnite-api.com](https://dash.fortnite-api.com/account)), et l'appli multiplie les parties manquantes par **ta propre** moyenne par mode, avec une fourchette. Tu peux l'ajouter au total, affiché avec « ≈ ».
+Fortnite ne garde que tes derniers replays. La section **Anciennes parties** estime les parties de la saison sans replay : recopie tes parties et tes heures de jeu de la saison depuis fortnite.gg, et l'appli multiplie les parties manquantes par **ta propre** moyenne, avec une fourchette. Tu peux l'ajouter au total, affiché avec « ≈ ».
 
 <p align="center"><img src="docs/estimate-fr.png" alt="Estimation des anciennes parties" width="760"></p>
 

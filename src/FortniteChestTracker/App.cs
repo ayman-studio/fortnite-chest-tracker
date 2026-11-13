@@ -58,9 +58,6 @@ public sealed partial class App
     private DateTime? _autoCloseAt;
     private DateTime? _fortniteClosedSince;
 
-    // Estimate of the matches without replay
-    private volatile bool _estimateFetching;
-    private string? _estimateError;
 
     public App(string dataDir, Store store, Config config, bool setupPending, bool auto, bool afterUpdate, Mutex instance, string[] args)
     {
@@ -82,6 +79,12 @@ public sealed partial class App
         LowerPriority();
         _store.LoadPrizeNames();
         _data = _store.LoadData();
+        if (_config.Estimate is { IsLegacy: true } legacy)
+        {
+            // Numbers from before 1.3.2 (per mode, all time, fortnite-api.com) are not of a season: entered again.
+            _config.Estimate = new EstimateSettings { Player = legacy.Player, Include = true };
+            SaveConfig();
+        }
         _tracker = new Tracker(_store, _config, _data);
         if (_tracker.UpgradeIfNeeded())
         {
@@ -699,12 +702,8 @@ public sealed partial class App
             case "estimate/save":
                 return SaveEstimate(args);
 
-            case "estimate/fetch":
-                return FetchEstimate(args);
-
             case "estimate/clear":
                 _config.Estimate = null;
-                _estimateError = null;
                 SaveConfig();
                 EstimateChanged();
                 return CommandResult.Done;
@@ -767,104 +766,40 @@ public sealed partial class App
 
     // ---- Estimate of the matches without replay ------------------------------------------------------
 
-    /// <summary>Epic name used for fortnite.gg / fortnite-api.com: the one typed in, else the current profile's.</summary>
+    /// <summary>Epic name used for fortnite.gg: the one typed in, else the current profile's.</summary>
     private string EstimatePlayer() =>
         _config.Estimate?.Player is { Length: > 0 } p ? p : Profiles.Current(_data, _config)?.Name ?? "";
 
+    /// <summary>The season's matches and hours played, copied from fortnite.gg (both needed).</summary>
     private CommandResult SaveEstimate(JsonElement args)
     {
-        var matches = new Dictionary<string, int>();
-        if (args.ValueKind == JsonValueKind.Object && args.TryGetProperty("matches", out var m) && m.ValueKind == JsonValueKind.Object)
+        var played = Int(args, "played") is { } n && n > 0 && n < 100_000 ? n : 0;
+        var hours = Int(args, "hours") is { } h && h > 0 && h < 10_000 ? h : 0;
+        if (played == 0 || hours == 0)
         {
-            foreach (var key in Estimates.Buckets.Append("total"))
-            {
-                if (Int(m, key) is { } v && v > 0 && v < 1_000_000)
-                {
-                    matches[key] = v;
-                }
-            }
+            return CommandResult.Fail(L.T("entre tes parties et tes heures de jeu de la saison", "enter your matches and hours played this season",
+                "introduce tus partidas y horas de juego de la temporada"));
         }
-        if (matches.Count == 0)
+        // The season of the numbers: the one of the latest replay (fortnite.gg shows the current season).
+        if (Estimates.CurrentSeason(Profiles.View(_data, _config).Matches) is not { } season)
         {
-            return CommandResult.Fail(L.T("entre au moins un nombre de parties", "enter at least one match count", "introduce al menos un número de partidas"));
+            return CommandResult.Fail(L.T("joue d'abord une partie avec les replays activés (la saison vient de tes replays)",
+                "play a match with replays on first (the season comes from your replays)",
+                "juega primero una partida con las repeticiones activadas (la temporada viene de tus repeticiones)"));
         }
         var e = _config.Estimate ??= new EstimateSettings { Include = true };
-        e.Source = "manual";
-        // Copied from fortnite.gg (the guide's page): this season's numbers, compared with this season's replays.
-        e.Season = Str(args, "scope") == "all" ? null : Estimates.CurrentSeason(Profiles.View(_data, _config).Matches);
-        e.Matches = matches;
-        // Hours played (optional, as shown on fortnite.gg): the time of the matches without replay comes from it.
-        e.Minutes = Int(args, "hours") is { } hours && hours > 0 && hours < 100_000 ? hours * 60 : null;
+        e.Season = season;
+        e.Played = played;
+        e.Minutes = hours * 60;
         e.Player = Str(args, "player")?.Trim() is { Length: > 0 } p ? p : e.Player;
         e.UpdatedUtc = DateTime.UtcNow;
-        _estimateError = null;
         SaveConfig();
         EstimateChanged();
         LogEstimate();
         return CommandResult.Done;
     }
 
-    /// <summary>Asks fortnite-api.com in the background (the main loop keeps running), then saves the numbers.</summary>
-    private CommandResult FetchEstimate(JsonElement args)
-    {
-        var e = _config.Estimate ??= new EstimateSettings { Include = true };
-        if (Str(args, "apiKey")?.Trim() is { Length: > 0 } key)
-        {
-            if (!Guid.TryParse(key, out _))
-            {
-                return CommandResult.Fail(L.T("une clé fortnite-api.com a la forme 01234567-89ab-cdef-0123-456789abcdef", "a fortnite-api.com key looks like 01234567-89ab-cdef-0123-456789abcdef", "una clave de fortnite-api.com tiene la forma 01234567-89ab-cdef-0123-456789abcdef"));
-            }
-            e.ApiKey = key;
-        }
-        if (Str(args, "player")?.Trim() is { Length: > 0 } p)
-        {
-            e.Player = p;
-        }
-        SaveConfig();
-        if (string.IsNullOrEmpty(e.ApiKey))
-        {
-            return CommandResult.Fail(L.T("colle d'abord ta clé fortnite-api.com", "paste your fortnite-api.com key first", "pega primero tu clave de fortnite-api.com"));
-        }
-        var player = EstimatePlayer();
-        if (player.Length == 0)
-        {
-            return CommandResult.Fail(L.T("indique ton pseudo Epic", "enter your Epic name", "indica tu nombre de Epic"));
-        }
-        if (_estimateFetching)
-        {
-            return CommandResult.Done;
-        }
-        _estimateFetching = true;
-        _estimateError = null;
-        var apiKey = e.ApiKey;
-        _ = Task.Run(async () =>
-        {
-            var (matches, minutes, error) = await Estimates.FetchAsync(player, apiKey);
-            Post(() =>
-            {
-                _estimateFetching = false;
-                if (matches == null)
-                {
-                    _estimateError = error;
-                    Activity.Error(L.T($"Estimation : {error}", $"Estimate: {error}", $"Estimación: {error}"));
-                    return;
-                }
-                var settings = _config.Estimate ??= new EstimateSettings { Include = true };
-                settings.Source = "api";
-                settings.Season = null;
-                settings.Matches = matches;
-                settings.Minutes = minutes;
-                settings.Player = player;
-                settings.UpdatedUtc = DateTime.UtcNow;
-                SaveConfig();
-                EstimateChanged();
-                LogEstimate();
-            });
-        });
-        return CommandResult.Done;
-    }
-
-    /// <summary>The estimate changed: the overlay's total, and the friends' "Total" leaderboard at the next sync (now).</summary>
+    /// <summary>The estimate changed: the overlay's total, and the friends' season leaderboard at the next sync (now).</summary>
     private void EstimateChanged()
     {
         UpdateOverlay();
@@ -875,45 +810,29 @@ public sealed partial class App
     {
         if (Estimates.Compute(_config.Estimate, Profiles.View(_data, _config).Matches) is { } r)
         {
-            Activity.Success(L.T($"Estimation : {L.N(r.Untracked)} parties sans replay ≈ {L.N(r.Estimated)} coffres (entre {L.N(r.Low)} et {L.N(r.High)})",
-                $"Estimate: {L.N(r.Untracked)} matches without replay ≈ {L.N(r.Estimated)} chests (between {L.N(r.Low)} and {L.N(r.High)})",
-                $"Estimación: {L.N(r.Untracked)} partidas sin repetición ≈ {L.N(r.Estimated)} cofres (entre {L.N(r.Low)} y {L.N(r.High)})"));
+            Activity.Success(L.T($"Estimation : {L.N(r.Untracked)} parties sans replay cette saison ≈ {L.N(r.Estimated)} coffres (entre {L.N(r.Low)} et {L.N(r.High)})",
+                $"Estimate: {L.N(r.Untracked)} matches without replay this season ≈ {L.N(r.Estimated)} chests (between {L.N(r.Low)} and {L.N(r.High)})",
+                $"Estimación: {L.N(r.Untracked)} partidas sin repetición esta temporada ≈ {L.N(r.Estimated)} cofres (entre {L.N(r.Low)} y {L.N(r.High)})"));
         }
     }
-
-    private static string ModeName(string bucket) => bucket switch
-    {
-        "solo" => "Solo",
-        "duo" => L.T("Duo", "Duos", "Dúos"),
-        "trio" => L.T("Trio", "Trios", "Tríos"),
-        "squad" => L.T("Section", "Squads", "Escuadrones"),
-        "total" => L.T("Tous les modes", "All modes", "Todos los modos"),
-        _ => L.T("Autres modes", "Other modes", "Otros modos"),
-    };
 
     private UiEstimate EstimateState(TrackerData view)
     {
         var e = _config.Estimate;
         var r = Estimates.Compute(e, view.Matches);
         var player = EstimatePlayer();
-        var real = view.Matches.Sum(m => m.ChestsOpened);
-        return new UiEstimate(
-            r != null, e?.Source ?? "manual", player.Length > 0 ? player : null, e?.UpdatedUtc, e?.Include ?? false,
-            !string.IsNullOrEmpty(e?.ApiKey), _estimateFetching, _estimateError,
-            r?.Played, view.Matches.Count, r?.Untracked, r?.Estimated, r?.Low, r?.High, r != null ? real + r.Estimated : null,
-            r?.Parts.Select(p => new UiEstimatePart(p.Bucket, p.Bucket == "total" && e?.Season != null ? L.T("Cette saison", "This season", "Esta temporada") : ModeName(p.Bucket), p.Played, p.Tracked, p.Untracked, p.Average, p.Estimated)).ToList()
-                ?? new List<UiEstimatePart>(),
-            e?.Matches ?? new Dictionary<string, int>(),
+        var season = Estimates.CurrentSeason(view.Matches);
+        return new UiEstimate(r != null, player.Length > 0 ? player : null, e?.UpdatedUtc, e?.Include ?? false, r?.Season ?? season,
+            e is { Played: > 0 } ? e.Played : null, e is { Minutes: > 0 } ? e.Minutes / 60 : null,
+            r?.Tracked ?? view.Matches.Count(m => season != null && Estimates.SeasonOf(m.GameVersion) == season),
+            r?.Untracked, r?.Average, r?.Estimated, r?.Low, r?.High,
+            r != null ? view.Matches.Sum(m => m.ChestsOpened) + r.Estimated : null, r?.Matches, r?.Minutes,
             player.Length > 0 ? Estimates.FortniteGgUrl(player) : null)
         {
-            MatchesWithEstimate = r?.Matches,
-            MinutesWithEstimate = r?.Minutes,
-            MinutesFromEpic = r?.MinutesFromEpic ?? false,
-            SeasonOnly = e?.Season != null,
-            Hours = e?.Source == "manual" && e.Minutes is { } m ? m / 60 : null,
+            // saved for an earlier season: to enter again with this season's numbers
+            Outdated = r != null && season != null && r.Season != season,
         };
     }
-
 
     private List<FileInfo> ExistingReplays(string folder)
     {
@@ -1159,7 +1078,6 @@ public sealed partial class App
             "x" => AppInfo.XUrl,
             "release" => _update?.PageUrl,
             "fortnitegg" => EstimatePlayer() is { Length: > 0 } who ? Estimates.FortniteGgUrl(who) : "https://fortnite.gg/stats",
-            "fortniteapi" => "https://dash.fortnite-api.com/account",
             _ => null,
         };
         if (target == null)
