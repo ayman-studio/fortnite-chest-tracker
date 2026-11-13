@@ -152,8 +152,31 @@ public sealed class Config
     /// <summary>Locked overlay = click-through, cannot be moved (Ctrl+Shift+L to toggle).</summary>
     public bool OverlayLocked { get; set; }
 
-    /// <summary>Size of the overlay in percent (100 = normal), on top of the Windows display scaling.</summary>
-    public int OverlaySize { get; set; } = 100;
+    /// <summary>Size of the overlay in percent (100 = full size), on top of the Windows display scaling. 80 by default since 1.3.2.</summary>
+    public int OverlaySize { get; set; } = DefaultOverlaySize;
+
+    public const int DefaultOverlaySize = 80;
+
+    /// <summary>The 80 % default was applied to this config (configs from before 1.3.2 still on the old 100 % move to 80 % once).</summary>
+    public bool OverlaySizeDefault80 { get; set; }
+
+    /// <summary>Once per config: overlays left at the old 100 % default go to 80 % (the player can put them back in the settings).</summary>
+    public void ApplyOverlaySizeDefault()
+    {
+        if (OverlaySizeDefault80)
+        {
+            return;
+        }
+        if (OverlaySize == 100)
+        {
+            OverlaySize = DefaultOverlaySize;
+        }
+        if (SquadOverlaySize == 100)
+        {
+            SquadOverlaySize = DefaultOverlaySize;
+        }
+        OverlaySizeDefault80 = true;
+    }
 
     /// <summary>Opacity of the overlay in percent (100 = opaque).</summary>
     public int OverlayOpacity { get; set; } = 100;
@@ -212,7 +235,7 @@ public sealed class Config
     public int? SquadOverlayY { get; set; }
     public bool SquadOverlayLocked { get; set; }
     public string SquadOverlayPeriod { get; set; } = "last";
-    public int SquadOverlaySize { get; set; } = 100;
+    public int SquadOverlaySize { get; set; } = DefaultOverlaySize;
     public int SquadOverlayOpacity { get; set; } = 100;
 }
 

@@ -12,6 +12,10 @@
 - Friends: the "Season" leaderboard (and the squad picture) adds the season's matches without replay of the players
   who added them, shown "≈".
 
+**Overlay**
+- The overlays are 80 % of their old size by default (an overlay still on 100 % goes to 80 % once; pick another size
+  in the settings if you like).
+
 ## 1.3.1 (2026-11-13)
 
 **Security**

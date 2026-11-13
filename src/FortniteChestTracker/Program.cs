@@ -151,6 +151,7 @@ var config = saved ?? new Config();
 // Language: the saved choice, else the Windows one (the setup lets the player change it).
 config.Language = L.Normalize(config.Language) ?? L.SystemDefault;
 L.Set(config.Language);
+config.ApplyOverlaySizeDefault();
 if (string.IsNullOrWhiteSpace(config.DemosFolder))
 {
     config.DemosFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FortniteGame", "Saved", "Demos");

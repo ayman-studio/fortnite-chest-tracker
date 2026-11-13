@@ -104,6 +104,30 @@ public sealed class StoreTests : IDisposable
     }
 
     [Fact]
+    public void Overlays_left_at_the_old_100_percent_default_move_to_80_once()
+    {
+        var store = new Store(_dir);
+        File.WriteAllText(store.ConfigPath, """{"Language":"en","OverlaySize":100,"SquadOverlaySize":130}""");
+
+        var config = store.LoadConfig()!;
+        config.ApplyOverlaySizeDefault();
+        Assert.Equal(80, config.OverlaySize);
+        Assert.Equal(130, config.SquadOverlaySize); // chosen by the player: kept
+
+        // Put back to 100 by the player afterwards: stays at 100.
+        config.OverlaySize = 100;
+        store.SaveConfig(config);
+        var again = store.LoadConfig()!;
+        again.ApplyOverlaySizeDefault();
+        Assert.Equal(100, again.OverlaySize);
+
+        var fresh = new Config();
+        fresh.ApplyOverlaySizeDefault();
+        Assert.Equal(80, fresh.OverlaySize);
+        Assert.Equal(80, fresh.SquadOverlaySize);
+    }
+
+    [Fact]
     public void Exports_nothing_updates_any_more_are_removed()
     {
         Directory.CreateDirectory(_dir);
