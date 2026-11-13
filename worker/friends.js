@@ -27,6 +27,12 @@ const SQUAD_IDLE = 6 * HOUR;      // a squad nobody played in for 6 h is closed
 const MATCHES_KEPT = 72 * HOUR;   // matches kept for "last match" and the squad session
 const MATES_KEPT = 48 * HOUR;     // teammates suggested as friends for 2 days
 const PLAYING_STALE = 3 * 60e3;   // "in a match" only while the app keeps saying so
+// Durable Objects bill (and cap) the rows written: an app syncing with nothing new writes nothing, except "seen" from
+// time to time (fresh enough for "in a match" while playing, for the session and "seen 5 min ago" otherwise).
+const SEEN_PLAYING = 60e3;
+const SEEN_IDLE = 10 * 60e3;
+const SQUAD_TOUCH = 5 * 60e3;     // a squad's "touched" is moved forward at most every 5 min (closed after 6 h idle)
+const CLEANUP_EVERY = 60e3;
 const MAX_FRIENDS = 100;
 const MAX_SQUAD = 4;
 const MAX_SOCKETS = 3;            // per player (several PCs, a restart before the old socket closed)
@@ -284,6 +290,8 @@ export class FriendsHub extends DurableObject {
 
   cleanup() {
     const now = Date.now();
+    if (now - (this.cleaned || 0) < CLEANUP_EVERY) return;
+    this.cleaned = now;
     this.sql.exec('DELETE FROM matches WHERE ended < ?', now - MATCHES_KEPT);
     this.sql.exec('DELETE FROM mates WHERE seen < ?', now - MATES_KEPT);
     const idle = this.rows('SELECT id FROM squads WHERE touched < ?', now - SQUAD_IDLE);
@@ -307,33 +315,48 @@ export class FriendsHub extends DurableObject {
       summary = JSON.stringify(clean);
       if (summary.length > 8000) summary = null;
     }
-    const before = this.one('SELECT name, skin, summary, playing, verified FROM players WHERE id = ?', me);
+    const before = this.one('SELECT name, skin, summary, playing, verified, seen FROM players WHERE id = ?', me);
     // A verified name only changes through Fortnite; another name sent is checked again (a real rename, or not)
     const renamed = name && before && name.toLowerCase() !== before.name.toLowerCase();
-    this.sql.exec(`UPDATE players SET name = COALESCE(NULLIF(?, ''), name), name_lc = COALESCE(NULLIF(?, ''), name_lc),
-      skin = COALESCE(?, skin), summary = COALESCE(?, summary), playing = ?, seen = ? WHERE id = ?`,
-      name, name.toLowerCase(), skinOf(body.skin), summary, body.playing === true ? 1 : 0, now, me);
+    // Only what changed is written (a sync every 10-60 s per app would otherwise rewrite the row and its name index)
+    const playing = body.playing === true ? 1 : 0;
+    const skin = skinOf(body.skin);
+    const sets = [];
+    const args = [];
+    if (name && name !== before?.name) { sets.push('name = ?', 'name_lc = ?'); args.push(name, name.toLowerCase()); }
+    if (skin && skin !== before?.skin) { sets.push('skin = ?'); args.push(skin); }
+    if (summary && summary !== before?.summary) { sets.push('summary = ?'); args.push(summary); }
+    if (playing !== before?.playing) { sets.push('playing = ?'); args.push(playing); }
+    if (sets.length || !before || now - before.seen > (playing ? SEEN_PLAYING : SEEN_IDLE)) { sets.push('seen = ?'); args.push(now); }
+    if (sets.length) this.sql.exec(`UPDATE players SET ${sets.join(', ')} WHERE id = ?`, ...args, me);
 
+    // An app sends its matches of the last days again when it restarts: only new or changed ones are written.
     const matches = Array.isArray(body.matches) ? body.matches.slice(-30) : [];
+    let changed = 0;
     for (const m of matches) {
       const sid = typeof m?.sid === 'string' && SESSION.test(m.sid) ? m.sid : null;
       const ended = Number.isFinite(m?.ended) && m.ended > now - MATCHES_KEPT && m.ended < now + 60e3 ? Math.round(m.ended) : null;
       const chests = int(m?.chests, 0, 500);
       if (!sid || ended == null || chests == null) continue;
-      this.sql.exec('INSERT OR REPLACE INTO matches (id, sid, ended, chests, dur, place, skin) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        me, sid, ended, chests, int(m.dur, 0, 7200), int(m.place, 1, 200), skinOf(m.skin));
+      const written = this.sql.exec(`INSERT INTO matches (id, sid, ended, chests, dur, place, skin) VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (id, sid) DO UPDATE SET ended = excluded.ended, chests = excluded.chests, dur = excluded.dur, place = excluded.place, skin = excluded.skin
+        WHERE ended IS NOT excluded.ended OR chests IS NOT excluded.chests OR dur IS NOT excluded.dur OR place IS NOT excluded.place OR skin IS NOT excluded.skin`,
+      me, sid, ended, chests, int(m.dur, 0, 7200), int(m.place, 1, 200), skinOf(m.skin));
+      written.toArray();
+      if (written.rowsWritten > 0) changed++;
       // Teammates are kept only when they have the app (suggested as friends), never the others.
       const mates = Array.isArray(m.mates) ? m.mates.slice(0, 8) : [];
       for (const mate of mates) {
         const mid = typeof mate === 'string' ? mate.toLowerCase() : '';
         if (EPIC_ID.test(mid) && mid !== me && this.one('SELECT 1 AS x FROM players WHERE id = ?', mid)) {
-          this.sql.exec('INSERT OR REPLACE INTO mates (id, mate, seen) VALUES (?, ?, ?)', me, mid, Math.min(ended, now));
+          this.sql.exec(`INSERT INTO mates (id, mate, seen) VALUES (?, ?, ?)
+            ON CONFLICT (id, mate) DO UPDATE SET seen = excluded.seen WHERE excluded.seen > seen`, me, mid, Math.min(ended, now));
         }
       }
     }
     const membership = this.one('SELECT squad FROM members WHERE id = ?', me);
-    if (membership && (matches.length || body.playing === true)) {
-      this.sql.exec('UPDATE squads SET touched = ? WHERE id = ?', now, membership.squad);
+    if (membership && (changed || playing)) {
+      this.sql.exec('UPDATE squads SET touched = ? WHERE id = ? AND touched < ?', now, membership.squad, now - SQUAD_TOUCH);
     }
     // Friends only hear about what they see: a new match, "in a match", the summary, the name or the outfit.
     if (renamed) {
@@ -341,7 +364,7 @@ export class FriendsHub extends DurableObject {
       await this.checkName(me);
     }
     const after = this.one('SELECT name, skin, summary, playing FROM players WHERE id = ?', me);
-    if (matches.length || !before || before.name !== after.name || before.skin !== after.skin || before.summary !== after.summary || before.playing !== after.playing) {
+    if (changed || !before || before.name !== after.name || before.skin !== after.skin || before.summary !== after.summary || before.playing !== after.playing) {
       this.touch(this.watchers(me));
     }
   }
