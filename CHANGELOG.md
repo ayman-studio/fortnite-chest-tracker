@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.4 (2026-11-13)
 
 **Older matches (without replay)**
 - The time played of the season is the one fortnite.gg gives (30 h stays 30 h), no longer the replays' time plus an
