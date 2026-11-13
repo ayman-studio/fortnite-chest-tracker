@@ -611,6 +611,8 @@ function lootCard(cls) {
 function estimate() {
   const e = S.estimate;
   const val = (k) => draft('est-' + k, (k === 'hours' ? e.hours : e.matches[k]) ?? '');
+  // numbers copied from fortnite.gg are of this season (the default); typed totals of the whole account: "all"
+  const scope = draft('est-scope', e.configured && e.source === 'manual' && !e.seasonOnly ? 'all' : 'season');
   const field = (k, label) => `<label class="field">${esc(label)}<input type="number" min="0" id="est-${k}" data-draft value="${esc(val(k))}" data-enter="est-save" placeholder="0"></label>`;
   const form = card('s5 est-card', t('estTitle'), `<p class="faint est-intro">${esc(t('estIntro'))}</p>
     <div class="steps-list" title="${esc(t('estIntro'))}">
@@ -619,7 +621,8 @@ function estimate() {
         ${button(`${icon('link')}${esc(t('openFortniteGg'))}`, 'data-act="open-gg"')}</div></div></div>
       <div class="step"><div class="n">2</div><div><h4>${esc(t('estStep2'))}</h4><p>${esc(t('estStep2Hint'))}</p>
         <div class="form-grid">${field('solo', 'Solo')}${field('duo', t('modeDuo'))}${field('trio', t('modeTrio'))}${field('squad', t('modeSquad'))}${field('other', t('modeOther'))}${field('total', t('modeTotal'))}</div>
-        <div class="form-grid est-hours">${field('hours', t('estHours'))}</div>
+        <div class="form-grid est-hours">${field('hours', t('estHours'))}<label class="field">${esc(t('estScope'))}<select id="est-scope" data-draft>${[['season', t('estScopeSeason')], ['all', t('estScopeAll')]]
+          .map(([k, label]) => `<option value="${k}"${scope === k ? ' selected' : ''}>${esc(label)}</option>`).join('')}</select></label></div>
         <div class="est-go">${button(esc(t('estCompute')), 'id="est-save" data-act="est-save"', 'btn-primary')}</div></div></div>
       <div class="step"><div class="n">${icon('key')}</div><div><h4>${esc(t('estAuto'))}</h4><p>${esc(t('estAutoHint'))} <a href="#" data-open="fortniteapi">${esc(t('getKey'))}</a></p>
         <div class="row"><input type="password" id="est-key" data-draft value="${esc(draft('est-key', ''))}" placeholder="${esc(e.hasApiKey ? t('keySaved') : 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx')}" style="flex:1" autocomplete="off" data-enter="est-fetch">
@@ -640,8 +643,8 @@ function estimate() {
       <div class="est-table"><table class="tbl static"><thead><tr><th>${esc(t('mode'))}</th><th class="r">${esc(t('estPlayedShort'))}</th><th class="r">${esc(t('estTrackedShort'))}</th><th class="r">${esc(t('average'))}</th><th class="r">${esc(t('estEstimatedShort'))}</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="divider"></div>
       <div class="setting" style="padding:0 0 12px"><div class="what"><b>${esc(t('estInclude'))}</b><span>${esc(t('estIncludeHint'))}</span></div><label class="switch"><input type="checkbox" id="est-include" data-change="est-include"${e.include ? ' checked' : ''}><span></span></label></div>
-      <div class="row between"><span class="faint small">${esc(t('estSource', e.source === 'api' ? 'fortnite-api.com' : 'fortnite.gg', e.player ?? '—', e.updatedUtc ? dateTime(e.updatedUtc) : '—'))}</span>${button(esc(t('estClear')), 'data-act="est-clear"', 'btn-sm btn-ghost btn-danger')}</div>
-      <p class="faint small est-method">${esc(t('estMethod'))}${e.minutesFromEpic ? '' : ' ' + esc(t('estTimeAverage'))}</p>`);
+      <div class="row between"><span class="faint small">${esc(t('estSource', e.source === 'api' ? 'fortnite-api.com' : e.seasonOnly ? `fortnite.gg (${t('lbSeason').toLowerCase()})` : 'fortnite.gg', e.player ?? '—', e.updatedUtc ? dateTime(e.updatedUtc) : '—'))}</span>${button(esc(t('estClear')), 'data-act="est-clear"', 'btn-sm btn-ghost btn-danger')}</div>
+      <p class="faint small est-method">${esc(t(e.seasonOnly ? 'estSeasonOnly' : 'estMethod'))}${e.minutesFromEpic ? '' : ' ' + esc(t('estTimeAverage'))}</p>`);
   }
   return `<div class="page" style="grid-template-rows:minmax(0,1fr)">${form}${result}</div>`;
 }
@@ -1739,7 +1742,7 @@ document.addEventListener('click', async (e) => {
     }
     case 'est-save': {
       const hours = parseInt(($('#est-hours')?.value || '').trim(), 10);
-      const r = await cmd('estimate/save', { player: $('#est-player').value.trim(), matches: estimateMatches(), hours: hours > 0 ? hours : null });
+      const r = await cmd('estimate/save', { player: $('#est-player').value.trim(), matches: estimateMatches(), hours: hours > 0 ? hours : null, scope: $('#est-scope')?.value || 'season' });
       if (r.ok) clearDrafts('est-');
       break;
     }

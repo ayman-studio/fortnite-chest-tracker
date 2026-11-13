@@ -111,6 +111,33 @@ public class EstimateTests
         Assert.Null(Estimates.ParseMinutes("""{"status":200,"data":null}"""));
     }
 
+    [Theory]
+    [InlineData("++Fortnite+Release-43.10", "43")]
+    [InlineData("++Fortnite+Release-9.41", "9")]
+    [InlineData("whatever", null)]
+    [InlineData(null, null)]
+    public void Season_is_the_major_game_version(string? version, string? season)
+    {
+        Assert.Equal(season, Estimates.SeasonOf(version));
+    }
+
+    [Fact]
+    public void Season_numbers_are_compared_with_the_replays_of_that_season_only()
+    {
+        var old = Tracked(Enumerable.Repeat(("duo", 10), 6).ToArray());
+        old.ForEach(m => m.GameVersion = "++Fortnite+Release-42.30");
+        var now = Tracked(Enumerable.Repeat(("duo", 30), 5).ToArray());
+        now.ForEach(m => { m.GameVersion = "++Fortnite+Release-43.10"; m.MatchStartUtc = new DateTime(2026, 11, 12, 0, 0, 0, DateTimeKind.Utc); });
+        var tracked = old.Concat(now).ToList();
+        Assert.Equal("43", Estimates.CurrentSeason(tracked));
+
+        var r = Estimates.Compute(new EstimateSettings { Season = "43", Matches = { ["total"] = 20 } }, tracked)!;
+        Assert.Equal(5, r.Tracked);          // this season's replays only
+        Assert.Equal(15, r.Untracked);
+        Assert.Equal(15 * 30, r.Estimated);  // at this season's average
+        Assert.Equal(11 + 15, r.Matches);    // every replay + the matches without one
+    }
+
     private const string ApiAnswer = """
         {"status":200,"data":{"account":{"id":"x","name":"Ssshamble"},"battlePass":{"level":50,"progress":10},"image":null,
          "stats":{"all":{

@@ -140,6 +140,9 @@ public sealed record UiEstimate(bool Configured, string Source, string? Player, 
     /// <summary>The time played comes from Epic's stats, not from the average length of the counted matches.</summary>
     public bool MinutesFromEpic { get; init; }
 
+    /// <summary>The numbers cover the current season only (fortnite.gg): compared with that season's replays.</summary>
+    public bool SeasonOnly { get; init; }
+
     /// <summary>Hours played typed in the form (manual source), to fill the field again.</summary>
     public int? Hours { get; init; }
 }

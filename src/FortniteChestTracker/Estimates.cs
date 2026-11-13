@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace FortniteChestTracker;
 
@@ -12,6 +13,13 @@ public sealed class EstimateSettings
 {
     /// <summary>"manual" (typed in) or "api" (fortnite-api.com).</summary>
     public string Source { get; set; } = "manual";
+
+    /// <summary>
+    /// Major game version of the season the numbers cover ("43" for Release-43.x), null = the whole account. Numbers
+    /// copied from fortnite.gg are of the current season only (the site shows nothing else): only the replays of that
+    /// season are then subtracted.
+    /// </summary>
+    public string? Season { get; set; }
 
     /// <summary>Matches played per mode: "solo", "duo", "trio", "squad", "other"; or only "total".</summary>
     public Dictionary<string, int> Matches { get; set; } = new();
@@ -71,7 +79,15 @@ public static class Estimates
         {
             return null;
         }
-        var all = tracked.Select(m => (double)m.ChestsOpened).ToList();
+        // Season numbers (fortnite.gg): compared with the replays of that season only.
+        var everything = tracked;
+        if (settings.Season is { } season)
+        {
+            tracked = tracked.Where(m => SeasonOf(m.GameVersion) == season).ToList();
+        }
+        // Average chests per match: of the matches compared when there are enough, else of all the replays.
+        var basis = tracked.Count >= 5 ? tracked : everything;
+        var all = basis.Select(m => (double)m.ChestsOpened).ToList();
         var mean = all.Average();
         var sd = Math.Sqrt(all.Sum(x => (x - mean) * (x - mean)) / Math.Max(1, all.Count - 1));
 
@@ -84,6 +100,7 @@ public static class Estimates
         else
         {
             var byBucket = tracked.GroupBy(m => Bucket(m.Playlist)).ToDictionary(g => g.Key, g => g.ToList());
+            var byBucketAll = everything.GroupBy(m => Bucket(m.Playlist)).ToDictionary(g => g.Key, g => g.ToList());
             foreach (var bucket in Buckets)
             {
                 if (!settings.Matches.TryGetValue(bucket, out var played) || played <= 0)
@@ -91,7 +108,8 @@ public static class Estimates
                     continue;
                 }
                 var mine = byBucket.TryGetValue(bucket, out var list) ? list : new List<MatchRecord>();
-                var avg = mine.Count >= 5 ? mine.Average(m => m.ChestsOpened) : mean;
+                var avg = mine.Count >= 5 ? mine.Average(m => m.ChestsOpened)
+                    : byBucketAll.TryGetValue(bucket, out var allOfMode) && allOfMode.Count >= 5 ? allOfMode.Average(m => m.ChestsOpened) : mean;
                 var untracked = Math.Max(0, played - mine.Count);
                 parts.Add(new EstimatePart(bucket, played, mine.Count, untracked, Math.Round(avg, 1), (int)Math.Round(untracked * avg)));
             }
@@ -106,8 +124,8 @@ public static class Estimates
 
         // Time played: the counted matches with their replay time, the ones without replay at Epic's average minutes
         // per match when known, else at the average length of the counted ones.
-        var trackedMinutes = tracked.Sum(m => m.DurationSeconds ?? 0) / 60;
-        var timed = tracked.Where(m => m.DurationSeconds > 0).ToList();
+        var trackedMinutes = everything.Sum(m => m.DurationSeconds ?? 0) / 60;
+        var timed = everything.Where(m => m.DurationSeconds > 0).ToList();
         var entered = settings.Matches.Values.Where(v => v > 0).Sum() - (settings.Matches.ContainsKey("total") && settings.Matches.Count > 1 ? settings.Matches["total"] : 0);
         var fromEpic = settings.Minutes is > 0 && entered > 0;
         double? perMatch = fromEpic ? (double)settings.Minutes!.Value / entered
@@ -115,8 +133,20 @@ public static class Estimates
         var minutes = trackedMinutes + (perMatch is { } pm ? (int)Math.Round(totalUntracked * pm) : 0);
 
         return new EstimateResult(parts.Sum(p => p.Played), parts.Sum(p => p.Tracked), totalUntracked, estimated,
-            Math.Max(0, estimated - margin), estimated + margin, parts, tracked.Count + totalUntracked, minutes, fromEpic);
+            Math.Max(0, estimated - margin), estimated + margin, parts, everything.Count + totalUntracked, minutes, fromEpic);
     }
+
+    /// <summary>Season of a replay: the major game version ("++Fortnite+Release-43.10" gives "43"), null when unknown.</summary>
+    public static string? SeasonOf(string? gameVersion)
+    {
+        var m = Regex.Match(gameVersion ?? "", @"Release-(\d+)\.");
+        return m.Success ? m.Groups[1].Value : null;
+    }
+
+    /// <summary>Season of the latest replay (the current one, as fortnite.gg shows it), null when unknown.</summary>
+    public static string? CurrentSeason(IEnumerable<MatchRecord> tracked) =>
+        tracked.Where(m => SeasonOf(m.GameVersion) != null).OrderByDescending(m => m.MatchStartUtc ?? m.AnalyzedAtUtc)
+            .Select(m => SeasonOf(m.GameVersion)).FirstOrDefault();
 
     /// <summary>The player's page on fortnite.gg (opened in the browser: the site does not allow automated access).</summary>
     public static string FortniteGgUrl(string player) => "https://fortnite.gg/stats/br?player=" + Uri.EscapeDataString(player);

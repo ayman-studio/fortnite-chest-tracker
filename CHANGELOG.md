@@ -9,6 +9,9 @@
   average length of the counted matches.
 - Friends: new "Total" tab in the "who opens the most chests" leaderboard (and the squad picture), with the older
   matches of the players who added them ("≈"). "Season" stays counted from the replays only.
+- Numbers copied from fortnite.gg are of the current season only (the site shows nothing else): the form now says
+  what they cover ("This season" by default, or "All time"), and a season is compared with the replays of that
+  season only (same game version), no longer with every replay.
 
 ## 1.3.1 (2026-11-13)
 

@@ -790,6 +790,8 @@ public sealed partial class App
         }
         var e = _config.Estimate ??= new EstimateSettings { Include = true };
         e.Source = "manual";
+        // Copied from fortnite.gg (the guide's page): this season's numbers, compared with this season's replays.
+        e.Season = Str(args, "scope") == "all" ? null : Estimates.CurrentSeason(Profiles.View(_data, _config).Matches);
         e.Matches = matches;
         // Hours played (optional, as shown on fortnite.gg): the time of the matches without replay comes from it.
         e.Minutes = Int(args, "hours") is { } hours && hours > 0 && hours < 100_000 ? hours * 60 : null;
@@ -849,6 +851,7 @@ public sealed partial class App
                 }
                 var settings = _config.Estimate ??= new EstimateSettings { Include = true };
                 settings.Source = "api";
+                settings.Season = null;
                 settings.Matches = matches;
                 settings.Minutes = minutes;
                 settings.Player = player;
@@ -898,7 +901,7 @@ public sealed partial class App
             r != null, e?.Source ?? "manual", player.Length > 0 ? player : null, e?.UpdatedUtc, e?.Include ?? false,
             !string.IsNullOrEmpty(e?.ApiKey), _estimateFetching, _estimateError,
             r?.Played, view.Matches.Count, r?.Untracked, r?.Estimated, r?.Low, r?.High, r != null ? real + r.Estimated : null,
-            r?.Parts.Select(p => new UiEstimatePart(p.Bucket, ModeName(p.Bucket), p.Played, p.Tracked, p.Untracked, p.Average, p.Estimated)).ToList()
+            r?.Parts.Select(p => new UiEstimatePart(p.Bucket, p.Bucket == "total" && e?.Season != null ? L.T("Cette saison", "This season", "Esta temporada") : ModeName(p.Bucket), p.Played, p.Tracked, p.Untracked, p.Average, p.Estimated)).ToList()
                 ?? new List<UiEstimatePart>(),
             e?.Matches ?? new Dictionary<string, int>(),
             player.Length > 0 ? Estimates.FortniteGgUrl(player) : null)
@@ -906,6 +909,7 @@ public sealed partial class App
             MatchesWithEstimate = r?.Matches,
             MinutesWithEstimate = r?.Minutes,
             MinutesFromEpic = r?.MinutesFromEpic ?? false,
+            SeasonOnly = e?.Season != null,
             Hours = e?.Source == "manual" && e.Minutes is { } m ? m / 60 : null,
         };
     }
