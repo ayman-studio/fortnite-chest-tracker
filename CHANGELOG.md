@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.2 (2026-11-13)
 
 **Older matches (without replay)**
 - Now only for the current season: copy your matches and hours played this season from fortnite.gg (all modes, both
