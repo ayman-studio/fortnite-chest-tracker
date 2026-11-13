@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+**Older matches (without replay)**
+- Once the older matches are added to the total, the time played and the match count include them too (home page and
+  share picture, marked "≈"), not only the chests: 21 000 chests no longer show next to 88 matches. The time comes
+  from Epic's stats with a fortnite-api.com key, from the hours played typed in (new optional field), or else from the
+  average length of the counted matches.
+
 ## 1.3.1 (2026-11-13)
 
 **Security**

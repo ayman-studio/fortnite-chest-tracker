@@ -67,6 +67,50 @@ public class EstimateTests
         Assert.Null(Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 10 } }, new List<MatchRecord>()));
     }
 
+    private static List<MatchRecord> Timed(params int[] seconds) =>
+        seconds.Select(s => new MatchRecord { SessionId = Guid.NewGuid().ToString("N"), Playlist = "duo", ChestsOpened = 10, DurationSeconds = s }).ToList();
+
+    [Fact]
+    public void Matches_and_time_played_include_the_matches_without_replay()
+    {
+        var tracked = Timed(1200, 1800); // 2 matches, 50 min, 25 min on average
+        var r = Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 12 } }, tracked)!;
+        Assert.Equal(12, r.Matches);
+        Assert.Equal(50 + 10 * 25, r.Minutes);
+        Assert.False(r.MinutesFromEpic);
+
+        // Epic's lifetime minutes already include the counted matches
+        r = Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 12 }, Minutes = 600 }, tracked)!;
+        Assert.Equal(600, r.Minutes);
+        Assert.True(r.MinutesFromEpic);
+
+        // never less than what the replays counted
+        r = Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 12 }, Minutes = 20 }, tracked)!;
+        Assert.Equal(50, r.Minutes);
+
+        // no match length known: only the counted time
+        r = Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 12 } }, Tracked(("duo", 10)))!;
+        Assert.Equal(12, r.Matches);
+        Assert.Equal(0, r.Minutes);
+    }
+
+    [Fact]
+    public void Per_mode_match_total_keeps_the_counted_matches_of_other_modes()
+    {
+        var tracked = Tracked(("Playlist_Solo", 10), ("Playlist_Duo", 10), ("Playlist_Duo", 10));
+        var r = Estimates.Compute(new EstimateSettings { Matches = { ["solo"] = 20 } }, tracked)!;
+        Assert.Equal(19, r.Untracked);
+        Assert.Equal(3 + 19, r.Matches);
+    }
+
+    [Fact]
+    public void Minutes_played_are_read_from_the_overall_stats()
+    {
+        Assert.Equal(20000, Estimates.ParseMinutes(ApiAnswer));
+        Assert.Null(Estimates.ParseMinutes("""{"status":200,"data":{"stats":{"all":{"overall":{"matches":3}}}}}"""));
+        Assert.Null(Estimates.ParseMinutes("""{"status":200,"data":null}"""));
+    }
+
     private const string ApiAnswer = """
         {"status":200,"data":{"account":{"id":"x","name":"Ssshamble"},"battlePass":{"level":50,"progress":10},"image":null,
          "stats":{"all":{
@@ -113,9 +157,10 @@ public class EstimateTests
     public async Task Fetch_sends_the_key_and_the_name()
     {
         var handler = new FakeHandler(HttpStatusCode.OK, ApiAnswer);
-        var (matches, error) = await Estimates.FetchAsync("Ss Shamble", "01234567-89ab-cdef-0123-456789abcdef", handler);
+        var (matches, minutes, error) = await Estimates.FetchAsync("Ss Shamble", "01234567-89ab-cdef-0123-456789abcdef", handler);
         Assert.Null(error);
         Assert.Equal(1500, matches!.Values.Sum());
+        Assert.Equal(20000, minutes);
         Assert.Equal("01234567-89ab-cdef-0123-456789abcdef", handler.Request!.Headers.GetValues("Authorization").Single());
         Assert.Equal("https://fortnite-api.com/v2/stats/br/v2?timeWindow=lifetime&name=Ss%20Shamble", handler.Request.RequestUri!.AbsoluteUri);
     }
@@ -127,7 +172,7 @@ public class EstimateTests
     public async Task Fetch_errors_are_explained(HttpStatusCode status, string expected)
     {
         L.Set("en");
-        var (matches, error) = await Estimates.FetchAsync("Nobody", "01234567-89ab-cdef-0123-456789abcdef",
+        var (matches, _, error) = await Estimates.FetchAsync("Nobody", "01234567-89ab-cdef-0123-456789abcdef",
             new FakeHandler(status, """{"status":403,"error":"the requested account's stats are not public"}"""));
         Assert.Null(matches);
         Assert.Contains(expected, error);

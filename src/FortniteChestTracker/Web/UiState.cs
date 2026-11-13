@@ -129,7 +129,20 @@ public sealed record UiWeekday(int Day, int Matches, int Chests, double Average)
 /// <summary>Chests estimated for the matches the replays do not cover (see <see cref="Estimates"/>).</summary>
 public sealed record UiEstimate(bool Configured, string Source, string? Player, DateTime? UpdatedUtc, bool Include, bool HasApiKey, bool Fetching,
     string? Error, int? Played, int Tracked, int? Untracked, int? Estimated, int? Low, int? High, int? TotalWithEstimate,
-    IReadOnlyList<UiEstimatePart> Parts, IReadOnlyDictionary<string, int> Matches, string? FortniteGgUrl);
+    IReadOnlyList<UiEstimatePart> Parts, IReadOnlyDictionary<string, int> Matches, string? FortniteGgUrl)
+{
+    /// <summary>Matches in total with the ones without replay (shown "≈" when the estimate is included).</summary>
+    public int? MatchesWithEstimate { get; init; }
+
+    /// <summary>Minutes played in total with the matches without replay.</summary>
+    public int? MinutesWithEstimate { get; init; }
+
+    /// <summary>The time played comes from Epic's stats, not from the average length of the counted matches.</summary>
+    public bool MinutesFromEpic { get; init; }
+
+    /// <summary>Hours played typed in the form (manual source), to fill the field again.</summary>
+    public int? Hours { get; init; }
+}
 
 public sealed record UiEstimatePart(string Bucket, string Mode, int Played, int Tracked, int Untracked, double Average, int Estimated);
 

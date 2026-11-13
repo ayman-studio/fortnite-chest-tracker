@@ -791,6 +791,8 @@ public sealed partial class App
         var e = _config.Estimate ??= new EstimateSettings { Include = true };
         e.Source = "manual";
         e.Matches = matches;
+        // Hours played (optional, as shown on fortnite.gg): the time of the matches without replay comes from it.
+        e.Minutes = Int(args, "hours") is { } hours && hours > 0 && hours < 100_000 ? hours * 60 : null;
         e.Player = Str(args, "player")?.Trim() is { Length: > 0 } p ? p : e.Player;
         e.UpdatedUtc = DateTime.UtcNow;
         _estimateError = null;
@@ -835,7 +837,7 @@ public sealed partial class App
         var apiKey = e.ApiKey;
         _ = Task.Run(async () =>
         {
-            var (matches, error) = await Estimates.FetchAsync(player, apiKey);
+            var (matches, minutes, error) = await Estimates.FetchAsync(player, apiKey);
             Post(() =>
             {
                 _estimateFetching = false;
@@ -848,6 +850,7 @@ public sealed partial class App
                 var settings = _config.Estimate ??= new EstimateSettings { Include = true };
                 settings.Source = "api";
                 settings.Matches = matches;
+                settings.Minutes = minutes;
                 settings.Player = player;
                 settings.UpdatedUtc = DateTime.UtcNow;
                 SaveConfig();
@@ -891,7 +894,13 @@ public sealed partial class App
             r?.Parts.Select(p => new UiEstimatePart(p.Bucket, ModeName(p.Bucket), p.Played, p.Tracked, p.Untracked, p.Average, p.Estimated)).ToList()
                 ?? new List<UiEstimatePart>(),
             e?.Matches ?? new Dictionary<string, int>(),
-            player.Length > 0 ? Estimates.FortniteGgUrl(player) : null);
+            player.Length > 0 ? Estimates.FortniteGgUrl(player) : null)
+        {
+            MatchesWithEstimate = r?.Matches,
+            MinutesWithEstimate = r?.Minutes,
+            MinutesFromEpic = r?.MinutesFromEpic ?? false,
+            Hours = e?.Source == "manual" && e.Minutes is { } m ? m / 60 : null,
+        };
     }
 
 

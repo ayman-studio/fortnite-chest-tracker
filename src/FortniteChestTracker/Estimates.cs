@@ -16,6 +16,12 @@ public sealed class EstimateSettings
     /// <summary>Matches played per mode: "solo", "duo", "trio", "squad", "other"; or only "total".</summary>
     public Dictionary<string, int> Matches { get; set; } = new();
 
+    /// <summary>
+    /// Lifetime minutes played (all modes, replays included) from fortnite-api.com or typed in; null = unknown (the
+    /// matches without replay then get the average length of the counted ones).
+    /// </summary>
+    public int? Minutes { get; set; }
+
     /// <summary>Epic name the numbers belong to.</summary>
     public string? Player { get; set; }
 
@@ -32,7 +38,11 @@ public sealed class EstimateSettings
 public sealed record EstimatePart(string Bucket, int Played, int Tracked, int Untracked, double Average, int Estimated);
 
 /// <param name="Low">Low end of a 95 % range (uncertainty on the average only).</param>
-public sealed record EstimateResult(int Played, int Tracked, int Untracked, int Estimated, int Low, int High, IReadOnlyList<EstimatePart> Parts);
+/// <param name="Matches">Matches in total: the counted ones + the ones without replay.</param>
+/// <param name="Minutes">Minutes played in total: the counted matches + the ones without replay.</param>
+/// <param name="MinutesFromEpic">The minutes come from Epic's stats (else the average length of the counted matches).</param>
+public sealed record EstimateResult(int Played, int Tracked, int Untracked, int Estimated, int Low, int High, IReadOnlyList<EstimatePart> Parts,
+    int Matches = 0, int Minutes = 0, bool MinutesFromEpic = false);
 
 public static class Estimates
 {
@@ -92,18 +102,28 @@ public static class Estimates
         var totalUntracked = parts.Sum(p => p.Untracked);
         var estimated = parts.Sum(p => p.Estimated);
         var margin = (int)Math.Round(1.96 * sd / Math.Sqrt(all.Count) * totalUntracked);
+
+        // Time played: Epic's lifetime minutes when known (they already include the counted matches), else the
+        // matches without replay at the average length of the counted ones.
+        var trackedMinutes = tracked.Sum(m => m.DurationSeconds ?? 0) / 60;
+        var timed = tracked.Where(m => m.DurationSeconds > 0).ToList();
+        var fromEpic = settings.Minutes is > 0;
+        var minutes = fromEpic
+            ? Math.Max(settings.Minutes!.Value, trackedMinutes)
+            : trackedMinutes + (timed.Count > 0 ? (int)Math.Round(totalUntracked * timed.Average(m => m.DurationSeconds!.Value) / 60.0) : 0);
+
         return new EstimateResult(parts.Sum(p => p.Played), parts.Sum(p => p.Tracked), totalUntracked, estimated,
-            Math.Max(0, estimated - margin), estimated + margin, parts);
+            Math.Max(0, estimated - margin), estimated + margin, parts, tracked.Count + totalUntracked, minutes, fromEpic);
     }
 
     /// <summary>The player's page on fortnite.gg (opened in the browser: the site does not allow automated access).</summary>
     public static string FortniteGgUrl(string player) => "https://fortnite.gg/stats/br?player=" + Uri.EscapeDataString(player);
 
     /// <summary>
-    /// Lifetime matches per mode from fortnite-api.com (the player's own key, Authorization header). Returns the
-    /// matches, or an error message for the player.
+    /// Lifetime matches per mode and minutes played from fortnite-api.com (the player's own key, Authorization
+    /// header). Returns them, or an error message for the player.
     /// </summary>
-    public static async Task<(Dictionary<string, int>? Matches, string? Error)> FetchAsync(string player, string apiKey, HttpMessageHandler? handler = null)
+    public static async Task<(Dictionary<string, int>? Matches, int? Minutes, string? Error)> FetchAsync(string player, string apiKey, HttpMessageHandler? handler = null)
     {
         try
         {
@@ -117,7 +137,7 @@ public static class Estimates
             if (res.StatusCode != HttpStatusCode.OK)
             {
                 var message = TryMessage(body);
-                return (null, res.StatusCode switch
+                return (null, null, res.StatusCode switch
                 {
                     HttpStatusCode.Unauthorized => L.T("clé fortnite-api.com refusée", "fortnite-api.com key refused", "clave de fortnite-api.com rechazada"),
                     HttpStatusCode.Forbidden => L.T("statistiques privées : dans Fortnite, rends tes statistiques publiques", "private stats: make your stats public in Fortnite", "estadísticas privadas: hazlas públicas en Fortnite"),
@@ -126,11 +146,11 @@ public static class Estimates
                 } + (message != null ? $" ({message})" : ""));
             }
             var matches = Parse(body);
-            return matches.Count > 0 ? (matches, null) : (null, L.T("réponse sans nombre de parties", "answer without match counts", "respuesta sin número de partidas"));
+            return matches.Count > 0 ? (matches, ParseMinutes(body), null) : (null, null, L.T("réponse sans nombre de parties", "answer without match counts", "respuesta sin número de partidas"));
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         {
-            return (null, L.T("fortnite-api.com injoignable", "fortnite-api.com unreachable", "no se puede acceder a fortnite-api.com") + $" ({ex.Message})");
+            return (null, null, L.T("fortnite-api.com injoignable", "fortnite-api.com unreachable", "no se puede acceder a fortnite-api.com") + $" ({ex.Message})");
         }
     }
 
@@ -160,6 +180,17 @@ public static class Estimates
             result["other"] = (result.TryGetValue("other", out var o) ? o : 0) + overall - result.Values.Sum();
         }
         return result;
+    }
+
+    /// <summary>data.stats.all.overall.minutesPlayed (lifetime, all modes), null when missing or 0.</summary>
+    internal static int? ParseMinutes(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        return doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
+            && data.TryGetProperty("stats", out var stats) && stats.ValueKind == JsonValueKind.Object
+            && stats.TryGetProperty("all", out var all) && all.ValueKind == JsonValueKind.Object
+            && all.TryGetProperty("overall", out var overall) && overall.ValueKind == JsonValueKind.Object
+            && overall.TryGetProperty("minutesPlayed", out var n) && n.TryGetInt32(out var v) && v > 0 ? v : null;
     }
 
     private static string? TryMessage(string body)
