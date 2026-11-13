@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.3.3 (2026-11-13)
 
 **Updates**
 - Fixed: updates failed every time from 1.3.1 and 1.3.2 ("This instance has already started one or more requests").
