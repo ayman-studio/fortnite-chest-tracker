@@ -7,6 +7,8 @@
   share picture, marked "≈"), not only the chests: 21 000 chests no longer show next to 88 matches. The time comes
   from Epic's stats with a fortnite-api.com key, from the hours played typed in (new optional field), or else from the
   average length of the counted matches.
+- Friends: new "Total" tab in the "who opens the most chests" leaderboard (and the squad picture), with the older
+  matches of the players who added them ("≈"). "Season" stays counted from the replays only.
 
 ## 1.3.1 (2026-11-13)
 

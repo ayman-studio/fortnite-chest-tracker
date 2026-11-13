@@ -706,7 +706,7 @@ public sealed partial class App
                 _config.Estimate = null;
                 _estimateError = null;
                 SaveConfig();
-                UpdateOverlay();
+                EstimateChanged();
                 return CommandResult.Done;
 
             case "keep-open":
@@ -797,7 +797,7 @@ public sealed partial class App
         e.UpdatedUtc = DateTime.UtcNow;
         _estimateError = null;
         SaveConfig();
-        UpdateOverlay();
+        EstimateChanged();
         LogEstimate();
         return CommandResult.Done;
     }
@@ -854,11 +854,18 @@ public sealed partial class App
                 settings.Player = player;
                 settings.UpdatedUtc = DateTime.UtcNow;
                 SaveConfig();
-                UpdateOverlay();
+                EstimateChanged();
                 LogEstimate();
             });
         });
         return CommandResult.Done;
+    }
+
+    /// <summary>The estimate changed: the overlay's total, and the friends' "Total" leaderboard at the next sync (now).</summary>
+    private void EstimateChanged()
+    {
+        UpdateOverlay();
+        _nextFriendsSync = DateTime.UtcNow;
     }
 
     private void LogEstimate()
@@ -1034,7 +1041,7 @@ public sealed partial class App
         if (Bool(args, "includeEstimate") is { } include && _config.Estimate != null)
         {
             _config.Estimate.Include = include;
-            UpdateOverlay();
+            EstimateChanged();
         }
         if (Int(args, "overlaySize") is { } size)
         {

@@ -104,7 +104,10 @@ public sealed partial class App
 
     private static long Ms(DateTime utc) => new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)).ToUnixTimeMilliseconds();
 
-    /// <summary>What friends see of the player: season, session, treasure odds, treasures found, last match.</summary>
+    /// <summary>
+    /// What friends see of the player: season, session, total (with the older matches estimated when the player added
+    /// them to their total, marked "est"), treasure odds, treasures found, last match.
+    /// </summary>
     private Dictionary<string, object?> FriendsSummary(TrackerData view)
     {
         var since = HudModel.HuntSince(_config);
@@ -119,12 +122,19 @@ public sealed partial class App
             .ToList();
         var odds = hunt.Odds.ToDictionary(o => o.Key, o => (object?)Math.Round(1 - Math.Pow(1 - 1.0 / o.Odds, o.Weighted), 5));
         var last = view.Matches.OrderByDescending(EndOf).FirstOrDefault();
+        var estimate = _config.Estimate is { Include: true } ? Estimates.Compute(_config.Estimate, view.Matches) : null;
+        var withEstimate = estimate is { Untracked: > 0 };
         return new Dictionary<string, object?>
         {
             ["v"] = 1,
             ["season"] = new Dictionary<string, object?> { ["chests"] = seasonChests, ["matches"] = season.Count, ["best"] = season.Count > 0 ? season.Max(m => m.ChestsOpened) : 0 },
             ["session"] = new Dictionary<string, object?> { ["chests"] = stats.Session, ["matches"] = stats.SessionMatches },
-            ["total"] = new Dictionary<string, object?> { ["chests"] = stats.Total, ["matches"] = stats.Matches },
+            ["total"] = new Dictionary<string, object?>
+            {
+                ["chests"] = stats.Total + (withEstimate ? estimate!.Estimated : 0),
+                ["matches"] = withEstimate ? estimate!.Matches : stats.Matches,
+                ["est"] = withEstimate,
+            },
             ["odds"] = odds,
             ["treasures"] = treasures,
             ["last"] = last == null ? null : new Dictionary<string, object?>

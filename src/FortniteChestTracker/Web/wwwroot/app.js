@@ -34,7 +34,7 @@ const ui = {
   setup: null,          // wizard answers
   lastActivity: null,
   prevTotal: null,
-  lbPeriod: ['last', 'session', 'season'].includes(localStorage.getItem('fct-lb')) ? localStorage.getItem('fct-lb') : 'session', // friends leaderboard
+  lbPeriod: ['last', 'session', 'season', 'total'].includes(localStorage.getItem('fct-lb')) ? localStorage.getItem('fct-lb') : 'session', // friends leaderboard
   friendOpen: null,     // friend whose details are open
   inviteSeen: null,     // invite (from a fctracker:// link) already brought to the front
   frSub: localStorage.getItem('fct-frsub') === 'squadov' ? 'squadov' : 'friends', // section of the Friends tab
@@ -807,16 +807,20 @@ function boardRows(F, D) {
       r.value = s && s.matches > 0 && Date.now() - r.seen < SESSION_FRESH ? s.chests : null;
       r.sub = r.value != null ? count(s.matches, 'match') : '';
     } else {
-      const s = r.summary.season;
+      // total: with the older matches when the player added them (estimate, "≈")
+      const s = p === 'total' ? r.summary.total : r.summary.season;
       r.value = s ? s.chests : null;
-      r.sub = s && s.matches ? `${count(s.matches, 'match')} · ${t('perMatch', nf1(s.chests / s.matches))}` : '';
+      r.approx = p === 'total' && !!s?.est;
+      r.sub = s && s.matches ? `${r.approx ? '≈' : ''}${count(s.matches, 'match')} · ${t('perMatch', nf1(s.chests / s.matches))}` : '';
     }
   });
   return rows.sort((a, b) => (b.value ?? -1) - (a.value ?? -1) || String(a.name).localeCompare(String(b.name)));
 }
 
+const LB_PERIODS = () => [['last', t('lbLast')], ['session', t('lbSession')], ['season', t('lbSeason')], ['total', t('lbTotal')]];
+
 function boardCard(F, D) {
-  const seg = `<div class="seg" role="group" aria-label="${esc(t('boardTitle'))}">${[['last', t('lbLast')], ['session', t('lbSession')], ['season', t('lbSeason')]]
+  const seg = `<div class="seg" role="group" aria-label="${esc(t('boardTitle'))}">${LB_PERIODS()
     .map(([k, label]) => `<button class="${ui.lbPeriod === k ? 'on' : ''}" data-lbperiod="${k}">${esc(label)}</button>`).join('')}</div>`;
   const rows = boardRows(F, D);
   const best = rows[0]?.value ?? 0;
@@ -826,7 +830,7 @@ function boardCard(F, D) {
     const lead = r.value != null && r.value === best && best > 0;
     return `<div class="list-row board-row${r.me ? ' me' : ''}"><span class="rank${lead ? ' lead' : ''}">${lead ? icon('star') : nf(rank)}</span>${skinBox(r.skin, r.name, 'sm')}
       <div class="main-t"><b>${esc(r.name)}${r.me ? ` <span class="you">${esc(t('you'))}</span>` : ''}</b><span>${r.playing ? `<i class="dot live"></i>${esc(t('inMatch'))}` : esc(r.sub)}</span></div>
-      <span class="board-val num${r.value == null ? ' none' : ''}">${r.value == null ? '—' : nf(r.value)}</span></div>`;
+      <span class="board-val num${r.value == null ? ' none' : ''}">${r.value == null ? '—' : (r.approx ? '≈' : '') + nf(r.value)}</span></div>`;
   }).join('');
   const body = D.friends.length
     ? `<div class="fit" data-fit="board" data-row="56">${list}</div>${pager('board', rows.length)}`
@@ -1343,7 +1347,7 @@ function squadShareRows(period) {
   ui.lbPeriod = period;
   const rows = boardRows(F, F.data || FR_EMPTY).filter((r) => r.value != null);
   ui.lbPeriod = saved;
-  return rows.map((r) => ({ name: r.name, skin: r.skin, value: r.value, me: !!r.me }));
+  return rows.map((r) => ({ name: r.name, skin: r.skin, value: r.value, approx: !!r.approx, me: !!r.me }));
 }
 
 async function makeSquadCard(period) {
@@ -1374,7 +1378,7 @@ async function makeSquadCard(period) {
   g.fillStyle = '#ffffff';
   g.font = font(76);
   g.fillText(t('shareSquadTitle').toUpperCase(), 70, 130);
-  const label = { last: t('lbLast'), session: t('lbSession'), season: t('lbSeason') }[period];
+  const label = { last: t('lbLast'), session: t('lbSession'), season: t('lbSeason'), total: t('lbTotal') }[period];
   g.font = font(34);
   g.fillStyle = '#c6ff3d';
   g.fillText(`${label} · ${date(new Date().toISOString(), { day: 'numeric', month: 'long' })}`.toUpperCase(), 72, 182);
@@ -1423,13 +1427,16 @@ async function makeSquadCard(period) {
       g.fill();
     }
     g.textAlign = 'center';
-    g.font = font(first ? 130 : 100);
+    const value = (r.approx ? '≈' : '') + nf(r.value);
+    let px = first ? 130 : 100;
+    g.font = font(px);
+    while (g.measureText(value).width > colW - 24 && px > 40) { px -= 4; g.font = font(px); } // "≈21 107" fits its column
     g.lineWidth = 10;
     g.strokeStyle = '#071036';
     const ny = top + size + (first ? 150 : 125);
-    g.strokeText(nf(r.value), cx, ny);
+    g.strokeText(value, cx, ny);
     g.fillStyle = first ? '#c6ff3d' : '#ffffff';
-    g.fillText(nf(r.value), cx, ny);
+    g.fillText(value, cx, ny);
     g.font = font(38);
     g.fillStyle = r.me ? '#3ee6ff' : '#d8e6ff';
     let name = String(r.name);
@@ -1472,7 +1479,7 @@ function openShare() {
 
 function openSquadShare() {
   if (ui.share) return;
-  const period = ['last', 'session', 'season'].includes(ui.lbPeriod) ? ui.lbPeriod : 'session';
+  const period = ['last', 'session', 'season', 'total'].includes(ui.lbPeriod) ? ui.lbPeriod : 'session';
   if (squadShareRows(period).length < 2) { toast('info', t('shareSquadEmpty')); return; }
   ui.share = { squad: true, period };
   buildShare();
@@ -1509,7 +1516,7 @@ function shareModal() {
     return `<button class="goal${k === 'odds_pirate' ? ' featured' : ''}${sh.goal === k ? ' on' : ''}" data-share-goal="${k}"${sh.making ? ' disabled' : ''}>${k === 'odds_pirate' ? '<img class="ico-img" src="/img/token.webp" alt="">' : ''}<span>${esc(label)}</span>${o ? `<b>${esc(pctx(chanceOf(h, o)))}</b>` : ''}</button>`;
   }).join('');
   const picker = sh.squad
-    ? `<div class="share-pick"><span>${esc(t('shareSquadPick'))}</span><div class="seg">${[['last', t('lbLast')], ['session', t('lbSession')], ['season', t('lbSeason')]]
+    ? `<div class="share-pick"><span>${esc(t('shareSquadPick'))}</span><div class="seg">${LB_PERIODS()
       .map(([k, label]) => `<button class="${sh.period === k ? 'on' : ''}" data-share-period="${k}"${sh.making || squadShareRows(k).length < 2 ? ' disabled' : ''}>${esc(label)}</button>`).join('')}</div></div>`
     : `<div class="share-pick"><span>${esc(t('shareGoal'))}</span><div class="goals">${chips}</div></div>`;
   const body = picker + (sh.url

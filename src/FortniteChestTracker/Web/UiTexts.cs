@@ -507,6 +507,7 @@ public static class UiTexts
         ("lbLast", "Dernière partie", "Last match", "Última partida"),
         ("lbSession", "Session", "Session", "Sesión"),
         ("lbSeason", "Saison", "Season", "Temporada"),
+        ("lbTotal", "Total", "Total", "Total"),
         ("boardTitle", "Qui fait le plus de coffres", "Who opens the most chests", "Quién abre más cofres"),
         ("boardEmpty", "Pas encore d'amis", "No friends yet", "Aún no tienes amigos"),
         ("boardEmptyText", "Ajoute tes amis qui ont l'app (à droite) : le classement se remplit tout seul après chaque partie.", "Add your friends who have the app (on the right): the ranking fills itself after every match.", "Añade a tus amigos que tienen la app (a la derecha): la clasificación se llena sola después de cada partida."),
