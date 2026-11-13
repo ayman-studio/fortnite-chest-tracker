@@ -39,9 +39,18 @@ public static class Updater
 
     private static string ApiUrl => TestApi ?? $"https://api.github.com/repos/{AppInfo.UpdateRepo}/releases/latest";
 
-    private static HttpClient NewClient(TimeSpan timeout)
+    /// <summary>
+    /// A client fully set up before its first request: an HttpClient refuses any change of its properties once it sent
+    /// one (1.3.1 and 1.3.2 changed MaxResponseContentBufferSize between the exe and its signature, and every update
+    /// failed with "This instance has already started one or more requests").
+    /// </summary>
+    private static HttpClient NewClient(TimeSpan timeout, HttpMessageHandler? handler = null, long? maxBuffer = null)
     {
-        var http = new HttpClient { Timeout = timeout };
+        var http = handler != null ? new HttpClient(handler, disposeHandler: false) { Timeout = timeout } : new HttpClient { Timeout = timeout };
+        if (maxBuffer is { } max)
+        {
+            http.MaxResponseContentBufferSize = max;
+        }
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"FortniteChestTracker/{AppInfo.VersionText}");
         http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         return http;
@@ -145,52 +154,7 @@ public static class Updater
         var old = exe + ".old";
         try
         {
-            string signature;
-            using (var http = NewClient(TimeSpan.FromMinutes(5)))
-            {
-                using (var source = http.GetStreamAsync(update.AssetUrl).GetAwaiter().GetResult())
-                using (var target = File.Create(download))
-                {
-                    // never more than the size announced (a bigger answer is not the release)
-                    var buffer = new byte[81920];
-                    long total = 0;
-                    int n;
-                    while ((n = source.Read(buffer, 0, buffer.Length)) > 0)
-                    {
-                        total += n;
-                        if (total > update.Size)
-                        {
-                            throw new IOException(L.T("téléchargement trop gros", "download too big", "descarga demasiado grande"));
-                        }
-                        target.Write(buffer, 0, n);
-                    }
-                }
-                http.MaxResponseContentBufferSize = 4096;
-                signature = http.GetStringAsync(update.SignatureUrl).GetAwaiter().GetResult();
-            }
-
-            var info = new FileInfo(download);
-            if (info.Length != update.Size)
-            {
-                throw new IOException(L.T("téléchargement incomplet", "incomplete download", "descarga incompleta"));
-            }
-            using (var fs = File.OpenRead(download))
-            {
-                if (fs.ReadByte() != 'M' || fs.ReadByte() != 'Z')
-                {
-                    throw new IOException(L.T("le fichier téléchargé n'est pas un exe", "the downloaded file is not an exe", "el archivo descargado no es un exe"));
-                }
-                fs.Position = 0;
-                var hash = Convert.ToHexString(SHA256.HashData(fs));
-                if (!hash.Equals(update.Sha256, StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new IOException(L.T("empreinte SHA-256 incorrecte", "wrong SHA-256 checksum", "suma de comprobación SHA-256 incorrecta"));
-                }
-            }
-            if (!SignatureValid(File.ReadAllBytes(download), signature))
-            {
-                throw new IOException(L.T("signature de la mise à jour invalide : elle n'est pas installée", "invalid update signature: it is not installed", "firma de la actualización no válida: no se instala"));
-            }
+            DownloadVerified(update, download);
 
             // The standby process may run the current exe: stop it (it is restarted from the new exe).
             if (OperatingSystem.IsWindows())
@@ -212,6 +176,60 @@ public static class Updater
             // (the "open with Fortnite" watcher is started again by the counter at its next start)
             try { if (!File.Exists(exe) && File.Exists(old)) File.Move(old, exe); } catch { }
             return ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// Downloads the exe to <paramref name="download"/> and checks it: size, "MZ" header, SHA-256 and the release
+    /// signature (a small ".sig" file, read by its own client with a small buffer). Throws when anything is wrong.
+    /// </summary>
+    internal static void DownloadVerified(UpdateInfo update, string download, HttpMessageHandler? handler = null, string publicKey = ReleaseKey)
+    {
+        using (var http = NewClient(TimeSpan.FromMinutes(5), handler))
+        using (var source = http.GetStreamAsync(update.AssetUrl).GetAwaiter().GetResult())
+        using (var target = File.Create(download))
+        {
+            // never more than the size announced (a bigger answer is not the release)
+            var buffer = new byte[81920];
+            long total = 0;
+            int n;
+            while ((n = source.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                total += n;
+                if (total > update.Size)
+                {
+                    throw new IOException(L.T("téléchargement trop gros", "download too big", "descarga demasiado grande"));
+                }
+                target.Write(buffer, 0, n);
+            }
+        }
+        string signature;
+        using (var http = NewClient(TimeSpan.FromMinutes(1), handler, maxBuffer: 4096))
+        {
+            signature = http.GetStringAsync(update.SignatureUrl).GetAwaiter().GetResult();
+        }
+
+        var info = new FileInfo(download);
+        if (info.Length != update.Size)
+        {
+            throw new IOException(L.T("téléchargement incomplet", "incomplete download", "descarga incompleta"));
+        }
+        using (var fs = File.OpenRead(download))
+        {
+            if (fs.ReadByte() != 'M' || fs.ReadByte() != 'Z')
+            {
+                throw new IOException(L.T("le fichier téléchargé n'est pas un exe", "the downloaded file is not an exe", "el archivo descargado no es un exe"));
+            }
+            fs.Position = 0;
+            var hash = Convert.ToHexString(SHA256.HashData(fs));
+            if (!hash.Equals(update.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new IOException(L.T("empreinte SHA-256 incorrecte", "wrong SHA-256 checksum", "suma de comprobación SHA-256 incorrecta"));
+            }
+        }
+        if (!SignatureValid(File.ReadAllBytes(download), signature, publicKey))
+        {
+            throw new IOException(L.T("signature de la mise à jour invalide : elle n'est pas installée", "invalid update signature: it is not installed", "firma de la actualización no válida: no se instala"));
         }
     }
 

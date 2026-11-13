@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+**Updates**
+- Fixed: updates failed every time from 1.3.1 and 1.3.2 ("This instance has already started one or more requests").
+  Apps on 1.3.1 or 1.3.2 cannot get this fix by themselves: download this version once from the release page, the
+  next updates work again.
+
 ## 1.3.2 (2026-11-13)
 
 **Older matches (without replay)**

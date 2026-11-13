@@ -166,4 +166,52 @@ public class UpdaterTests
         Assert.SkipWhen(string.IsNullOrEmpty(dir), "FCT_SIG_TEST is not set");
         Assert.True(Updater.SignatureValid(File.ReadAllBytes(Path.Combine(dir!, "test.exe")), File.ReadAllText(Path.Combine(dir!, "test.exe.sig"))));
     }
+
+    private sealed class FakeDownloads(Dictionary<string, byte[]> files) : HttpMessageHandler
+    {
+        public List<string> Asked { get; } = new();
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var url = request.RequestUri!.AbsoluteUri;
+            Asked.Add(url);
+            return Task.FromResult(files.TryGetValue(url, out var body)
+                ? new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(body) }
+                : new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+        }
+    }
+
+    [Fact]
+    public void An_update_is_downloaded_with_its_signature_and_checked()
+    {
+        // 1.3.1 and 1.3.2 failed here every time: the client was changed after its first request
+        using var key = System.Security.Cryptography.ECDsa.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
+        var pub = Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
+        var exe = System.Text.Encoding.ASCII.GetBytes("MZ" + new string('x', 200_000));
+        var sig = Convert.ToBase64String(key.SignData(exe, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.DSASignatureFormat.Rfc3279DerSequence));
+        var update = new UpdateInfo(new Version(1, 5, 0), "v1.5.0", "https://example.test/app.exe", exe.Length,
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(exe)), "https://example.test/", "https://example.test/app.exe.sig");
+        var handler = new FakeDownloads(new() { [update.AssetUrl] = exe, [update.SignatureUrl] = System.Text.Encoding.ASCII.GetBytes(sig) });
+        var target = Path.Combine(Path.GetTempPath(), "fct-update-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Updater.DownloadVerified(update, target, handler, pub);
+            Assert.Equal(exe, File.ReadAllBytes(target));
+            Assert.Equal(new[] { update.AssetUrl, update.SignatureUrl }, handler.Asked);
+
+            // signed by another key: refused
+            using var other = System.Security.Cryptography.ECDsa.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256);
+            var forged = new FakeDownloads(new()
+            {
+                [update.AssetUrl] = exe,
+                [update.SignatureUrl] = System.Text.Encoding.ASCII.GetBytes(Convert.ToBase64String(other.SignData(exe, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.DSASignatureFormat.Rfc3279DerSequence))),
+            });
+            L.Set("en");
+            Assert.Contains("signature", Assert.Throws<IOException>(() => Updater.DownloadVerified(update, target, forged, pub)).Message);
+        }
+        finally
+        {
+            File.Delete(target);
+        }
+    }
 }
