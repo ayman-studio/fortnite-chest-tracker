@@ -57,11 +57,11 @@ public class EstimateTests
     }
 
     [Fact]
-    public void Time_played_uses_the_replays_and_fortnite_gg_minutes_per_match()
+    public void Time_played_is_fortnite_gg_s_for_the_season_and_the_replays_for_the_others()
     {
-        var tracked = Tracked("43.10", 2, 10, seconds: 1500); // 50 min counted
-        var r = Estimates.Compute(Season("43", 12, 4), tracked)!; // 240 min / 12 = 20 per match
-        Assert.Equal(50 + 10 * 20, r.Minutes);
+        var tracked = Tracked("42.30", 3, 10, seconds: 1200).Concat(Tracked("43.10", 2, 10, seconds: 1500)).ToList(); // 60 + 50 min
+        var r = Estimates.Compute(Season("43", 12, 4), tracked)!;
+        Assert.Equal(60 + 240, r.Minutes); // the season: fortnite.gg's 4 h, not its replays' 50 min + an average
     }
 
     [Fact]

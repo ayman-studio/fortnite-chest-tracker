@@ -16,9 +16,9 @@ public sealed class EstimateSettings
     public int Played { get; set; }
 
     /// <summary>
-    /// Minutes played this season (the counted matches included). Only their average per match is used: Epic counts
-    /// less time per match than the replays do (about 10 min against 12.5 on the same account, likely the time alive),
-    /// so the counted matches keep their replay time.
+    /// Minutes played this season (the counted matches included), as fortnite.gg shows them: the season's time played.
+    /// (A replay runs until the player leaves the match, so the replays alone count more: 31 h for 148 matches against
+    /// fortnite.gg's 30 h for 175 on the same account.)
     /// </summary>
     public int Minutes { get; set; }
 
@@ -39,7 +39,7 @@ public sealed class EstimateSettings
 /// <param name="Average">Chests per match used for the matches without replay.</param>
 /// <param name="Low">Low end of a 95 % range (uncertainty on the average only).</param>
 /// <param name="Matches">Matches in total: every counted one + the ones without replay.</param>
-/// <param name="Minutes">Minutes played in total: every counted match + the ones without replay.</param>
+/// <param name="Minutes">Minutes played in total: the season's from fortnite.gg + the replays of the other seasons.</param>
 public sealed record EstimateResult(string Season, int Played, int Tracked, int Untracked, double Average, int Estimated, int Low, int High,
     int Matches, int Minutes);
 
@@ -66,8 +66,8 @@ public static class Estimates
         var estimated = (int)Math.Round(untracked * mean);
         var margin = (int)Math.Round(1.96 * sd / Math.Sqrt(chests.Count) * untracked);
 
-        // Time: the counted matches with their replay time, the ones without replay at fortnite.gg's minutes per match.
-        var minutes = tracked.Sum(m => m.DurationSeconds ?? 0) / 60 + (int)Math.Round(untracked * (double)settings.Minutes / settings.Played);
+        // Time: the season's is fortnite.gg's (replays and matches without one alike), the other seasons' from the replays.
+        var minutes = tracked.Except(ofSeason).Sum(m => m.DurationSeconds ?? 0) / 60 + settings.Minutes;
 
         return new EstimateResult(season, settings.Played, ofSeason.Count, untracked, Math.Round(mean, 1), estimated,
             Math.Max(0, estimated - margin), estimated + margin, tracked.Count + untracked, minutes);

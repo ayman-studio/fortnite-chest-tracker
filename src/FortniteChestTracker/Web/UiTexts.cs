@@ -476,7 +476,7 @@ public static class UiTexts
         ("estSource", "Source : fortnite.gg, saison en cours · {0} · {1}", "Source: fortnite.gg, current season · {0} · {1}", "Fuente: fortnite.gg, temporada actual · {0} · {1}"),
         ("estClear", "Effacer", "Clear", "Borrar"),
         ("estClearConfirm", "Effacer l'estimation des anciennes parties ?", "Clear the estimate of the older matches?", "¿Borrar la estimación de las partidas antiguas?"),
-        ("estMethod", "(parties de la saison − parties comptées cette saison) × ta moyenne ({0} coffres par partie). Temps : celui de fortnite.gg par partie.", "(matches this season − matches counted this season) × your average ({0} chests per match). Time: fortnite.gg's per match.", "(partidas de la temporada − partidas contadas esta temporada) × tu media ({0} cofres por partida). Tiempo: el de fortnite.gg por partida."),
+        ("estMethod", "(parties de la saison − parties comptées cette saison) × ta moyenne ({0} coffres par partie). Temps de la saison : celui de fortnite.gg.", "(matches this season − matches counted this season) × your average ({0} chests per match). Time of the season: fortnite.gg's.", "(partidas de la temporada − partidas contadas esta temporada) × tu media ({0} cofres por partida). Tiempo de la temporada: el de fortnite.gg."),
 
         // Friends tab
         ("agoNow", "à l'instant", "just now", "ahora mismo"),
