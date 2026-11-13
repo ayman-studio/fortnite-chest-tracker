@@ -17,8 +17,9 @@ public sealed class EstimateSettings
     public Dictionary<string, int> Matches { get; set; } = new();
 
     /// <summary>
-    /// Lifetime minutes played (all modes, replays included) from fortnite-api.com or typed in; null = unknown (the
-    /// matches without replay then get the average length of the counted ones).
+    /// Minutes played in the matches entered (replays included), from fortnite-api.com or typed in; null = unknown.
+    /// Only their average per match is used: Epic counts less time per match than the replays do (about 10 min
+    /// against 12.5 on the same account, likely the time alive), so the counted matches keep their replay time.
     /// </summary>
     public int? Minutes { get; set; }
 
@@ -103,14 +104,15 @@ public static class Estimates
         var estimated = parts.Sum(p => p.Estimated);
         var margin = (int)Math.Round(1.96 * sd / Math.Sqrt(all.Count) * totalUntracked);
 
-        // Time played: Epic's lifetime minutes when known (they already include the counted matches), else the
-        // matches without replay at the average length of the counted ones.
+        // Time played: the counted matches with their replay time, the ones without replay at Epic's average minutes
+        // per match when known, else at the average length of the counted ones.
         var trackedMinutes = tracked.Sum(m => m.DurationSeconds ?? 0) / 60;
         var timed = tracked.Where(m => m.DurationSeconds > 0).ToList();
-        var fromEpic = settings.Minutes is > 0;
-        var minutes = fromEpic
-            ? Math.Max(settings.Minutes!.Value, trackedMinutes)
-            : trackedMinutes + (timed.Count > 0 ? (int)Math.Round(totalUntracked * timed.Average(m => m.DurationSeconds!.Value) / 60.0) : 0);
+        var entered = settings.Matches.Values.Where(v => v > 0).Sum() - (settings.Matches.ContainsKey("total") && settings.Matches.Count > 1 ? settings.Matches["total"] : 0);
+        var fromEpic = settings.Minutes is > 0 && entered > 0;
+        double? perMatch = fromEpic ? (double)settings.Minutes!.Value / entered
+            : timed.Count > 0 ? timed.Average(m => m.DurationSeconds!.Value) / 60.0 : null;
+        var minutes = trackedMinutes + (perMatch is { } pm ? (int)Math.Round(totalUntracked * pm) : 0);
 
         return new EstimateResult(parts.Sum(p => p.Played), parts.Sum(p => p.Tracked), totalUntracked, estimated,
             Math.Max(0, estimated - margin), estimated + margin, parts, tracked.Count + totalUntracked, minutes, fromEpic);

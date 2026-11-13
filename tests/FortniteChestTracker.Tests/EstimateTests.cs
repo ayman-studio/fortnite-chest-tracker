@@ -79,14 +79,14 @@ public class EstimateTests
         Assert.Equal(50 + 10 * 25, r.Minutes);
         Assert.False(r.MinutesFromEpic);
 
-        // Epic's lifetime minutes already include the counted matches
-        r = Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 12 }, Minutes = 600 }, tracked)!;
-        Assert.Equal(600, r.Minutes);
+        // Epic's minutes: only their average per match (240 / 12 = 20) for the 10 matches without replay
+        r = Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 12 }, Minutes = 240 }, tracked)!;
+        Assert.Equal(50 + 10 * 20, r.Minutes);
         Assert.True(r.MinutesFromEpic);
 
-        // never less than what the replays counted
-        r = Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 12 }, Minutes = 20 }, tracked)!;
-        Assert.Equal(50, r.Minutes);
+        // per mode: the matches of all the modes entered
+        r = Estimates.Compute(new EstimateSettings { Matches = { ["duo"] = 8, ["solo"] = 4 }, Minutes = 240 }, tracked)!;
+        Assert.Equal(50 + 10 * 20, r.Minutes);
 
         // no match length known: only the counted time
         r = Estimates.Compute(new EstimateSettings { Matches = { ["total"] = 12 } }, Tracked(("duo", 10)))!;
