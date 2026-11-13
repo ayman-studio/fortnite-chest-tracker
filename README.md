@@ -1,7 +1,5 @@
 <p align="center"><img src="docs/banner-en.png" alt="Fortnite - Chest Tracker" width="100%"></p>
 
-<p align="center"><b>English</b> · <a href="README.fr.md">Français</a> · <a href="README.es.md">Español</a></p>
-
 <p align="center">
   <a href="https://github.com/ayman-studio/fortnite-chest-tracker/releases/latest"><img src="https://img.shields.io/badge/Download%20for%20Windows-c6ff3d?style=for-the-badge&logo=windows&logoColor=0b1a4a" alt="Download for Windows" height="38"></a>
   <a href="https://fortnite-chest-tracker.com/"><img src="https://img.shields.io/badge/Website-12266c?style=for-the-badge&logo=googlechrome&logoColor=c6ff3d" alt="Website" height="38"></a>
